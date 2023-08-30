@@ -1,0 +1,10 @@
+[package]
+name = "zjstatus"
+version = "0.1.0"
+authors = ["Daniel Jankowski"]
+edition = "2018"
+
+[dependencies]
+ansi_term = "0.12.1"
+zellij-tile = "0.38.0"
+chrono = "0.4.0"

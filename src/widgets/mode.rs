@@ -27,71 +27,71 @@ pub struct ModeWidget {
 impl ModeWidget {
     pub fn new(config: BTreeMap<String, String>) -> Self {
         let mut normal_format_string = "";
-        if let Some(form) = config.get("mode_normal_format") {
+        if let Some(form) = config.get("mode_normal") {
             normal_format_string = form;
         }
 
-        let locked_format = FormattedPart::from_format_string(match config.get("mode_locked_format") {
+        let locked_format = FormattedPart::from_format_string(match config.get("mode_locked") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
 
-        let resize_format = FormattedPart::from_format_string(match config.get("mode_resize_format") {
+        let resize_format = FormattedPart::from_format_string(match config.get("mode_resize") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
 
-        let pane_format = FormattedPart::from_format_string(match config.get("mode_pane_format") {
+        let pane_format = FormattedPart::from_format_string(match config.get("mode_pane") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
 
-        let tab_format = FormattedPart::from_format_string(match config.get("mode_tab_format") {
+        let tab_format = FormattedPart::from_format_string(match config.get("mode_tab") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
 
-        let scroll_format = FormattedPart::from_format_string(match config.get("mode_scroll_format") {
+        let scroll_format = FormattedPart::from_format_string(match config.get("mode_scroll") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
 
-        let enter_search_format = FormattedPart::from_format_string(match config.get("mode_enter_search_format") {
+        let enter_search_format = FormattedPart::from_format_string(match config.get("mode_enter_search") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
 
-        let search_format = FormattedPart::from_format_string(match config.get("mode_search_format") {
+        let search_format = FormattedPart::from_format_string(match config.get("mode_search") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
 
-        let rename_tab_format = FormattedPart::from_format_string(match config.get("mode_rename_tab_format") {
+        let rename_tab_format = FormattedPart::from_format_string(match config.get("mode_rename_tab") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
 
-        let rename_pane_format = FormattedPart::from_format_string(match config.get("mode_rename_pane_format") {
+        let rename_pane_format = FormattedPart::from_format_string(match config.get("mode_rename_pane") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
 
-        let session_format = FormattedPart::from_format_string(match config.get("mode_session_format") {
+        let session_format = FormattedPart::from_format_string(match config.get("mode_session") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
 
-        let move_format = FormattedPart::from_format_string(match config.get("mode_move_format") {
+        let move_format = FormattedPart::from_format_string(match config.get("mode_move") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
 
-        let prompt_format = FormattedPart::from_format_string(match config.get("mode_prompt_format") {
+        let prompt_format = FormattedPart::from_format_string(match config.get("mode_prompt") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
 
-        let tmux_format = FormattedPart::from_format_string(match config.get("mode_tmux_format") {
+        let tmux_format = FormattedPart::from_format_string(match config.get("mode_tmux") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });

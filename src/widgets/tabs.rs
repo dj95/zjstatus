@@ -14,12 +14,12 @@ pub struct TabsWidget {
 impl TabsWidget {
     pub fn new(config: BTreeMap<String, String>) -> Self {
         let mut normal_tab_format_string = "";
-        if let Some(form) = config.get("tab_format") {
+        if let Some(form) = config.get("tab_normal") {
             normal_tab_format_string = form;
         }
 
         let active_tab_format =
-            FormattedPart::from_format_string(match config.get("tab_active_format") {
+            FormattedPart::from_format_string(match config.get("tab_active") {
                 Some(form) => form.to_string(),
                 None => normal_tab_format_string.to_string(),
             });

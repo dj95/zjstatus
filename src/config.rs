@@ -10,7 +10,6 @@ pub struct ModuleConfig {
 
 #[derive(Clone, Debug)]
 pub struct FormattedPart {
-    pub order: u8,
     pub fg: Option<Colour>,
     pub bg: Option<Colour>,
     pub bold: bool,
@@ -19,7 +18,7 @@ pub struct FormattedPart {
 }
 
 fn parse_color(color: &str) -> Option<Colour> {
-    if color.starts_with("#") {
+    if color.starts_with('#') {
         let rgb = hex_rgb::convert_hexcode_to_rgb(color.to_string()).unwrap();
 
         return Some(RGB(rgb.red, rgb.green, rgb.blue));
@@ -40,7 +39,7 @@ impl FormattedPart {
         }
         let mut result = FormattedPart::default();
 
-        let format_content_split = format.split("]");
+        let format_content_split = format.split(']');
 
         if format_content_split.clone().count() == 1 {
             result.content = format;
@@ -51,7 +50,7 @@ impl FormattedPart {
         let format_content_split = format_content_split.collect::<Vec<&str>>();
         result.content = format_content_split[1].to_string();
 
-        let parts = format_content_split[0].split(",");
+        let parts = format_content_split[0].split(',');
         for part in parts {
             if part.starts_with("fg=") {
                 result.fg = parse_color(part.strip_prefix("fg=").unwrap());
@@ -77,7 +76,6 @@ impl FormattedPart {
 impl Default for FormattedPart {
     fn default() -> Self {
         Self {
-            order: 0,
             fg: None,
             bg: None,
             bold: false,
@@ -103,15 +101,11 @@ fn parts_from_config(format: Option<&String>) -> Vec<FormattedPart> {
 
     let format_left = format.unwrap();
 
-    let mut counter: u8 = 0;
     let color_parts = format_left.split("#[");
     for color_part in color_parts {
-        let mut part = FormattedPart::from_format_string(color_part.to_string());
-        part.order = counter.clone();
+        let part = FormattedPart::from_format_string(color_part.to_string());
 
         output.push(part);
-
-        counter += 1;
     }
 
     output

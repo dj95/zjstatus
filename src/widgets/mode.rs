@@ -125,7 +125,7 @@ impl Widget for ModeWidget {
             content = content.replace("{name}", format!("{:?}", state.mode.mode).as_str());
         }
 
-        render::formatting(format.clone(), content)
+        render::formatting(format, content)
     }
 }
 

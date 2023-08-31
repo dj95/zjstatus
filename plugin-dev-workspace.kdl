@@ -1,33 +1,23 @@
 layout {
-    pane size=1 borderless=true {
-        plugin location="zellij:tab-bar"
-    }
     pane split_direction="vertical" {
         pane edit="src/main.rs"
-        pane {
-            pane stacked=true {
-                pane size="10%" command="bash" name="COMPILE AND RELOAD PLUGIN" {
-                    args "-c" "watchexec 'cargo build && zellij action start-or-reload-plugin file:target/wasm32-wasi/debug/zjstatus.wasm'"
-                }
-                pane expanded=true {
-                    plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
-                        format_left  "#[bold,italic]{mode} #[fg=255] :: {tabs}"
-                        format_right "#[fg=#ffffff,bg=0] {datetime}"
-
-                        mode_normal  "#[fg=0,bg=3]>> {name} <<"
-                        mode_tmux    "#[fg=255,bg=0]>> tmux <<"
-
-                        tab_normal   "#[fg=255,bg=0] {name}"
-                        tab_active   "#[fg=255,bg=0,bold] {name}"
-
-                        datetime        "#[fg=255] {format} "
-                        datetime_format "%H:%M"
-                    }
-                }
-            }
+        pane command="fish" {
         }
     }
-    pane size=2 borderless=true {
-        plugin location="zellij:status-bar"
+
+    pane size=1 borderless=true {
+        plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
+            format_left  "{mode} {tabs}"
+            format_right "{datetime}"
+
+            mode_normal  "#[bg=#89B4FA] "
+            mode_tmux    "#[bg=#ffc387] "
+
+            tab_normal   "#[fg=#6C7086] {name} "
+            tab_active   "#[fg=#9399B2,bold,italic] {name} "
+
+            datetime        "#[fg=#6C7086] {format} "
+            datetime_format "%H:%M"
+        }
     }
 }

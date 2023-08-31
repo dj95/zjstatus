@@ -26,13 +26,13 @@ pub fn widgets_and_formatting(
 ) -> String {
     let mut output = part.content.clone();
 
-    if output.contains("{clock}") {
-        let result = match widgets.get("clock") {
+    if output.contains("{datetime}") {
+        let result = match widgets.get("datetime") {
             Some(widget) => widget.process(state.clone()),
             None => "Use of uninitialized widget".to_string(),
         };
 
-        output = output.replace("{clock}", &result);
+        output = output.replace("{datetime}", &result);
     }
 
     if output.contains("{mode}") {

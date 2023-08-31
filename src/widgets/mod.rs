@@ -1,4 +1,4 @@
-pub mod clock;
+pub mod datetime;
 pub mod mode;
 pub mod tabs;
 pub mod widget;

@@ -1,4 +1,4 @@
-use widgets::{mode::ModeWidget, tabs::TabsWidget, widget::Widget, clock::ClockWidget};
+use widgets::{mode::ModeWidget, tabs::TabsWidget, widget::Widget, datetime::DateTimeWidget};
 use zellij_tile::prelude::*;
 
 use std::{collections::BTreeMap, sync::Arc, u8, usize};
@@ -112,7 +112,7 @@ impl ZellijPlugin for State {
 fn register_widgets(configuration: BTreeMap<String, String>) -> BTreeMap<String, Arc<dyn Widget>> {
     let mut widget_map = BTreeMap::<String, Arc<dyn Widget>>::new();
 
-    widget_map.insert("clock".to_string(), Arc::new(ClockWidget::new(configuration.clone())));
+    widget_map.insert("datetime".to_string(), Arc::new(DateTimeWidget::new(configuration.clone())));
     widget_map.insert(
         "mode".to_string(),
         Arc::new(ModeWidget::new(configuration.clone())),

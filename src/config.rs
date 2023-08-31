@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use ansi_term::{Colour, Colour::Fixed};
+use ansi_term::{Colour, Colour::Fixed, Colour::RGB};
 
 #[derive(Default)]
 pub struct ModuleConfig {
@@ -20,8 +20,9 @@ pub struct FormattedPart {
 
 fn parse_color(color: &str) -> Option<Colour> {
     if color.starts_with("#") {
-        // TODO: render hex to color
-        return Some(Fixed(1));
+        let rgb = hex_rgb::convert_hexcode_to_rgb(color.to_string()).unwrap();
+
+        return Some(RGB(rgb.red, rgb.green, rgb.blue));
     }
 
     if let Ok(result) = color.parse::<u8>() {

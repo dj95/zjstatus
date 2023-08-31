@@ -4,8 +4,8 @@ use ansi_term::{Colour, Colour::Fixed};
 
 #[derive(Default)]
 pub struct ModuleConfig {
-    pub enabled_modules: Vec<String>,
-    pub formatted_parts: Vec<FormattedPart>,
+    pub left_parts: Vec<FormattedPart>,
+    pub right_parts: Vec<FormattedPart>,
 }
 
 #[derive(Clone, Debug)]
@@ -87,31 +87,31 @@ impl Default for FormattedPart {
 }
 
 pub fn parse_format(config: BTreeMap<String, String>) -> ModuleConfig {
-    let format = config.get("format");
-    let mut formatted_parts = Vec::new();
+    ModuleConfig {
+        left_parts: parts_from_config(config.get("format_left")),
+        right_parts: parts_from_config(config.get("format_right")),
+    }
+}
 
+fn parts_from_config(format: Option<&String>) -> Vec<FormattedPart> {
     if format.is_none() {
-        return ModuleConfig {
-            enabled_modules: Vec::new(),
-            formatted_parts,
-        };
+        return Vec::new();
     }
 
-    let format = format.unwrap();
+    let mut output = Vec::new();
+
+    let format_left = format.unwrap();
 
     let mut counter: u8 = 0;
-    let color_parts = format.split("#[");
+    let color_parts = format_left.split("#[");
     for color_part in color_parts {
         let mut part = FormattedPart::from_format_string(color_part.to_string());
         part.order = counter.clone();
 
-        formatted_parts.push(part);
+        output.push(part);
 
         counter += 1;
     }
 
-    ModuleConfig {
-        enabled_modules: Vec::new(),
-        formatted_parts,
-    }
+    output
 }

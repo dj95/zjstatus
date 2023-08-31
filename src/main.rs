@@ -1,8 +1,4 @@
-use widgets::{
-    mode::ModeWidget,
-    tabs::TabsWidget,
-    widget::Widget,
-};
+use widgets::{mode::ModeWidget, tabs::TabsWidget, widget::Widget, clock::ClockWidget};
 use zellij_tile::prelude::*;
 
 use std::{collections::BTreeMap, sync::Arc, u8, usize};
@@ -69,15 +65,14 @@ impl ZellijPlugin for State {
     }
 
     fn render(&mut self, rows: usize, cols: usize) {
-        let mut output = "".to_string();
+        self.state.rows = rows.clone();
+        self.state.cols = cols.clone();
 
-        self.state.rows = rows;
-        self.state.cols = cols;
-
-        for part in self.module_config.formatted_parts.to_vec() {
-            output = format!(
+        let mut output_left = "".to_string();
+        for part in self.module_config.left_parts.to_vec() {
+            output_left = format!(
                 "{}{}",
-                output,
+                output_left,
                 format!(
                     "{}",
                     render::widgets_and_formatting(
@@ -89,13 +84,35 @@ impl ZellijPlugin for State {
             );
         }
 
-        println!("{}", output);
+        let mut output_right = "".to_string();
+        for part in self.module_config.right_parts.to_vec() {
+            output_right = format!(
+                "{}{}",
+                output_right,
+                format!(
+                    "{}",
+                    render::widgets_and_formatting(
+                        part,
+                        self.widget_map.clone(),
+                        self.state.clone()
+                    )
+                )
+            );
+        }
+
+        let left_count = strip_ansi_escapes::strip(output_left.clone()).len();
+        let right_count = strip_ansi_escapes::strip(output_right.clone()).len();
+
+        let spacer = " ".repeat(cols - left_count - right_count);
+
+        println!("{}{}{}", output_left, spacer, output_right);
     }
 }
 
 fn register_widgets(configuration: BTreeMap<String, String>) -> BTreeMap<String, Arc<dyn Widget>> {
     let mut widget_map = BTreeMap::<String, Arc<dyn Widget>>::new();
 
+    widget_map.insert("clock".to_string(), Arc::new(ClockWidget::new(configuration.clone())));
     widget_map.insert(
         "mode".to_string(),
         Arc::new(ModeWidget::new(configuration.clone())),

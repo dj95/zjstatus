@@ -18,11 +18,10 @@ impl TabsWidget {
             normal_tab_format_string = form;
         }
 
-        let active_tab_format =
-            FormattedPart::from_format_string(match config.get("tab_active") {
-                Some(form) => form.to_string(),
-                None => normal_tab_format_string.to_string(),
-            });
+        let active_tab_format = FormattedPart::from_format_string(match config.get("tab_active") {
+            Some(form) => form.to_string(),
+            None => normal_tab_format_string.to_string(),
+        });
 
         Self {
             normal_tab_format: FormattedPart::from_format_string(
@@ -39,7 +38,6 @@ impl Widget for TabsWidget {
 
         for tab in state.tabs {
             let formatter = self.select_format(tab.clone());
-            println!("{:?}", tab.clone());
 
             let mut content = formatter.content.clone();
             if content.contains("{name}") {

@@ -11,13 +11,17 @@ layout {
                 }
                 pane expanded=true {
                     plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
-                        format "#[bold,italic]{mode} #[fg=255] :: {tabs} {space} #[fg=255,bg=0] {date} "
+                        format_left  "#[bold,italic]{mode} #[fg=255] :: {tabs}"
+                        format_right "#[fg=255,bg=0] {clock} "
 
                         mode_normal  "#[fg=0,bg=3]>> {name} <<"
                         mode_tmux    "#[fg=255,bg=0]>> tmux <<"
 
-                        tab_normal  "#[fg=255,bg=0] {name}"
-                        tab_active  "#[fg=255,bg=0,bold] {name}"
+                        tab_normal   "#[fg=255,bg=0] {name}"
+                        tab_active   "#[fg=255,bg=0,bold] {name}"
+
+                        clock        "#[fg=255] {time} "
+                        clock_format "%H:%M"
                     }
                 }
             }

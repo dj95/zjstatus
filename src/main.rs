@@ -1,11 +1,11 @@
-use widgets::{mode::ModeWidget, widget::Widget};
+use widgets::{
+    mode::ModeWidget,
+    tabs::TabsWidget,
+    widget::Widget,
+};
 use zellij_tile::prelude::*;
 
-use std::{
-    collections::BTreeMap,
-    sync::Arc,
-    u8, usize,
-};
+use std::{collections::BTreeMap, sync::Arc, u8, usize};
 
 mod config;
 mod render;
@@ -22,7 +22,7 @@ struct State {
 #[derive(Default, Debug, Clone)]
 pub struct ZellijState {
     pub mode: ModeInfo,
-    pub tabs: Vec<String>,
+    pub tabs: Vec<TabInfo>,
     pub rows: usize,
     pub cols: usize,
 }
@@ -42,13 +42,7 @@ impl ZellijPlugin for State {
         subscribe(&[EventType::ModeUpdate, EventType::TabUpdate, EventType::Key]);
 
         self.module_config = config::parse_format(configuration.clone());
-
-        let mut widget_map = BTreeMap::<String, Arc<dyn Widget>>::new();
-
-        let mode_widget = ModeWidget::new(configuration);
-        widget_map.insert("mode".to_string(), Arc::new(mode_widget));
-
-        self.widget_map = widget_map;
+        self.widget_map = register_widgets(configuration);
 
         self.state = ZellijState {
             mode: ModeInfo::default(),
@@ -66,7 +60,7 @@ impl ZellijPlugin for State {
                 should_render = true;
             }
             Event::TabUpdate(tab_info) => {
-                self.state.tabs = tab_info.iter().map(|t| t.name.clone()).collect();
+                self.state.tabs = tab_info;
                 should_render = true;
             }
             _ => (),
@@ -97,4 +91,16 @@ impl ZellijPlugin for State {
 
         println!("{}", output);
     }
+}
+
+fn register_widgets(configuration: BTreeMap<String, String>) -> BTreeMap<String, Arc<dyn Widget>> {
+    let mut widget_map = BTreeMap::<String, Arc<dyn Widget>>::new();
+
+    widget_map.insert(
+        "mode".to_string(),
+        Arc::new(ModeWidget::new(configuration.clone())),
+    );
+    widget_map.insert("tabs".to_string(), Arc::new(TabsWidget::new(configuration)));
+
+    widget_map
 }

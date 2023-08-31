@@ -28,11 +28,20 @@ pub fn widgets_and_formatting(
 
     if output.contains("{mode}") {
         let result = match widgets.get("mode") {
-            Some(widget) => widget.process(state),
+            Some(widget) => widget.process(state.clone()),
             None => "Use of uninitialized widget".to_string(),
         };
 
         output = output.replace("{mode}", &result);
+    }
+
+    if output.contains("{tabs}") {
+        let result = match widgets.get("tabs") {
+            Some(widget) => widget.process(state),
+            None => "Use of uninitialized widget".to_string(),
+        };
+
+        output = output.replace("{tabs}", &result);
     }
 
     formatting(part, output)

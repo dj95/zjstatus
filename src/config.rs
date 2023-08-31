@@ -1,18 +1,33 @@
 use std::collections::BTreeMap;
 
+use ansi_term::{Colour, Colour::Fixed};
+
 #[derive(Default)]
 pub struct ModuleConfig {
     pub enabled_modules: Vec<String>,
     pub formatted_parts: Vec<FormattedPart>,
 }
 
+#[derive(Clone, Debug)]
 pub struct FormattedPart {
     pub order: u8,
-    pub fg: u8,
-    pub bg: u8,
+    pub fg: Option<Colour>,
+    pub bg: Option<Colour>,
     pub bold: bool,
     pub italic: bool,
     pub content: String,
+}
+
+fn parse_color(color: &str) -> Option<Colour> {
+    if color.starts_with("#") {
+        return Some(Fixed(1));
+    }
+
+    if let Ok(result) = color.parse::<u8>() {
+        return Some(Fixed(result));
+    }
+
+    None
 }
 
 impl FormattedPart {
@@ -33,27 +48,20 @@ impl FormattedPart {
         let parts = format_content_split[0].split(",");
         for part in parts {
             if part.starts_with("fg=") {
-                // TODO: better error handling
-                result.fg = part
-                    .strip_prefix("fg=")
-                    .unwrap()
-                    .to_string()
-                    .parse::<u8>()
-                    .unwrap();
+                result.fg = parse_color(part.strip_prefix("fg=").unwrap());
             }
 
             if part.starts_with("bg=") {
-                // TODO: better error handling
-                result.bg = part
-                    .strip_prefix("bg=")
-                    .unwrap()
-                    .to_string()
-                    .parse::<u8>()
-                    .unwrap();
+                result.bg = parse_color(part.strip_prefix("bg=").unwrap());
             }
 
-            result.bold = part.eq("bold");
-            result.italic = part.eq("italic");
+            if part.eq("bold") {
+                result.bold = true;
+            }
+
+            if part.eq("italic") {
+                result.italic = true;
+            }
         }
 
         result
@@ -64,8 +72,8 @@ impl Default for FormattedPart {
     fn default() -> Self {
         Self {
             order: 0,
-            fg: 255,
-            bg: 0,
+            fg: None,
+            bg: None,
             bold: false,
             italic: false,
             content: "".to_string(),

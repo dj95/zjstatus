@@ -1,4 +1,5 @@
-use ansi_term::{Colour::Fixed, Style};
+use ansi_term::Style;
+use config::FormattedPart;
 use zellij_tile::prelude::*;
 
 use std::{
@@ -54,47 +55,33 @@ impl ZellijPlugin for State {
     }
 
     fn render(&mut self, rows: usize, cols: usize) {
-        // TODO: render blocks in correct order and print them
+        let mut output = "".to_string();
 
-        let colored_rows = color(CYAN, &rows.to_string());
-        let colored_cols = color_bold(CYAN, &cols.to_string());
-        println!("");
-        println!("I have {} rows and {} columns", colored_rows, colored_cols);
-        println!("");
-        println!(
-            "{} {:#?}",
-            color_bold(
-                GREEN,
-                "I was started with the following user configuration:"
-            ),
-            self.userspace_configuration
-        );
-        println!("");
-        println!("{}", color_bold(GREEN, "Modes:"));
-        for (mode, count) in &self.mode_log {
-            let count = color_bold(ORANGE, &count.to_string());
-            println!("{} -> Changed {} times", mode, count);
+        for part in self.module_config.formatted_parts.to_vec() {
+            // TODO: render widgets
+
+            output = format!(
+                "{}{}",
+                output,
+                format!("{}", color(part.clone(), part.content.as_str()))
+            );
         }
-        println!("");
-        let current_tabs = color_bold(GREEN, "Current Tabs:");
-        let comma = color_bold(ORANGE, ", ");
-        println!("{} {}", current_tabs, self.tabs.join(&comma));
+
+        println!("{}", output);
     }
 }
 
-pub const CYAN: u8 = 51;
-pub const GRAY_LIGHT: u8 = 238;
-pub const GRAY_DARK: u8 = 245;
-pub const WHITE: u8 = 15;
-pub const BLACK: u8 = 16;
-pub const RED: u8 = 124;
-pub const GREEN: u8 = 154;
-pub const ORANGE: u8 = 166;
+fn color(part: FormattedPart, text: &str) -> String {
+    let mut style = match part.fg {
+        Some(color) => Style::new().fg(color),
+        None => Style::new(),
+    };
 
-fn color(color: u8, text: &str) -> String {
-    format!("{}", Style::new().fg(Fixed(color)).paint(text))
-}
+    style.background = part.bg;
+    style.is_italic = part.italic;
+    style.is_bold = part.bold;
 
-fn color_bold(color: u8, text: &str) -> String {
-    format!("{}", Style::new().fg(Fixed(color)).bold().paint(text))
+    let style = style.paint(text);
+
+    format!("{}", style)
 }

@@ -11,13 +11,13 @@ layout {
                 }
                 pane expanded=true {
                     plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
-                        format "#[fg=CYAN] {mode} #[fg=WHITE] :: {tab} {space} #[fg=ORANGE,bg=GREEN] {date}"
+                        format "#[fg=0,bg=3,bold,italic] {mode} #[fg=255] :: {tabs} {space} #[fg=255,bg=0] {date}"
 
-                        mode_normal_format "#[fg=BLUE,bg=NONE]>> normal"
-                        mode_tmux_format   "#[fg=ORANGE,bg=NONE]>> tmux"
+                        mode_normal_format "#[fg=255,bg=0]>> normal"
+                        mode_tmux_format   "#[fg=255,bg=0]>> tmux"
 
-                        tab_format        "#[fg=GRAY,bg=NONE] {name}"
-                        tab_active_format "#[fg=WHITE,bg=NONE,bold] {name}"
+                        tab_format        "#[fg=255,bg=0] {name}"
+                        tab_active_format "#[fg=255,bg=0,bold] {name}"
                     }
                 }
             }

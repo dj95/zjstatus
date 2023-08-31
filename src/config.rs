@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use ansi_term::{Colour, Colour::Fixed};
+use ansi_term::{Colour, Colour::Fixed, Style};
 
 #[derive(Default)]
 pub struct ModuleConfig {
@@ -65,6 +65,23 @@ impl FormattedPart {
         }
 
         result
+    }
+
+    pub fn render(&self) -> String {
+        // TODO: render widgets
+
+        let mut style = match self.fg {
+            Some(color) => Style::new().fg(color),
+            None => Style::new(),
+        };
+
+        style.background = self.bg;
+        style.is_italic = self.italic;
+        style.is_bold = self.bold;
+
+        let style = style.paint(self.content.clone());
+
+        format!("{}", style)
     }
 }
 

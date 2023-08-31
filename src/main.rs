@@ -1,5 +1,3 @@
-use ansi_term::Style;
-use config::FormattedPart;
 use zellij_tile::prelude::*;
 
 use std::{
@@ -58,30 +56,13 @@ impl ZellijPlugin for State {
         let mut output = "".to_string();
 
         for part in self.module_config.formatted_parts.to_vec() {
-            // TODO: render widgets
-
             output = format!(
                 "{}{}",
                 output,
-                format!("{}", color(part.clone(), part.content.as_str()))
+                format!("{}", part.render())
             );
         }
 
         println!("{}", output);
     }
-}
-
-fn color(part: FormattedPart, text: &str) -> String {
-    let mut style = match part.fg {
-        Some(color) => Style::new().fg(color),
-        None => Style::new(),
-    };
-
-    style.background = part.bg;
-    style.is_italic = part.italic;
-    style.is_bold = part.bold;
-
-    let style = style.paint(text);
-
-    format!("{}", style)
 }

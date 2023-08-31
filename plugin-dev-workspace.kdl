@@ -11,7 +11,7 @@ layout {
                 }
                 pane expanded=true {
                     plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
-                        format "#[fg=0,bg=3,bold,italic] {mode} #[fg=255] :: {tabs} {space} #[fg=255,bg=0] {date}"
+                        format "#[fg=0,bg=3,bold,italic] {mode} #[fg=255] :: {tabs} {space} #[fg=255,bg=0] {date} "
 
                         mode_normal_format "#[fg=255,bg=0]>> normal"
                         mode_tmux_format   "#[fg=255,bg=0]>> tmux"

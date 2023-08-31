@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use ansi_term::{Colour, Colour::Fixed, Style};
+use ansi_term::{Colour, Colour::Fixed};
 
 #[derive(Default)]
 pub struct ModuleConfig {
@@ -20,6 +20,7 @@ pub struct FormattedPart {
 
 fn parse_color(color: &str) -> Option<Colour> {
     if color.starts_with("#") {
+        // TODO: render hex to color
         return Some(Fixed(1));
     }
 
@@ -32,6 +33,10 @@ fn parse_color(color: &str) -> Option<Colour> {
 
 impl FormattedPart {
     pub fn from_format_string(format: String) -> Self {
+        let mut format = format;
+        if format.starts_with("#[") {
+            format = format.strip_prefix("#[").unwrap().to_string();
+        }
         let mut result = FormattedPart::default();
 
         let format_content_split = format.split("]");
@@ -65,23 +70,6 @@ impl FormattedPart {
         }
 
         result
-    }
-
-    pub fn render(&self) -> String {
-        // TODO: render widgets
-
-        let mut style = match self.fg {
-            Some(color) => Style::new().fg(color),
-            None => Style::new(),
-        };
-
-        style.background = self.bg;
-        style.is_italic = self.italic;
-        style.is_bold = self.bold;
-
-        let style = style.paint(self.content.clone());
-
-        format!("{}", style)
     }
 }
 

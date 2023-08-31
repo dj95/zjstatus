@@ -1,4 +1,4 @@
-use widgets::{datetime::DateTimeWidget, mode::ModeWidget, tabs::TabsWidget, widget::Widget};
+use widgets::{datetime::DateTimeWidget, mode::ModeWidget, tabs::TabsWidget, widget::Widget, session::SessionWidget};
 use zellij_tile::prelude::*;
 
 use std::{collections::BTreeMap, sync::Arc, u8, usize};
@@ -19,6 +19,7 @@ struct State {
 pub struct ZellijState {
     pub mode: ModeInfo,
     pub tabs: Vec<TabInfo>,
+    pub sessions: Vec<SessionInfo>,
 }
 
 register_plugin!(State);
@@ -33,7 +34,7 @@ impl ZellijPlugin for State {
             PermissionType::ReadApplicationState,
             PermissionType::RunCommands,
         ]);
-        subscribe(&[EventType::ModeUpdate, EventType::TabUpdate, EventType::Key]);
+        subscribe(&[EventType::ModeUpdate, EventType::TabUpdate, EventType::SessionUpdate]);
 
         self.module_config = config::parse_format(configuration.clone());
         self.widget_map = register_widgets(configuration);
@@ -41,6 +42,7 @@ impl ZellijPlugin for State {
         self.state = ZellijState {
             mode: ModeInfo::default(),
             tabs: Vec::new(),
+            sessions: Vec::new(),
         };
     }
 
@@ -49,6 +51,10 @@ impl ZellijPlugin for State {
         match event {
             Event::ModeUpdate(mode_info) => {
                 self.state.mode = mode_info;
+                should_render = true;
+            }
+            Event::SessionUpdate(session_info) => {
+                self.state.sessions = session_info;
                 should_render = true;
             }
             Event::TabUpdate(tab_info) => {
@@ -104,6 +110,7 @@ fn register_widgets(configuration: BTreeMap<String, String>) -> BTreeMap<String,
         "mode".to_string(),
         Arc::new(ModeWidget::new(configuration.clone())),
     );
+    widget_map.insert("session".to_string(), Arc::new(SessionWidget::new(configuration.clone())));
     widget_map.insert("tabs".to_string(), Arc::new(TabsWidget::new(configuration)));
 
     widget_map

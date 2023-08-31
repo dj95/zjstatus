@@ -44,6 +44,15 @@ pub fn widgets_and_formatting(
         output = output.replace("{mode}", &result);
     }
 
+    if output.contains("{session}") {
+        let result = match widgets.get("session") {
+            Some(widget) => widget.process(state.clone()),
+            None => "Use of uninitialized widget".to_string(),
+        };
+
+        output = output.replace("{session}", &result);
+    }
+
     if output.contains("{tabs}") {
         let result = match widgets.get("tabs") {
             Some(widget) => widget.process(state),

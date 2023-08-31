@@ -1,13 +1,11 @@
 layout {
     pane split_direction="vertical" {
-        pane edit="src/main.rs"
-        pane command="fish" {
-        }
+        pane
     }
 
     pane size=1 borderless=true {
         plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
-            format_left  "{mode} {tabs}"
+            format_left  "{mode} #[fg=#89B4FA,bold]{session} {tabs}"
             format_right "{datetime}"
 
             mode_normal  "#[bg=#89B4FA] "
@@ -16,8 +14,8 @@ layout {
             tab_normal   "#[fg=#6C7086] {name} "
             tab_active   "#[fg=#9399B2,bold,italic] {name} "
 
-            datetime        "#[fg=#6C7086] {format} "
-            datetime_format "%H:%M"
+            datetime        "#[fg=#6C7086,bold] {format} "
+            datetime_format "%A, %d %b %Y %H:%M"
         }
     }
 }

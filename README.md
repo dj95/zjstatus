@@ -11,6 +11,8 @@
   modules can be formatted separately. Due to the widget structure new modules can be created with ease.
 </p>
 
+![Screenshot of the statusbar](./assets/demo.png)
+
 ## 🚀 Installation
 
 Download the latest binary in the github releases. Place it somewhere, zellij is able to access it. Then the

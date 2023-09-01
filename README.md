@@ -19,6 +19,12 @@ Download the latest binary in the github releases. Place it somewhere, zellij is
 plugin can be included by referencing it in a layout file, e.g. in the default layout one.
 
 You could also refer to the plugin guide from zellij, after downloading the binary: [https://zellij.dev/documentation/plugin-loading](https://zellij.dev/documentation/plugin-loading)
+On the first run or updates, you need to grant permissions to zstatus in order to allow access to certain information
+and to send commands (like enabling or disabling the pane border). Since zstatus is not designed to be a selectable
+window, zelli won't let you grant the permissions. For this purpose zstatus offers the configuration `first_start "true"`.
+When this configuration is set, you are able to select the pane for the plugin and grant permissions. Then simply
+disable or delete the config flag again to make it work just as a statusbar.
+
 Please ensure, that the configuration is correct.
 
 ## ⚙️ Configuration
@@ -37,6 +43,8 @@ layout {
             format_left  "{mode} #[fg=#89B4FA,bold]{session} {tabs}"
             format_right "{datetime}"
             format_space ""
+
+            first_start "false"
 
             mode_normal  "#[bg=#89B4FA] "
             mode_tmux    "#[bg=#ffc387] "

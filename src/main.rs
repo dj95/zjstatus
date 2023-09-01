@@ -29,8 +29,6 @@ register_plugin!(State);
 
 impl ZellijPlugin for State {
     fn load(&mut self, configuration: BTreeMap<String, String>) {
-        set_selectable(false);
-        self.userspace_configuration = configuration.clone();
         // we need the ReadApplicationState permission to receive the ModeUpdate and TabUpdate
         // events
         // we need the RunCommands permission to run "cargo test" in a floating window
@@ -44,6 +42,16 @@ impl ZellijPlugin for State {
             EventType::SessionUpdate,
         ]);
 
+        let mut selectable = false;
+        if let Some(first_start) = configuration.get("first_start") {
+            if first_start.eq("true") {
+                selectable = true;
+            }
+        }
+
+        set_selectable(selectable);
+
+        self.userspace_configuration = configuration.clone();
         self.module_config = config::parse_format(configuration.clone());
         self.widget_map = register_widgets(configuration);
 

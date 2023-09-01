@@ -6,6 +6,7 @@ use ansi_term::{Colour, Colour::Fixed, Colour::RGB};
 pub struct ModuleConfig {
     pub left_parts: Vec<FormattedPart>,
     pub right_parts: Vec<FormattedPart>,
+    pub format_space: FormattedPart,
 }
 
 #[derive(Clone, Debug)]
@@ -86,9 +87,15 @@ impl Default for FormattedPart {
 }
 
 pub fn parse_format(config: BTreeMap<String, String>) -> ModuleConfig {
+    let mut format_space_config = "";
+    if let Some(space_config) = config.get("format_space") {
+        format_space_config = space_config;
+    }
+
     ModuleConfig {
         left_parts: parts_from_config(config.get("format_left")),
         right_parts: parts_from_config(config.get("format_right")),
+        format_space: FormattedPart::from_format_string(format_space_config.to_string()),
     }
 }
 

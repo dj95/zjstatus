@@ -1,4 +1,7 @@
-use widgets::{datetime::DateTimeWidget, mode::ModeWidget, tabs::TabsWidget, widget::Widget, session::SessionWidget};
+use widgets::{
+    datetime::DateTimeWidget, mode::ModeWidget, session::SessionWidget, tabs::TabsWidget,
+    widget::Widget,
+};
 use zellij_tile::prelude::*;
 
 use std::{collections::BTreeMap, sync::Arc, u8, usize};
@@ -35,7 +38,11 @@ impl ZellijPlugin for State {
             PermissionType::ReadApplicationState,
             PermissionType::RunCommands,
         ]);
-        subscribe(&[EventType::ModeUpdate, EventType::TabUpdate, EventType::SessionUpdate]);
+        subscribe(&[
+            EventType::ModeUpdate,
+            EventType::TabUpdate,
+            EventType::SessionUpdate,
+        ]);
 
         self.module_config = config::parse_format(configuration.clone());
         self.widget_map = register_widgets(configuration);
@@ -96,7 +103,12 @@ impl ZellijPlugin for State {
             space_count -= text_count;
         }
 
-        print!("{}{}{}", output_left, " ".repeat(space_count), output_right);
+        let spaces = render::formatting(
+            self.module_config.format_space.clone(),
+            " ".repeat(space_count),
+        );
+
+        print!("{}{}{}", output_left, spaces, output_right);
     }
 }
 
@@ -111,7 +123,10 @@ fn register_widgets(configuration: BTreeMap<String, String>) -> BTreeMap<String,
         "mode".to_string(),
         Arc::new(ModeWidget::new(configuration.clone())),
     );
-    widget_map.insert("session".to_string(), Arc::new(SessionWidget::new(configuration.clone())));
+    widget_map.insert(
+        "session".to_string(),
+        Arc::new(SessionWidget::new(configuration.clone())),
+    );
     widget_map.insert("tabs".to_string(), Arc::new(TabsWidget::new(configuration)));
 
     widget_map

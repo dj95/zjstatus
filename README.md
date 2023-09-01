@@ -36,6 +36,7 @@ layout {
         plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
             format_left  "{mode} #[fg=#89B4FA,bold]{session} {tabs}"
             format_right "{datetime}"
+            format_space ""
 
             mode_normal  "#[bg=#89B4FA] "
             mode_tmux    "#[bg=#ffc387] "
@@ -53,6 +54,7 @@ layout {
 
 In order to start using zjstatus you need to specify the widgets you'd like to use under the `format_left` and/or `format_right`
 configuration. Formatting can be done with `#[..]`, while widgets and properties are surrounded by `{..}`.
+The blank space between the left and the right part can be colored with `format_space`.
 
 ### 🎨 Formatting and theming
 

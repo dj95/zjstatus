@@ -7,6 +7,7 @@ layout {
         plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
             format_left  "{mode} #[fg=#89B4FA,bold]{session} {tabs}"
             format_right "{datetime}"
+            format_space "#[bg=#181825]"
 
             mode_normal  "#[bg=#89B4FA] "
             mode_tmux    "#[bg=#ffc387] "

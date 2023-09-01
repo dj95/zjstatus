@@ -45,6 +45,7 @@ layout {
 
             datetime        "#[fg=#6C7086,bold] {format} "
             datetime_format "%A, %d %b %Y %H:%M"
+            datetime_timezone "Europe/Berlin"
         }
     }
 }
@@ -76,7 +77,10 @@ zjstatus contains the following widgets with their respective config.
 
 **Handle** `{datetime}`
 
-Print the date and/or time by the given format string.
+Print the date and/or time by the given format string. Due to the WASM sandbox
+the timezone cannot be determined from the system. You can configure it the
+with the `datetime_timezone` parameter. Choose the according string from the
+chrono documentation: [https://docs.rs/chrono-tz/latest/chrono_tz/enum.Tz.html](https://docs.rs/chrono-tz/latest/chrono_tz/enum.Tz.html)
 
 ```kdl
 # theme formatting for colors. Datetime output is printed in {format}.
@@ -84,6 +88,9 @@ datetime        "#[fg=#6C7086,bold] {format} "
 
 # format of the date. e.g. if you'd like to only show the time
 datetime_format "%A, %d %b %Y %H:%M"
+
+# timezone to print
+datetime_timezone "Europe/Berlin"
 ```
 
 #### mode

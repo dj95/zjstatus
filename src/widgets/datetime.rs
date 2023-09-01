@@ -1,6 +1,7 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, str::FromStr};
 
 use chrono::Local;
+use chrono_tz::Tz;
 
 use crate::{config::FormattedPart, render};
 
@@ -9,6 +10,7 @@ use super::widget::Widget;
 pub struct DateTimeWidget {
     format: String,
     color_format: FormattedPart,
+    time_zone: Option<Tz>,
 }
 
 impl DateTimeWidget {
@@ -18,6 +20,16 @@ impl DateTimeWidget {
             format = form;
         }
 
+        let mut time_zone_string = "Etc/UTC";
+        if let Some(tz_string) = config.get("datetime_timezone") {
+            time_zone_string = tz_string;
+        }
+
+        let time_zone = match Tz::from_str(time_zone_string) {
+            Ok(tz) => Some(tz),
+            Err(_) => None,
+        };
+
         let mut color_format = "";
         if let Some(form) = config.get("datetime") {
             color_format = form;
@@ -26,6 +38,7 @@ impl DateTimeWidget {
         Self {
             format: format.to_string(),
             color_format: FormattedPart::from_format_string(color_format.to_string()),
+            time_zone,
         }
     }
 }
@@ -36,9 +49,14 @@ impl Widget for DateTimeWidget {
         if output.contains("{format}") {
             let date = Local::now();
 
+            let mut tz = Tz::UTC;
+            if let Some(t) = self.time_zone.clone() {
+                tz = t;
+            }
+
             output = output.replace(
                 "{format}",
-                format!("{}", date.format(self.format.as_str())).as_str(),
+                format!("{}", date.with_timezone(&tz).format(self.format.as_str())).as_str(),
             );
         }
 

@@ -14,8 +14,9 @@ layout {
             tab_normal   "#[fg=#6C7086] {name} "
             tab_active   "#[fg=#9399B2,bold,italic] {name} "
 
-            datetime        "#[fg=#6C7086,bold] {format} "
-            datetime_format "%A, %d %b %Y %H:%M"
+            datetime          "#[fg=#6C7086,bold] {format} "
+            datetime_format   "%A, %d %b %Y %H:%M"
+            datetime_timezone "Europe/Berlin"
         }
     }
 }

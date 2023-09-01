@@ -26,6 +26,7 @@ register_plugin!(State);
 
 impl ZellijPlugin for State {
     fn load(&mut self, configuration: BTreeMap<String, String>) {
+        set_selectable(false);
         self.userspace_configuration = configuration.clone();
         // we need the ReadApplicationState permission to receive the ModeUpdate and TabUpdate
         // events

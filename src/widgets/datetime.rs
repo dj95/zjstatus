@@ -50,7 +50,7 @@ impl Widget for DateTimeWidget {
             let date = Local::now();
 
             let mut tz = Tz::UTC;
-            if let Some(t) = self.time_zone.clone() {
+            if let Some(t) = self.time_zone {
                 tz = t;
             }
 

@@ -9,6 +9,9 @@ layout {
             format_right "{datetime}"
             format_space "#[bg=#181825]"
 
+            first_start                "false"
+            hide_frame_for_single_pane "true"
+
             mode_normal  "#[bg=#89B4FA] "
             mode_tmux    "#[bg=#ffc387] "
 

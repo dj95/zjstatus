@@ -7,6 +7,7 @@ use zellij_tile::prelude::*;
 use std::{collections::BTreeMap, sync::Arc, u8, usize};
 
 mod config;
+mod frames;
 mod render;
 mod widgets;
 
@@ -34,10 +35,12 @@ impl ZellijPlugin for State {
         // we need the RunCommands permission to run "cargo test" in a floating window
         request_permission(&[
             PermissionType::ReadApplicationState,
+            PermissionType::ChangeApplicationState,
             PermissionType::RunCommands,
         ]);
         subscribe(&[
             EventType::ModeUpdate,
+            EventType::PaneUpdate,
             EventType::TabUpdate,
             EventType::SessionUpdate,
         ]);
@@ -68,6 +71,13 @@ impl ZellijPlugin for State {
             Event::ModeUpdate(mode_info) => {
                 self.state.mode = mode_info;
                 should_render = true;
+            }
+            Event::PaneUpdate(pane_info) => {
+                if self.module_config.hide_frame_for_single_pane {
+                    frames::hide_frames_on_single_pane(self.state.tabs.clone(), pane_info);
+
+                    should_render = true;
+                }
             }
             Event::SessionUpdate(session_info) => {
                 self.state.sessions = session_info;

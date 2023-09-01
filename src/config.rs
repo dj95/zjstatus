@@ -7,6 +7,7 @@ pub struct ModuleConfig {
     pub left_parts: Vec<FormattedPart>,
     pub right_parts: Vec<FormattedPart>,
     pub format_space: FormattedPart,
+    pub hide_frame_for_single_pane: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -92,10 +93,16 @@ pub fn parse_format(config: BTreeMap<String, String>) -> ModuleConfig {
         format_space_config = space_config;
     }
 
+    let mut hide_frame_for_single_pane = false;
+    if let Some(toggle) = config.get("hide_frame_for_single_pane") {
+        hide_frame_for_single_pane = toggle == "true";
+    }
+
     ModuleConfig {
         left_parts: parts_from_config(config.get("format_left")),
         right_parts: parts_from_config(config.get("format_right")),
         format_space: FormattedPart::from_format_string(format_space_config.to_string()),
+        hide_frame_for_single_pane,
     }
 }
 

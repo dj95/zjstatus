@@ -45,7 +45,8 @@ layout {
             format_right "{datetime}"
             format_space ""
 
-            first_start "false"
+            first_start                "false"
+            hide_frame_for_single_pane "true"
 
             mode_normal  "#[bg=#89B4FA] "
             mode_tmux    "#[bg=#ffc387] "
@@ -64,6 +65,10 @@ layout {
 In order to start using zjstatus you need to specify the widgets you'd like to use under the `format_left` and/or `format_right`
 configuration. Formatting can be done with `#[..]`, while widgets and properties are surrounded by `{..}`.
 The blank space between the left and the right part can be colored with `format_space`.
+
+The option `hide_frame_for_single_pane` will toggle the pane frames depending on how many panes (not plugin panes) are shown.
+This will effectively hide the frame border, when only one pane, like an editor, is shown. Pane frames are toggled as soon
+as there is another pane created.
 
 ### 🎨 Formatting and theming
 

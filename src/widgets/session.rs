@@ -15,8 +15,7 @@ impl Widget for SessionWidget {
         let session = state
             .sessions
             .into_iter()
-            .filter(|s| s.is_current_session)
-            .next();
+            .find(|s| s.is_current_session);
 
         match session {
             Some(s) => s.name,

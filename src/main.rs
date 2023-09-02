@@ -1,10 +1,11 @@
+use config::ModuleConfig;
 use widgets::{
     datetime::DateTimeWidget, mode::ModeWidget, session::SessionWidget, tabs::TabsWidget,
     widget::Widget,
 };
 use zellij_tile::prelude::*;
 
-use std::{collections::BTreeMap, sync::Arc, u8, usize};
+use std::{collections::BTreeMap, sync::Arc, usize};
 
 mod config;
 mod frames;
@@ -26,6 +27,7 @@ pub struct ZellijState {
     pub sessions: Vec<SessionInfo>,
 }
 
+#[cfg(not(test))]
 register_plugin!(State);
 
 impl ZellijPlugin for State {
@@ -55,7 +57,7 @@ impl ZellijPlugin for State {
         set_selectable(selectable);
 
         self.userspace_configuration = configuration.clone();
-        self.module_config = config::parse_format(configuration.clone());
+        self.module_config = ModuleConfig::new(configuration.clone());
         self.widget_map = register_widgets(configuration);
 
         self.state = ZellijState {
@@ -110,40 +112,8 @@ impl ZellijPlugin for State {
     }
 
     fn render(&mut self, _rows: usize, cols: usize) {
-        let mut output_left = "".to_string();
-        for part in self.module_config.left_parts.iter().cloned() {
-            output_left = format!(
-                "{}{}",
-                output_left,
-                render::widgets_and_formatting(part, self.widget_map.clone(), self.state.clone())
-            );
-        }
-
-        let mut output_right = "".to_string();
-        for part in self.module_config.right_parts.iter().cloned() {
-            output_right = format!(
-                "{}{}",
-                output_right,
-                render::widgets_and_formatting(part, self.widget_map.clone(), self.state.clone())
-            );
-        }
-
-        let text_count = strip_ansi_escapes::strip(output_left.clone()).len()
-            + strip_ansi_escapes::strip(output_right.clone()).len();
-
-        let mut space_count = cols;
-        // verify we are able to count the difference, since zellij sometimes drops a col
-        // count of 0 on tab creation
-        if space_count > text_count {
-            space_count -= text_count;
-        }
-
-        let spaces = render::formatting(
-            self.module_config.format_space.clone(),
-            " ".repeat(space_count),
-        );
-
-        print!("{}{}{}", output_left, spaces, output_right);
+        self.module_config
+            .render_bar(self.state.clone(), self.widget_map.clone(), cols);
     }
 }
 

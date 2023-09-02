@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use zellij_tile::prelude::InputMode;
 
-use crate::{config::FormattedPart, render, ZellijState};
+use crate::{render::FormattedPart, ZellijState};
 
 use super::widget::Widget;
 
@@ -125,7 +125,7 @@ impl Widget for ModeWidget {
             content = content.replace("{name}", format!("{:?}", state.mode.mode).as_str());
         }
 
-        render::formatting(format, content)
+        format.format_string(content)
     }
 }
 

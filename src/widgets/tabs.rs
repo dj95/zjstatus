@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use zellij_tile::prelude::TabInfo;
 
-use crate::{config::FormattedPart, render};
+use crate::render::FormattedPart;
 
 use super::widget::Widget;
 
@@ -44,7 +44,7 @@ impl Widget for TabsWidget {
                 content = content.replace("{name}", tab.name.as_str());
             }
 
-            output = format!("{}{}", output, render::formatting(formatter, content),);
+            output = format!("{}{}", output, formatter.format_string(content),);
         }
 
         output

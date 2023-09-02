@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, str::FromStr};
 use chrono::Local;
 use chrono_tz::Tz;
 
-use crate::{config::FormattedPart, render};
+use crate::render::FormattedPart;
 
 use super::widget::Widget;
 
@@ -60,6 +60,6 @@ impl Widget for DateTimeWidget {
             );
         }
 
-        render::formatting(self.color_format.clone(), output)
+        self.color_format.format_string(output)
     }
 }

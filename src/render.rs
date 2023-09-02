@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, num::ParseIntError, sync::Arc};
 
 use ansi_term::{Colour, Colour::Fixed, Colour::RGB, Style};
 
@@ -106,11 +106,30 @@ impl Default for FormattedPart {
     }
 }
 
+fn hex_to_rgb(s: &str) -> Result<Vec<u8>, ParseIntError> {
+    (0..s.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&s[i..i + 2], 16))
+        .collect()
+}
+
 fn parse_color(color: &str) -> Option<Colour> {
     if color.starts_with('#') {
-        let rgb = hex_rgb::convert_hexcode_to_rgb(color.to_string()).unwrap();
+        let rgb = hex_to_rgb(color.strip_prefix('#').unwrap());
+        if rgb.is_err() {
+            return None;
+        }
 
-        return Some(RGB(rgb.red, rgb.green, rgb.blue));
+        let rgb = rgb.unwrap();
+        if rgb.len() != 3 {
+            return None;
+        }
+
+        return Some(RGB(
+            *rgb.first().unwrap(),
+            *rgb.get(1).unwrap(),
+            *rgb.get(2).unwrap(),
+        ));
     }
 
     if let Ok(result) = color.parse::<u8>() {

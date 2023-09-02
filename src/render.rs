@@ -1,6 +1,7 @@
-use std::{collections::BTreeMap, num::ParseIntError, sync::Arc};
+use std::{collections::BTreeMap, sync::Arc};
 
 use ansi_term::{Colour, Colour::Fixed, Colour::RGB, Style};
+use zellij_tile::prelude::bail;
 
 use crate::{widgets::widget::Widget, ZellijState};
 
@@ -106,10 +107,14 @@ impl Default for FormattedPart {
     }
 }
 
-fn hex_to_rgb(s: &str) -> Result<Vec<u8>, ParseIntError> {
+fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {
+    if s.len() != 6 {
+        bail!("wrong hex color length");
+    }
+
     (0..s.len())
         .step_by(2)
-        .map(|i| u8::from_str_radix(&s[i..i + 2], 16))
+        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).map_err(|e| anyhow::Error::from(e)))
         .collect()
 }
 
@@ -137,4 +142,47 @@ fn parse_color(color: &str) -> Option<Colour> {
     }
 
     None
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_hex_to_rgb() {
+        let result = hex_to_rgb("010203");
+        let expected = Vec::from([1, 2, 3]);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), expected);
+    }
+
+    #[test]
+    fn test_hex_to_rgb_with_invalid_input() {
+        let result = hex_to_rgb("#010203");
+        assert!(result.is_err());
+
+        let result = hex_to_rgb(" 010203");
+        assert!(result.is_err());
+
+        let result = hex_to_rgb("010");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_color() {
+        let result = parse_color("#010203");
+        let expected = Colour::RGB(1, 2, 3);
+        assert_eq!(result, Some(expected));
+
+        let result = parse_color("255");
+        let expected = Colour::Fixed(255);
+        assert_eq!(result, Some(expected));
+
+        let result = parse_color("365");
+        assert_eq!(result, None);
+
+        let result = parse_color("#365");
+        assert_eq!(result, None);
+    }
+
 }

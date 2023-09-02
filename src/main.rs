@@ -74,13 +74,30 @@ impl ZellijPlugin for State {
             }
             Event::PaneUpdate(pane_info) => {
                 if self.module_config.hide_frame_for_single_pane {
-                    frames::hide_frames_on_single_pane(self.state.tabs.clone(), pane_info);
+                    frames::hide_frames_on_single_pane(
+                        self.state.tabs.clone(),
+                        pane_info,
+                        get_plugin_ids(),
+                    );
 
                     should_render = true;
                 }
             }
             Event::SessionUpdate(session_info) => {
+                if self.module_config.hide_frame_for_single_pane {
+                    let current_session = session_info.iter().find(|s| s.is_current_session);
+
+                    if let Some(current_session) = current_session {
+                        frames::hide_frames_on_single_pane(
+                            current_session.clone().tabs,
+                            current_session.clone().panes,
+                            get_plugin_ids(),
+                        );
+                    }
+                }
+
                 self.state.sessions = session_info;
+
                 should_render = true;
             }
             Event::TabUpdate(tab_info) => {

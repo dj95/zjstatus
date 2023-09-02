@@ -114,7 +114,7 @@ fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {
 
     (0..s.len())
         .step_by(2)
-        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).map_err(|e| anyhow::Error::from(e)))
+        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).map_err(anyhow::Error::from))
         .collect()
 }
 

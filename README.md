@@ -20,12 +20,6 @@ plugin can be included by referencing it in a layout file, e.g. in the default l
 
 You could also refer to the plugin guide from zellij, after downloading the binary: [https://zellij.dev/documentation/plugin-loading](https://zellij.dev/documentation/plugin-loading)
 
-On the first run or updates, you need to grant permissions to zjstatus in order to allow access to certain information
-and to send commands (like enabling or disabling the pane border). Since zjstatus is not designed to be a selectable
-window, zellij won't let you grant the permissions. For this purpose zjstatus offers the configuration `first_start "true"`.
-When this configuration is set, you are able to select the pane for the plugin and grant permissions. Then simply
-disable or delete the config flag again to make it work just as a statusbar.
-
 Please ensure, that the configuration is correct.
 
 ## ⚙️ Configuration
@@ -45,7 +39,6 @@ layout {
             format_right "{datetime}"
             format_space ""
 
-            first_start                "false"
             hide_frame_for_single_pane "true"
 
             mode_normal  "#[bg=#89B4FA] "

@@ -43,18 +43,10 @@ impl ZellijPlugin for State {
         subscribe(&[
             EventType::ModeUpdate,
             EventType::PaneUpdate,
+            EventType::PermissionRequestResult,
             EventType::TabUpdate,
             EventType::SessionUpdate,
         ]);
-
-        let mut selectable = false;
-        if let Some(first_start) = configuration.get("first_start") {
-            if first_start.eq("true") {
-                selectable = true;
-            }
-        }
-
-        set_selectable(selectable);
 
         self.userspace_configuration = configuration.clone();
         self.module_config = ModuleConfig::new(configuration.clone());
@@ -84,6 +76,9 @@ impl ZellijPlugin for State {
 
                     should_render = true;
                 }
+            }
+            Event::PermissionRequestResult(_result) => {
+                set_selectable(false);
             }
             Event::SessionUpdate(session_info) => {
                 if self.module_config.hide_frame_for_single_pane {

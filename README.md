@@ -15,7 +15,7 @@
 
 <details>
     <summary>Demo GIF</summary>
-    ![Demo GIF of zellij](./assets/demo.gif)
+    <img src="./assets/demo.gif" alt="Demo GIF of zellij with zjstatus" />
 </details>
 
 ## 🚀 Installation

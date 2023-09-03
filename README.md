@@ -13,6 +13,11 @@
 
 ![Screenshot of the statusbar](./assets/demo.png)
 
+<details>
+    <summary>Demo GIF</summary>
+    ![Demo GIF of zellij](./assets/demo.gif)
+</details>
+
 ## 🚀 Installation
 
 Download the latest binary in the github releases. Place it somewhere, zellij is able to access it. Then the

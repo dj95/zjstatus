@@ -22,6 +22,7 @@ struct State {
 
 #[derive(Default, Debug, Clone)]
 pub struct ZellijState {
+    pub cols: usize,
     pub mode: ModeInfo,
     pub tabs: Vec<TabInfo>,
     pub sessions: Vec<SessionInfo>,
@@ -41,6 +42,7 @@ impl ZellijPlugin for State {
             PermissionType::RunCommands,
         ]);
         subscribe(&[
+            EventType::Mouse,
             EventType::ModeUpdate,
             EventType::PaneUpdate,
             EventType::PermissionRequestResult,
@@ -53,6 +55,7 @@ impl ZellijPlugin for State {
         self.widget_map = register_widgets(configuration);
 
         self.state = ZellijState {
+            cols: 0,
             mode: ModeInfo::default(),
             tabs: Vec::new(),
             sessions: Vec::new(),
@@ -62,6 +65,10 @@ impl ZellijPlugin for State {
     fn update(&mut self, event: Event) -> bool {
         let mut should_render = false;
         match event {
+            Event::Mouse(mouse_info) => {
+                self.module_config
+                    .handle_mouse_action(self.state.clone(), mouse_info, self.widget_map.clone());
+            }
             Event::ModeUpdate(mode_info) => {
                 self.state.mode = mode_info;
                 should_render = true;
@@ -107,8 +114,9 @@ impl ZellijPlugin for State {
     }
 
     fn render(&mut self, _rows: usize, cols: usize) {
+        self.state.cols = cols;
         self.module_config
-            .render_bar(self.state.clone(), self.widget_map.clone(), cols);
+            .render_bar(self.state.clone(), self.widget_map.clone());
     }
 }
 

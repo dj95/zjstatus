@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zellij_tile::prelude::TabInfo;
+use zellij_tile::{prelude::TabInfo, shim::switch_tab_to};
 
 use crate::render::FormattedPart;
 
@@ -48,6 +48,31 @@ impl Widget for TabsWidget {
         }
 
         output
+    }
+
+    fn process_click(&self, state: crate::ZellijState, pos: usize) {
+        let mut output = "".to_string();
+
+        let mut offset = 0;
+        let mut index = 1;
+        for tab in state.tabs {
+            let formatter = self.select_format(tab.clone());
+
+            let mut content = formatter.content.clone();
+            if content.contains("{name}") {
+                content = content.replace("{name}", tab.name.as_str());
+            }
+            if pos > offset && pos < offset + content.len() {
+                switch_tab_to(index);
+
+                break;
+            }
+
+            index += 1;
+            offset += content.len();
+
+            output = format!("{}{}", output, content);
+        }
     }
 }
 

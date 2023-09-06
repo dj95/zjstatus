@@ -56,25 +56,28 @@ impl ModeWidget {
             None => normal_format_string.to_string(),
         });
 
-        let enter_search_format = FormattedPart::from_format_string(match config.get("mode_enter_search") {
-            Some(form) => form.to_string(),
-            None => normal_format_string.to_string(),
-        });
+        let enter_search_format =
+            FormattedPart::from_format_string(match config.get("mode_enter_search") {
+                Some(form) => form.to_string(),
+                None => normal_format_string.to_string(),
+            });
 
         let search_format = FormattedPart::from_format_string(match config.get("mode_search") {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
 
-        let rename_tab_format = FormattedPart::from_format_string(match config.get("mode_rename_tab") {
-            Some(form) => form.to_string(),
-            None => normal_format_string.to_string(),
-        });
+        let rename_tab_format =
+            FormattedPart::from_format_string(match config.get("mode_rename_tab") {
+                Some(form) => form.to_string(),
+                None => normal_format_string.to_string(),
+            });
 
-        let rename_pane_format = FormattedPart::from_format_string(match config.get("mode_rename_pane") {
-            Some(form) => form.to_string(),
-            None => normal_format_string.to_string(),
-        });
+        let rename_pane_format =
+            FormattedPart::from_format_string(match config.get("mode_rename_pane") {
+                Some(form) => form.to_string(),
+                None => normal_format_string.to_string(),
+            });
 
         let session_format = FormattedPart::from_format_string(match config.get("mode_session") {
             Some(form) => form.to_string(),
@@ -95,7 +98,6 @@ impl ModeWidget {
             Some(form) => form.to_string(),
             None => normal_format_string.to_string(),
         });
-
 
         Self {
             normal_format: FormattedPart::from_format_string(normal_format_string.to_string()),
@@ -127,6 +129,8 @@ impl Widget for ModeWidget {
 
         format.format_string(content)
     }
+
+    fn process_click(&self, _state: ZellijState, _pos: usize) {}
 }
 
 impl ModeWidget {

@@ -17,4 +17,6 @@ impl Widget for SessionWidget {
             None => "".to_string(),
         }
     }
+
+    fn process_click(&self, _state: crate::ZellijState, _pos: usize) {}
 }

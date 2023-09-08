@@ -30,10 +30,12 @@ impl FormattedPart {
             return result;
         }
 
-        let format_content_split = format_content_split.collect::<Vec<&str>>();
-        result.content = format_content_split[1].to_string();
-
+        let mut format_content_split = format_content_split.collect::<Vec<&str>>();
         let parts = format_content_split[0].split(',');
+
+        format_content_split.remove(0);
+        result.content = format_content_split.join("]");
+
         for part in parts {
             if part.starts_with("fg=") {
                 result.fg = parse_color(part.strip_prefix("fg=").unwrap());
@@ -184,5 +186,4 @@ mod test {
         let result = parse_color("#365");
         assert_eq!(result, None);
     }
-
 }

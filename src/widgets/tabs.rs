@@ -44,6 +44,10 @@ impl Widget for TabsWidget {
                 content = content.replace("{name}", tab.name.as_str());
             }
 
+            if content.contains("{index}") {
+                content = content.replace("{index}", (tab.position + 1).to_string().as_str());
+            }
+
             output = format!("{}{}", output, formatter.format_string(content),);
         }
 

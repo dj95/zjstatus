@@ -15,7 +15,7 @@
 
 <details>
 <summary>Examples</summary>
-<b>tmux style</b>
+<b><a href="./examples/tmux.kdl">tmux style</a></b>
 <img src="./examples/tmux.png" alt="tmux style bar" />
 <br>
 <b>Demo GIF</b>

@@ -1,6 +1,6 @@
 layout {
     pane split_direction="vertical" {
-        pane command="nvim"
+        pane
     }
 
     pane size=1 borderless=true {

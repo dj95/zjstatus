@@ -14,8 +14,12 @@
 ![Screenshot of the statusbar](./assets/demo.png)
 
 <details>
-    <summary>Demo GIF</summary>
-    <img src="./assets/demo.gif" alt="Demo GIF of zellij with zjstatus" />
+<summary>Examples</summary>
+<b>tmux style</b>
+<img src="./examples/tmux.png" alt="tmux style bar" />
+<br>
+<b>Demo GIF</b>
+<img src="./assets/demo.gif" alt="Demo GIF of zellij with zjstatus" />
 </details>
 
 ## 🚀 Installation
@@ -144,10 +148,11 @@ sequence right before the handle in `format_left` or `format_right`.
 
 Print a list of current tabs. The name of the tab can be used with `{name}` in the config. The active tab will
 default to the normal formatting, if not configured.
+With `{index}` the tab position can also be used.
 
 ```kdl
 # formatting for inactive tabs
-tab_normal   "#[fg=#6C7086] {name} "
+tab_normal   "#[fg=#6C7086] {index} :: {name} "
 
 # formatting for the current active tab
 tab_active   "#[fg=#9399B2,bold,italic] {name} "

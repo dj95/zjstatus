@@ -31,6 +31,35 @@ You could also refer to the plugin guide from zellij, after downloading the bina
 
 Please ensure, that the configuration is correct.
 
+## ❄️ Installation with nix flake
+
+Add this repository to your inputs and then with the following overlay to your packages.
+Then you are able to install and refer to it with `pkgs.zjstatus`. When templating the
+config file, you can use `${pkgs.zjstatus}/bin/zjstatus.wasm` as the path.
+
+```nix
+  inputs = {
+    # ...
+
+    zjstatus = {
+      url = "github:dj95/zjstatus";
+    };
+  };
+
+
+  # define the outputs of this flake - especially the home configurations
+  outputs = { self, nixpkgs, zjstatus, ... }@inputs:
+  let
+    inherit (inputs.nixpkgs.lib) attrValues;
+
+    overlays = with inputs; [
+      # ...
+      (final: prev: {
+        zjstatus = zjstatus.packages.${prev.system}.default;
+      })
+    ];
+```
+
 ## ⚙️ Configuration
 
 Configuration can be performed in the layout file, when importing the plugin. Here's a short example.

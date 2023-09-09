@@ -78,14 +78,6 @@
             wasmtime
           ];
         };
-
-        overlays = {
-          default = [
-            (final: prev: {
-              zjstatus = zjstatus;
-            })
-          ];
-        };
       }
     );
 

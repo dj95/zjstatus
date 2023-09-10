@@ -152,7 +152,6 @@ impl ModuleConfig {
             }
 
             wid.process_click(state.clone(), click_pos - pos + offset);
-
         }
 
         rendered_output.len()

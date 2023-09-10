@@ -29,6 +29,7 @@
         };
 
         rustWithWasiTarget = pkgs.rust-bin.stable.latest.default.override {
+          extensions = [ "rust-src" "rust-std" "rust-analyzer" ];
           targets = [ "wasm32-wasi" ];
         };
 
@@ -49,9 +50,9 @@
 
           buildInputs = [
             # Add additional build inputs here
+            pkgs.libiconv
           ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
             # Additional darwin specific inputs can be set here
-            pkgs.libiconv
           ];
         };
       in
@@ -69,16 +70,15 @@
           # Extra inputs can be added here; cargo and rustc are provided by default
           # from the toolchain that was specified earlier.
           packages = with pkgs; [
-            # rustWithWasiTarget
+            rustWithWasiTarget
             cargo-audit
             cargo-watch
             cargo-wasi
             clippy
-            rust-analyzer
+            libiconv
             wasmtime
           ];
         };
       }
     );
-
 }

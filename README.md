@@ -14,7 +14,7 @@
 ![Screenshot of the statusbar](./assets/demo.png)
 
 <details>
-<summary>Examples</summary>
+<summary><h3>Examples</h3></summary>
 <b><a href="./examples/tmux.kdl">tmux style</a></b>
 <img src="./examples/tmux.png" alt="tmux style bar" />
 <br>

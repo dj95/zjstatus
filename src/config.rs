@@ -222,7 +222,7 @@ fn parts_from_config(format: Option<&String>) -> Vec<FormattedPart> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use ansi_term::Colour;
+    use anstyle::RgbColor;
 
     #[test]
     fn test_formatted_part_from_string() {
@@ -233,8 +233,8 @@ mod test {
         assert_eq!(
             part,
             FormattedPart {
-                fg: Some(Colour::RGB(255, 0, 0)),
-                bg: Some(Colour::RGB(0, 255, 0)),
+                fg: Some(RgbColor(255, 0, 0).into()),
+                bg: Some(RgbColor(0, 255, 0).into()),
                 bold: true,
                 italic: true,
                 content: "foo".to_string(),

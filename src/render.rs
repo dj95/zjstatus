@@ -1,14 +1,14 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use ansi_term::{Colour, Colour::Fixed, Colour::RGB, Style};
+use anstyle::{Ansi256Color, Color, RgbColor, Style};
 use zellij_tile::prelude::bail;
 
 use crate::{widgets::widget::Widget, ZellijState};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct FormattedPart {
-    pub fg: Option<Colour>,
-    pub bg: Option<Colour>,
+    pub fg: Option<Color>,
+    pub bg: Option<Color>,
     pub bold: bool,
     pub italic: bool,
     pub content: String,
@@ -58,18 +58,26 @@ impl FormattedPart {
     }
 
     pub fn format_string(&self, text: String) -> String {
-        let mut style = match self.fg {
-            Some(color) => Style::new().fg(color),
-            None => Style::new(),
-        };
+        let mut style = Style::new();
 
-        style.background = self.bg;
-        style.is_italic = self.italic;
-        style.is_bold = self.bold;
+        style = style.fg_color(self.fg);
+        style = style.bg_color(self.bg);
 
-        let style = style.paint(text);
+        if self.italic {
+            style = style.italic();
+        }
 
-        format!("{}", style)
+        if self.bold {
+            style = style.bold();
+        }
+
+        format!(
+            "{}{}{}{}",
+            style.render_reset(),
+            style.render(),
+            text,
+            style.render_reset()
+        )
     }
 
     pub fn format_string_with_widgets(
@@ -120,7 +128,7 @@ fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {
         .collect()
 }
 
-fn parse_color(color: &str) -> Option<Colour> {
+fn parse_color(color: &str) -> Option<Color> {
     if color.starts_with('#') {
         let rgb = hex_to_rgb(color.strip_prefix('#').unwrap());
         if rgb.is_err() {
@@ -132,15 +140,18 @@ fn parse_color(color: &str) -> Option<Colour> {
             return None;
         }
 
-        return Some(RGB(
-            *rgb.first().unwrap(),
-            *rgb.get(1).unwrap(),
-            *rgb.get(2).unwrap(),
-        ));
+        return Some(
+            RgbColor(
+                *rgb.first().unwrap(),
+                *rgb.get(1).unwrap(),
+                *rgb.get(2).unwrap(),
+            )
+            .into(),
+        );
     }
 
     if let Ok(result) = color.parse::<u8>() {
-        return Some(Fixed(result));
+        return Some(Ansi256Color(result).into());
     }
 
     None
@@ -173,12 +184,12 @@ mod test {
     #[test]
     fn test_parse_color() {
         let result = parse_color("#010203");
-        let expected = Colour::RGB(1, 2, 3);
-        assert_eq!(result, Some(expected));
+        let expected = RgbColor(1, 2, 3);
+        assert_eq!(result, Some(expected.into()));
 
         let result = parse_color("255");
-        let expected = Colour::Fixed(255);
-        assert_eq!(result, Some(expected));
+        let expected = Ansi256Color(255);
+        assert_eq!(result, Some(expected.into()));
 
         let result = parse_color("365");
         assert_eq!(result, None);

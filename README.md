@@ -190,10 +190,14 @@ With `{index}` the tab position can also be used.
 
 ```kdl
 # formatting for inactive tabs
-tab_normal   "#[fg=#6C7086] {index} :: {name} "
+tab_normal              "#[fg=#6C7086] {index} :: {name} "
+tab_normal_fullscreen   "#[fg=#6C7086] {index} :: {name} [] "
+tab_normal_sync         "#[fg=#6C7086] {index} :: {name} <> "
 
 # formatting for the current active tab
-tab_active   "#[fg=#9399B2,bold,italic] {name} "
+tab_active              "#[fg=#9399B2,bold,italic] {name} "
+tab_active_fullscreen   "#[fg=#9399B2,bold,italic] {name} [] "
+tab_active_sync         "#[fg=#9399B2,bold,italic] {name} <> "
 ```
 
 ## 🚧 Development

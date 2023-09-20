@@ -171,6 +171,13 @@ mode_tmux          "#[bg=#ffc387] {name} "
 Print the current session name. This module cannot be configured. For formatting, please put the Formatting
 sequence right before the handle in `format_left` or `format_right`.
 
+#### swap layout
+
+**Handle** `{swap_layout}`
+
+Print the active swap layout. This module cannot be configured. For formatting, please put the Formatting
+sequence right before the handle in `format_left` or `format_right`.
+
 #### tabs
 
 **Handle** `{tabs}`

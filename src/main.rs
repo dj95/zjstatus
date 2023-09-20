@@ -1,6 +1,6 @@
 use config::ModuleConfig;
 use widgets::{
-    datetime::DateTimeWidget, mode::ModeWidget, session::SessionWidget, tabs::TabsWidget,
+    datetime::DateTimeWidget, mode::ModeWidget, session::SessionWidget, swap_layout::SwapLayoutWidget, tabs::TabsWidget,
     widget::Widget,
 };
 use zellij_tile::prelude::*;
@@ -129,6 +129,10 @@ fn register_widgets(configuration: BTreeMap<String, String>) -> BTreeMap<String,
     widget_map.insert(
         "datetime".to_string(),
         Arc::new(DateTimeWidget::new(configuration.clone())),
+    );
+    widget_map.insert(
+        "swap_layout".to_string(),
+        Arc::new(SwapLayoutWidget::new(configuration.clone())),
     );
     widget_map.insert(
         "mode".to_string(),

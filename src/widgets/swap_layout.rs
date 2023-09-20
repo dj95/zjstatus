@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use zellij_tile::shim::next_swap_layout;
 
 use super::widget::Widget;
 
@@ -27,5 +28,7 @@ impl Widget for SwapLayoutWidget {
 
     }
 
-    fn process_click(&self, _state: crate::ZellijState, _pos: usize) {}
+    fn process_click(&self, _state: crate::ZellijState, _pos: usize) {
+        next_swap_layout()
+    }
 }

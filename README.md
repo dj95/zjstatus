@@ -174,6 +174,7 @@ sequence right before the handle in `format_left` or `format_right`.
 #### swap layout
 
 **Handle** `{swap_layout}`
+**Click behavior** Switch to the next swap layout
 
 Print the active swap layout. This module cannot be configured. For formatting, please put the Formatting
 sequence right before the handle in `format_left` or `format_right`.
@@ -181,6 +182,7 @@ sequence right before the handle in `format_left` or `format_right`.
 #### tabs
 
 **Handle** `{tabs}`
+**Click behavior** Navigate to the tab that got clicked
 
 Print a list of current tabs. The name of the tab can be used with `{name}` in the config. The active tab will
 default to the normal formatting, if not configured.

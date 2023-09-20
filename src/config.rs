@@ -122,7 +122,7 @@ impl ModuleConfig {
 
         let tokens: Vec<String> = widget_map.keys().map(|k| format!("{{{k}}}")).collect();
 
-        let widgets_regex = Regex::new("(\\{[a-z]+\\})").unwrap();
+        let widgets_regex = Regex::new("(\\{[a-z_]+\\})").unwrap();
         for widget in widgets_regex.captures_iter(widget_string.as_str()) {
             let match_name = widget.get(0).unwrap().as_str();
             if !tokens.contains(&match_name.to_string()) {

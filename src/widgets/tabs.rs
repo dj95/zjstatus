@@ -22,30 +22,34 @@ impl TabsWidget {
             normal_tab_format_string = form;
         }
 
-        let normal_tab_fullscreen_format = FormattedPart::from_format_string(match config.get("tab_normal_fullscreen") {
-            Some(form) => form.to_string(),
-            None => normal_tab_format_string.to_string(),
-        });
+        let normal_tab_fullscreen_format =
+            FormattedPart::from_format_string(match config.get("tab_normal_fullscreen") {
+                Some(form) => form.to_string(),
+                None => normal_tab_format_string.to_string(),
+            });
 
-        let normal_tab_sync_format = FormattedPart::from_format_string(match config.get("tab_normal_sync") {
-            Some(form) => form.to_string(),
-            None => normal_tab_format_string.to_string(),
-        });
+        let normal_tab_sync_format =
+            FormattedPart::from_format_string(match config.get("tab_normal_sync") {
+                Some(form) => form.to_string(),
+                None => normal_tab_format_string.to_string(),
+            });
 
-        let active_tab_format = FormattedPart::from_format_string(match config.get("tab_active") {
-            Some(form) => form.to_string(),
-            None => normal_tab_format_string.to_string(),
-        });
+        let mut active_tab_format_string = normal_tab_format_string.clone();
+        if let Some(form) = config.get("tab_active") {
+            active_tab_format_string = form;
+        }
 
-        let active_tab_fullscreen_format = FormattedPart::from_format_string(match config.get("tab_active_fullscreen") {
-            Some(form) => form.to_string(),
-            None => normal_tab_format_string.to_string(),
-        });
+        let active_tab_fullscreen_format =
+            FormattedPart::from_format_string(match config.get("tab_active_fullscreen") {
+                Some(form) => form.to_string(),
+                None => active_tab_format_string.to_string(),
+            });
 
-        let active_tab_sync_format = FormattedPart::from_format_string(match config.get("tab_active_sync") {
-            Some(form) => form.to_string(),
-            None => normal_tab_format_string.to_string(),
-        });
+        let active_tab_sync_format =
+            FormattedPart::from_format_string(match config.get("tab_active_sync") {
+                Some(form) => form.to_string(),
+                None => active_tab_format_string.to_string(),
+            });
 
         Self {
             normal_tab_format: FormattedPart::from_format_string(
@@ -53,7 +57,9 @@ impl TabsWidget {
             ),
             normal_tab_fullscreen_format,
             normal_tab_sync_format,
-            active_tab_format,
+            active_tab_format: FormattedPart::from_format_string(
+                active_tab_format_string.to_string(),
+            ),
             active_tab_fullscreen_format,
             active_tab_sync_format,
         }

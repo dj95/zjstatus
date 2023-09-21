@@ -72,15 +72,7 @@ impl Widget for TabsWidget {
 
         for tab in state.tabs {
             let formatter = self.select_format(tab.clone());
-
-            let mut content = formatter.content.clone();
-            if content.contains("{name}") {
-                content = content.replace("{name}", tab.name.as_str());
-            }
-
-            if content.contains("{index}") {
-                content = content.replace("{index}", (tab.position + 1).to_string().as_str());
-            }
+            let content = self.render_tab(tab);
 
             output = format!("{}{}", output, formatter.format_string(content),);
         }
@@ -94,12 +86,8 @@ impl Widget for TabsWidget {
         let mut offset = 0;
         let mut index = 1;
         for tab in state.tabs {
-            let formatter = self.select_format(tab.clone());
+            let content = self.render_tab(tab);
 
-            let mut content = formatter.content.clone();
-            if content.contains("{name}") {
-                content = content.replace("{name}", tab.name.as_str());
-            }
             if pos > offset && pos < offset + content.len() {
                 switch_tab_to(index);
 
@@ -137,5 +125,20 @@ impl TabsWidget {
         }
 
         self.normal_tab_format.clone()
+    }
+
+    fn render_tab(&self, tab: TabInfo) -> String {
+        let formatter = self.select_format(tab.clone());
+
+        let mut content = formatter.content.clone();
+        if content.contains("{name}") {
+            content = content.replace("{name}", tab.name.as_str());
+        }
+
+        if content.contains("{index}") {
+            content = content.replace("{index}", (tab.position + 1).to_string().as_str());
+        }
+
+        content
     }
 }

@@ -82,7 +82,7 @@ layout {
 
             hide_frame_for_single_pane "true"
 
-            mode_normal  "#[bg=#89B4FA] "
+            mode_normal  "#[bg=blue] "
             mode_tmux    "#[bg=#ffc387] "
 
             tab_normal   "#[fg=#6C7086] {name} "
@@ -112,12 +112,15 @@ Options can be combined with a `,`, when they occur in the same bracket.
 
 Possible formatting options are:
 
-| name   | value             | example       | description      |
-|--------|-------------------|---------------|------------------|
-| fg     | hex or ansi color | `#[fg=#ffffff]` | foreground color |
-| bg     | hex or ansi color | `#[bg=#ffffff]` | background color |
-| bold   | none              | `#[bold]`       | bold text        |
-| italic | none              | `#[italic]`     | italic text      |
+| name   | value                     | example       | description      |
+|--------|---------------------------|---------------|------------------|
+| fg     | hex or ansi color or name | `#[fg=#ffffff]` | foreground color |
+| bg     | hex or ansi color or name | `#[bg=#ffffff]` | background color |
+| bold   | none                      | `#[bold]`       | bold text        |
+| italic | none                      | `#[italic]`     | italic text      |
+
+Colors can be specified either by giving the hexadecimal rgb value or the ansi color (0..255). To simplify the specification
+by ansi color codes, the color name can also be used. They refer to the configured color in the terminal.
 
 ### 🧱 Widgets
 

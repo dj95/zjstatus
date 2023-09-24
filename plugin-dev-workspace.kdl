@@ -11,10 +11,10 @@ layout {
 
             hide_frame_for_single_pane "true"
 
-            mode_normal  "#[bg=#89B4FA] "
-            mode_tmux    "#[bg=#ffc387] "
+            mode_normal  "#[bg=blue] "
+            mode_tmux    "#[bg=yellow] "
 
-            tab_normal              "#[fg=#6C7086,bg=#181825] {name} "
+            tab_normal              "#[fg=#6C7086,bg=#181825] {index} :: {name} "
             tab_normal_fullscreen   "#[fg=#6C7086,bg=#181825] {index} :: {name} [] "
             tab_normal_sync         "#[fg=#6C7086,bg=#181825] {index} :: {name} <> "
             tab_active              "#[fg=#9399B2,bg=#181825,bold,italic] {name} "

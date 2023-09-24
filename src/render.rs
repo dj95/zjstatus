@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use anstyle::{Ansi256Color, Color, RgbColor, Style};
+use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor, Style};
 use zellij_tile::prelude::bail;
 
 use crate::{widgets::widget::Widget, ZellijState};
@@ -150,11 +150,29 @@ fn parse_color(color: &str) -> Option<Color> {
         );
     }
 
+    if let Some(color) = color_by_name(color) {
+        return Some(color.into());
+    }
+
     if let Ok(result) = color.parse::<u8>() {
         return Some(Ansi256Color(result).into());
     }
 
     None
+}
+
+fn color_by_name(color: &str) -> Option<AnsiColor> {
+    match color {
+        "black" => Some(AnsiColor::Black),
+        "red" => Some(AnsiColor::Red),
+        "green" => Some(AnsiColor::Green),
+        "yellow" => Some(AnsiColor::Yellow),
+        "blue" => Some(AnsiColor::Blue),
+        "magenta" => Some(AnsiColor::Magenta),
+        "cyan" => Some(AnsiColor::Cyan),
+        "white" => Some(AnsiColor::White),
+        _ => None,
+    }
 }
 
 #[cfg(test)]

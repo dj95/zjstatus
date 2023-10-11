@@ -14,12 +14,12 @@ layout {
             mode_normal  "#[bg=blue] "
             mode_tmux    "#[bg=yellow] "
 
-            tab_normal              "#[fg=#6C7086,bg=#181825] {index} :: {name} "
-            tab_normal_fullscreen   "#[fg=#6C7086,bg=#181825] {index} :: {name} [] "
-            tab_normal_sync         "#[fg=#6C7086,bg=#181825] {index} :: {name} <> "
-            tab_active              "#[fg=#9399B2,bg=#181825,bold,italic] {name} "
-            tab_active_fullscreen   "#[fg=#9399B2,bg=#181825,bold,italic] {name} [] "
-            tab_active_sync         "#[fg=#9399B2,bg=#181825,bold,italic] {name} <> "
+            tab_normal              "#[fg=#6C7086,bg=#181825] {index} {name} "
+            tab_normal_fullscreen   "#[fg=#6C7086,bg=#181825] {index} {name} [] "
+            tab_normal_sync         "#[fg=#6C7086,bg=#181825] {index} {name} <> "
+            tab_active              "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} "
+            tab_active_fullscreen   "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] "
+            tab_active_sync         "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} <> "
 
 
             datetime          "#[fg=#6C7086,bg=#181825,bold] {format} "

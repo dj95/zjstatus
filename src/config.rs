@@ -185,8 +185,8 @@ impl ModuleConfig {
     }
 
     fn get_spacer(&self, output_left: String, output_right: String, cols: usize) -> String {
-        let text_count = strip_ansi_escapes::strip(output_left).len()
-            + strip_ansi_escapes::strip(output_right).len();
+        let text_count = strip_ansi_escapes::strip_str(output_left).chars().count()
+            + strip_ansi_escapes::strip_str(output_right).chars().count();
 
         let mut space_count = cols;
         // verify we are able to count the difference, since zellij sometimes drops a col

@@ -48,22 +48,7 @@ impl Widget for CommandWidget {
             }
         };
 
-        let ts = Local::now();
-        let last_run = get_timestamp_from_event_or_default(name, state.clone());
-
-        if ts.timestamp() - last_run.timestamp() >= command_config.interval {
-            eprintln!("run {}", name);
-
-            let mut context = BTreeMap::new();
-            context.insert("name".to_owned(), name.to_owned());
-            context.insert(
-                "timestamp".to_owned(),
-                ts.format(TIMESTAMP_FORMAT).to_string(),
-            );
-
-            let command = command_config.command.split(' ').collect::<Vec<&str>>();
-            run_command(&command, context);
-        }
+        run_command_if_needed(command_config.clone(), name, state.clone());
 
         let command_result = match state.command_results.get(name) {
             Some(cr) => cr,
@@ -75,28 +60,23 @@ impl Widget for CommandWidget {
         let mut content = command_config.format.content.clone();
 
         if content.contains("{exit_code}") {
-            let exit_code = match command_result.exit_code {
-                Some(ec) => ec,
-                None => -1,
-            };
-
             content = content.replace(
                 "{exit_code}",
-                format!("{}", exit_code).as_str(),
+                format!("{}", command_result.exit_code.unwrap_or(-1)).as_str(),
             );
         }
 
         if content.contains("{stdout}") {
             content = content.replace(
                 "{stdout}",
-                format!("{}", command_result.stdout.strip_suffix('\n').unwrap()).as_str(),
+                command_result.stdout.strip_suffix('\n').unwrap(),
             );
         }
 
         if content.contains("{stderr}") {
             content = content.replace(
                 "{stderr}",
-                format!("{}", command_result.stderr.strip_suffix('\n').unwrap()).as_str(),
+                command_result.stderr.strip_suffix('\n').unwrap(),
             );
         }
 
@@ -104,6 +84,25 @@ impl Widget for CommandWidget {
     }
 
     fn process_click(&self, _state: crate::ZellijState, _pos: usize) {}
+}
+
+fn run_command_if_needed(command_config: CommandConfig, name: &str, state: crate::ZellijState) {
+    let ts = Local::now();
+    let last_run = get_timestamp_from_event_or_default(name, state.clone());
+
+    if ts.timestamp() - last_run.timestamp() >= command_config.interval {
+        eprintln!("run {}", name);
+
+        let mut context = BTreeMap::new();
+        context.insert("name".to_owned(), name.to_owned());
+        context.insert(
+            "timestamp".to_owned(),
+            ts.format(TIMESTAMP_FORMAT).to_string(),
+        );
+
+        let command = command_config.command.split(' ').collect::<Vec<&str>>();
+        run_command(&command, context);
+    }
 }
 
 fn parse_config(zj_conf: BTreeMap<String, String>) -> BTreeMap<String, CommandConfig> {
@@ -140,10 +139,7 @@ fn parse_config(zj_conf: BTreeMap<String, String>) -> BTreeMap<String, CommandCo
         }
 
         if key.ends_with("interval") {
-            command_conf.interval = match zj_conf.get(&key).unwrap().parse::<i64>() {
-                Ok(i) => i,
-                Err(_) => 1,
-            };
+            command_conf.interval = zj_conf.get(&key).unwrap().parse::<i64>().unwrap_or(1);
         }
 
         config.insert(command_name, command_conf);
@@ -155,13 +151,9 @@ fn parse_config(zj_conf: BTreeMap<String, String>) -> BTreeMap<String, CommandCo
 fn get_timestamp_from_event_or_default(name: &str, state: crate::ZellijState) -> DateTime<Local> {
     let command_result = state.command_results.get(name);
     if command_result.is_none() {
-        let path = format!("/tmp/{}.{}.lock", state.plugin_uuid, name);
-
-        if Path::new(&path).exists() {
+        if lock(name, state.clone()) {
             return Local::now();
         }
-
-        let _ = File::create(path);
 
         return Sub::<Duration>::sub(Local::now(), Duration::days(1));
     }
@@ -174,15 +166,31 @@ fn get_timestamp_from_event_or_default(name: &str, state: crate::ZellijState) ->
     let ts_context = ts_context.unwrap();
 
     if Local::now().timestamp() - state.start_time.timestamp() < 10 {
-        let path = format!("/tmp/{}.{}.lock", state.plugin_uuid, name);
-
-        if Path::new(&path).exists() {
-            let _ = remove_file(path);
-        }
+        release(name, state.clone());
     }
 
     match DateTime::parse_from_str(ts_context, TIMESTAMP_FORMAT) {
         Ok(ts) => ts.into(),
         Err(_) => Sub::<Duration>::sub(Local::now(), Duration::days(1)),
+    }
+}
+
+fn lock(name: &str, state: crate::ZellijState) -> bool {
+    let path = format!("/tmp/{}.{}.lock", state.plugin_uuid, name);
+
+    if Path::new(&path).exists() {
+        return true;
+    }
+
+    let _ = File::create(path);
+
+    false
+}
+
+fn release(name: &str, state: crate::ZellijState) {
+    let path = format!("/tmp/{}.{}.lock", state.plugin_uuid, name);
+
+    if Path::new(&path).exists() {
+        let _ = remove_file(path);
     }
 }

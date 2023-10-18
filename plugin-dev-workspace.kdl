@@ -5,7 +5,7 @@ layout {
 
     pane size=2 borderless=true {
         plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
-            format_left  "{mode} #[fg=#89B4FA,bg=#181825,bold]{session} {tabs} {command_1} {command_2} {command_3}"
+            format_left  "{mode} #[fg=#89B4FA,bg=#181825,bold]{session} {tabs} {command_1} {command_git_branch} {command_3}"
             format_right "{datetime}"
             format_space "#[bg=#181825]"
 
@@ -32,9 +32,9 @@ layout {
             command_1_format    "#[fg=blue,bg=black] {exit_code} {stdout} "
             command_1_interval  "1"
 
-            command_2_command   "git rev-parse --abbrev-ref HEAD"
-            command_2_format    "#[fg=red,bg=black] {stdout} "
-            command_2_interval  "2"
+            command_git_branch_command   "git rev-parse --abbrev-ref HEAD"
+            command_git_branch_format    "#[fg=red,bg=black] {stdout} "
+            command_git_branch_interval  "2"
 
             command_3_command   "git rev-parse --abbrev-ref HEAD"
             command_3_format    "#[fg=red,bg=black] {stdout} "

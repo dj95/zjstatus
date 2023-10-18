@@ -169,10 +169,10 @@ options can be provided per named command.
 
 ```kdl
 # the command that should be executed
-command_NAME_command        "pwd"
+command_NAME_command  "pwd"
 
 # themeing and format of the command
-command_NAME_format  "#[fg=blue, bg=black] {exit_code} {stdout} {stderr}"
+command_NAME_format   "#[fg=blue, bg=black] {exit_code} {stdout} {stderr}"
 
 # interval in seconds, between two command runs
 command_NAME_interval "1"

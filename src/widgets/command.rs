@@ -91,8 +91,6 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: crate
     let last_run = get_timestamp_from_event_or_default(name, state.clone());
 
     if ts.timestamp() - last_run.timestamp() >= command_config.interval {
-        eprintln!("run {}", name);
-
         let mut context = BTreeMap::new();
         context.insert("name".to_owned(), name.to_owned());
         context.insert(

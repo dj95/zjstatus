@@ -107,7 +107,6 @@ impl ZellijPlugin for State {
                 set_selectable(false);
             }
             Event::RunCommandResult(exit_code, stdout, stderr, context) => {
-                eprintln!("res {:?}", context);
                 if let Some(name) = context.get("name") {
                     let stdout = match String::from_utf8(stdout) {
                         Ok(s) => s,

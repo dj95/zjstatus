@@ -97,10 +97,11 @@ impl FormattedPart {
                 widget_key = "command";
             }
 
-            eprintln!("{:?}", widget_key);
-
             let result = match widgets.get(widget_key) {
-                Some(widget) => widget.process(match_name, state.clone()),
+                Some(widget) => widget.process(
+                    match_name.trim_matches(|c| c == '{' || c == '}'),
+                    state.clone(),
+                ),
                 None => "Use of uninitialized widget".to_string(),
             };
 

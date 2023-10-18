@@ -2898,5 +2898,6 @@ dependencies = [
  "chrono-tz",
  "regex",
  "strip-ansi-escapes 0.2.0",
+ "uuid",
  "zellij-tile",
 ]

@@ -1,11 +1,18 @@
 use config::ModuleConfig;
 use widgets::{
-    command::CommandWidget, datetime::DateTimeWidget, mode::ModeWidget, session::SessionWidget,
-    swap_layout::SwapLayoutWidget, tabs::TabsWidget, widget::Widget,
+    command::{CommandResult, CommandWidget},
+    datetime::DateTimeWidget,
+    mode::ModeWidget,
+    session::SessionWidget,
+    swap_layout::SwapLayoutWidget,
+    tabs::TabsWidget,
+    widget::Widget,
 };
 use zellij_tile::prelude::*;
 
+use chrono::{DateTime, Local};
 use std::{collections::BTreeMap, sync::Arc, usize};
+use uuid::Uuid;
 
 mod border;
 mod config;
@@ -24,9 +31,12 @@ struct State {
 #[derive(Default, Debug, Clone)]
 pub struct ZellijState {
     pub cols: usize,
+    pub command_results: BTreeMap<String, CommandResult>,
     pub mode: ModeInfo,
+    pub plugin_uuid: String,
     pub tabs: Vec<TabInfo>,
     pub sessions: Vec<SessionInfo>,
+    pub start_time: DateTime<Local>,
 }
 
 #[cfg(not(test))]
@@ -55,12 +65,16 @@ impl ZellijPlugin for State {
         self.userspace_configuration = configuration.clone();
         self.module_config = ModuleConfig::new(configuration.clone());
         self.widget_map = register_widgets(configuration);
+        let uid = Uuid::new_v4();
 
         self.state = ZellijState {
             cols: 0,
+            command_results: BTreeMap::new(),
             mode: ModeInfo::default(),
+            plugin_uuid: uid.to_string(),
             tabs: Vec::new(),
             sessions: Vec::new(),
+            start_time: Local::now(),
         };
     }
 
@@ -93,7 +107,28 @@ impl ZellijPlugin for State {
                 set_selectable(false);
             }
             Event::RunCommandResult(exit_code, stdout, stderr, context) => {
-                eprintln!("{:?}", String::from_utf8(stdout));
+                eprintln!("res {:?}", context);
+                if let Some(name) = context.get("name") {
+                    let stdout = match String::from_utf8(stdout) {
+                        Ok(s) => s,
+                        Err(_) => "".to_owned(),
+                    };
+
+                    let stderr = match String::from_utf8(stderr) {
+                        Ok(s) => s,
+                        Err(_) => "".to_owned(),
+                    };
+
+                    self.state.command_results.insert(
+                        name.to_string(),
+                        CommandResult {
+                            exit_code,
+                            stdout,
+                            stderr,
+                            context,
+                        },
+                    );
+                }
             }
             Event::SessionUpdate(session_info) => {
                 if self.module_config.hide_frame_for_single_pane {

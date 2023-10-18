@@ -5,7 +5,7 @@ layout {
 
     pane size=2 borderless=true {
         plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
-            format_left  "{mode} #[fg=#89B4FA,bg=#181825,bold]{session} {tabs}"
+            format_left  "{mode} #[fg=#89B4FA,bg=#181825,bold]{session} {tabs} {command_1} {command_2}"
             format_right "{datetime}"
             format_space "#[bg=#181825]"
 
@@ -27,6 +27,11 @@ layout {
             tab_active_fullscreen   "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] "
             tab_active_sync         "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} <> "
 
+            command_1_command   "pwd"
+            command_1_format    "#[fg=blue,bg=black] {stdout}"
+
+            command_2_command   "git rev-parse --abbrev-ref HEAD"
+            command_2_format    "#[fg=blue,bg=black] {stdout}"
 
             datetime          "#[fg=#6C7086,bg=#181825,bold] {format} "
             datetime_format   "%A, %d %b %Y %H:%M"

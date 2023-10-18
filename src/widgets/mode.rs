@@ -119,7 +119,7 @@ impl ModeWidget {
 }
 
 impl Widget for ModeWidget {
-    fn process(&self, state: ZellijState) -> String {
+    fn process(&self, _name: &str, state: ZellijState) -> String {
         let format = self.select_format(state.mode.mode);
 
         let mut content = format.content.clone();

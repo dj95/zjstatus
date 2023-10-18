@@ -141,10 +141,9 @@ impl ModuleConfig {
                 continue;
             }
 
-            let mut wid_name = match_name.replace('{', "");
-            wid_name = wid_name.replace('}', "");
+            let wid_name = match_name.trim_matches(|c| c == '{' || c == '}');
 
-            let wid = widget_map.get(&wid_name);
+            let wid = widget_map.get(wid_name);
             if wid.is_none() {
                 continue;
             }
@@ -156,7 +155,7 @@ impl ModuleConfig {
             }
             let pos = pos.unwrap();
 
-            let wid_res = strip_ansi_escapes::strip_str(wid.process(state.clone()));
+            let wid_res = strip_ansi_escapes::strip_str(wid.process(wid_name, state.clone()));
             rendered_output = rendered_output.replace(match_name, &wid_res);
 
             if click_pos < pos + offset || click_pos > pos + offset + wid_res.len() {

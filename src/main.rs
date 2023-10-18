@@ -1,6 +1,6 @@
 use config::ModuleConfig;
 use widgets::{
-    datetime::DateTimeWidget, mode::ModeWidget, session::SessionWidget,
+    command::CommandWidget, datetime::DateTimeWidget, mode::ModeWidget, session::SessionWidget,
     swap_layout::SwapLayoutWidget, tabs::TabsWidget, widget::Widget,
 };
 use zellij_tile::prelude::*;
@@ -49,6 +49,7 @@ impl ZellijPlugin for State {
             EventType::PermissionRequestResult,
             EventType::TabUpdate,
             EventType::SessionUpdate,
+            EventType::RunCommandResult,
         ]);
 
         self.userspace_configuration = configuration.clone();
@@ -91,6 +92,9 @@ impl ZellijPlugin for State {
             Event::PermissionRequestResult(_result) => {
                 set_selectable(false);
             }
+            Event::RunCommandResult(exit_code, stdout, stderr, context) => {
+                eprintln!("{:?}", String::from_utf8(stdout));
+            }
             Event::SessionUpdate(session_info) => {
                 if self.module_config.hide_frame_for_single_pane {
                     let current_session = session_info.iter().find(|s| s.is_current_session);
@@ -128,6 +132,10 @@ impl ZellijPlugin for State {
 fn register_widgets(configuration: BTreeMap<String, String>) -> BTreeMap<String, Arc<dyn Widget>> {
     let mut widget_map = BTreeMap::<String, Arc<dyn Widget>>::new();
 
+    widget_map.insert(
+        "command".to_string(),
+        Arc::new(CommandWidget::new(configuration.clone())),
+    );
     widget_map.insert(
         "datetime".to_string(),
         Arc::new(DateTimeWidget::new(configuration.clone())),

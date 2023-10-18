@@ -59,7 +59,7 @@ impl TabsWidget {
 }
 
 impl Widget for TabsWidget {
-    fn process(&self, state: crate::ZellijState) -> String {
+    fn process(&self, _name: &str, state: crate::ZellijState) -> String {
         let mut output = "".to_string();
 
         for tab in state.tabs {

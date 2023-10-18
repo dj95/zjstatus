@@ -12,7 +12,7 @@ impl SwapLayoutWidget {
 }
 
 impl Widget for SwapLayoutWidget {
-    fn process(&self, state: crate::ZellijState) -> String {
+    fn process(&self, _name: &str, state: crate::ZellijState) -> String {
         let active_tab = state.tabs.iter().find(|t| t.active);
 
         if active_tab.is_none() {

@@ -439,6 +439,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54261aba646433cb567ec89844be4c4825ca92a4f8afba52fc4dd88436e31bbd"
 
 [[package]]
+name = "common-path"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2382f75942f4b3be3690fe4f86365e9c853c1587d6ee58212cebf6e2a9ccd101"
+
+[[package]]
 name = "concurrent-queue"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -592,13 +598,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "directories-next"
-version = "2.0.0"
+name = "directories"
+version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "339ee130d97a610ea5a5872d2bbb130fdf68884ff09d3028b81bec8a1ac23bbc"
+checksum = "9a49173b84e034382284f27f1af4dcbbd231ffa358c0fe316541a7337f376a35"
 dependencies = [
- "cfg-if",
- "dirs-sys-next",
+ "dirs-sys 0.4.1",
 ]
 
 [[package]]
@@ -640,17 +645,6 @@ dependencies = [
  "option-ext",
  "redox_users",
  "windows-sys",
-]
-
-[[package]]
-name = "dirs-sys-next"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ebda144c4fe02d1f7ea1a7d9641b6fc6b580adcfa024ae48797ecdeb6825b4d"
-dependencies = [
- "libc",
- "redox_users",
- "winapi",
 ]
 
 [[package]]
@@ -2501,9 +2495,9 @@ checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 
 [[package]]
 name = "uuid"
-version = "0.8.2"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
+checksum = "79daa5ed5740825c40b389c5e50312b9c86df53fccd33f281df655642b43869d"
 dependencies = [
  "getrandom",
  "serde",
@@ -2834,9 +2828,8 @@ dependencies = [
 
 [[package]]
 name = "zellij-tile"
-version = "0.38.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23245bbef7a6dd1c6e44a73b697fcd4b15eac5d0812dfee4b633ae425c8c1ba3"
+version = "0.39.0"
+source = "git+https://github.com/zellij-org/zellij#41e953f17705be2b9834523a156a93be2518b444"
 dependencies = [
  "clap",
  "serde",
@@ -2848,9 +2841,8 @@ dependencies = [
 
 [[package]]
 name = "zellij-utils"
-version = "0.38.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2c255271eab3868f67bb0efa4d0af5bf0aa2ddbedd3b79a83fc258c1e57e15a"
+version = "0.39.0"
+source = "git+https://github.com/zellij-org/zellij#41e953f17705be2b9834523a156a93be2518b444"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -2860,8 +2852,10 @@ dependencies = [
  "clap_complete",
  "colored",
  "colorsys",
+ "common-path",
  "crossbeam",
- "directories-next",
+ "directories",
+ "humantime",
  "include_dir",
  "interprocess",
  "kdl",

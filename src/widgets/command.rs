@@ -158,7 +158,7 @@ fn get_timestamp_from_event_or_default(
 ) -> DateTime<Local> {
     let command_result = state.command_results.get(name);
     if command_result.is_none() {
-        if lock(name, state.clone(), interval) {
+        if lock(name, state.clone()) {
             return Local::now();
         }
 
@@ -182,7 +182,7 @@ fn get_timestamp_from_event_or_default(
     }
 }
 
-fn lock(name: &str, state: crate::ZellijState, interval: i64) -> bool {
+fn lock(name: &str, state: crate::ZellijState) -> bool {
     let path = format!("/tmp/{}.{}.lock", state.plugin_uuid, name);
 
     if !Path::new(&path).exists() {

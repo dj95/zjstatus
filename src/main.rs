@@ -201,7 +201,7 @@ fn is_detached(state: ZellijState) -> bool {
         None => return false,
     };
 
-    return current_session.connected_clients == 0;
+    current_session.connected_clients == 0
 }
 
 fn register_widgets(configuration: BTreeMap<String, String>) -> BTreeMap<String, Arc<dyn Widget>> {

@@ -1,9 +1,13 @@
-use std::{collections::BTreeMap, ops::Sub};
+use std::{
+    collections::BTreeMap,
+    fs::{self, remove_file, File},
+    ops::Sub,
+    path::Path,
+    time::UNIX_EPOCH,
+};
 
 use chrono::{DateTime, Duration, Local};
 use regex::Regex;
-use std::fs::{remove_file, File};
-use std::path::Path;
 use zellij_tile::shim::run_command;
 
 use crate::render::FormattedPart;
@@ -88,7 +92,8 @@ impl Widget for CommandWidget {
 
 fn run_command_if_needed(command_config: CommandConfig, name: &str, state: crate::ZellijState) {
     let ts = Local::now();
-    let last_run = get_timestamp_from_event_or_default(name, state.clone());
+    let last_run =
+        get_timestamp_from_event_or_default(name, state.clone(), command_config.interval);
 
     if ts.timestamp() - last_run.timestamp() >= command_config.interval {
         let mut context = BTreeMap::new();
@@ -146,10 +151,14 @@ fn parse_config(zj_conf: BTreeMap<String, String>) -> BTreeMap<String, CommandCo
     config
 }
 
-fn get_timestamp_from_event_or_default(name: &str, state: crate::ZellijState) -> DateTime<Local> {
+fn get_timestamp_from_event_or_default(
+    name: &str,
+    state: crate::ZellijState,
+    interval: i64,
+) -> DateTime<Local> {
     let command_result = state.command_results.get(name);
     if command_result.is_none() {
-        if lock(name, state.clone()) {
+        if lock(name, state.clone(), interval) {
             return Local::now();
         }
 
@@ -173,16 +182,32 @@ fn get_timestamp_from_event_or_default(name: &str, state: crate::ZellijState) ->
     }
 }
 
-fn lock(name: &str, state: crate::ZellijState) -> bool {
+fn lock(name: &str, state: crate::ZellijState, interval: i64) -> bool {
     let path = format!("/tmp/{}.{}.lock", state.plugin_uuid, name);
 
-    if Path::new(&path).exists() {
-        return true;
+    if !Path::new(&path).exists() {
+        let _ = File::create(path);
+
+        return false;
     }
 
-    let _ = File::create(path);
+    // refresh lock, when it's older than the interval for another try.
+    // This must be done when reattaching the session since the command
+    // otherwise won't run because the permissions are received too late
+    if let Ok(metadata) = fs::metadata(path.clone()) {
+        if let Ok(time) = metadata.modified() {
+            let seconds = time.duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
 
-    false
+            if Local::now().timestamp() - seconds > interval {
+                release(name, state);
+                let _ = File::create(path);
+
+                return false;
+            }
+        }
+    }
+
+    true
 }
 
 fn release(name: &str, state: crate::ZellijState) {

@@ -44,7 +44,6 @@ impl CommandWidget {
 
 impl Widget for CommandWidget {
     fn process(&self, name: &str, state: crate::ZellijState) -> String {
-        eprintln!("run command");
         let command_config = match self.config.get(name) {
             Some(cc) => cc,
             None => {

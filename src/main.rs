@@ -117,8 +117,7 @@ impl ZellijPlugin for State {
                     should_render = true;
                 }
             }
-            Event::PermissionRequestResult(result) => {
-                eprintln!("{:?}", result);
+            Event::PermissionRequestResult(_result) => {
                 set_selectable(false);
                 self.got_permissions = true;
             }

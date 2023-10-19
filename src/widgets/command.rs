@@ -92,8 +92,7 @@ impl Widget for CommandWidget {
 
 fn run_command_if_needed(command_config: CommandConfig, name: &str, state: crate::ZellijState) {
     let ts = Local::now();
-    let last_run =
-        get_timestamp_from_event_or_default(name, state.clone(), command_config.interval);
+    let last_run = get_timestamp_from_event_or_default(name, state.clone());
 
     if ts.timestamp() - last_run.timestamp() >= command_config.interval {
         let mut context = BTreeMap::new();
@@ -151,14 +150,10 @@ fn parse_config(zj_conf: BTreeMap<String, String>) -> BTreeMap<String, CommandCo
     config
 }
 
-fn get_timestamp_from_event_or_default(
-    name: &str,
-    state: crate::ZellijState,
-    interval: i64,
-) -> DateTime<Local> {
+fn get_timestamp_from_event_or_default(name: &str, state: crate::ZellijState) -> DateTime<Local> {
     let command_result = state.command_results.get(name);
     if command_result.is_none() {
-        if lock(name, state.clone(), interval) {
+        if lock(name, state.clone()) {
             return Local::now();
         }
 
@@ -172,7 +167,7 @@ fn get_timestamp_from_event_or_default(
     }
     let ts_context = ts_context.unwrap();
 
-    if Local::now().timestamp() - state.start_time.timestamp() < interval {
+    if Local::now().timestamp() - state.start_time.timestamp() < 10 {
         release(name, state.clone());
     }
 
@@ -182,17 +177,16 @@ fn get_timestamp_from_event_or_default(
     }
 }
 
-fn lock(name: &str, state: crate::ZellijState, interval: i64) -> bool {
+fn lock(name: &str, state: crate::ZellijState) -> bool {
     let path = format!("/tmp/{}.{}.lock", state.plugin_uuid, name);
 
-    if !Path::new(&path).exists() {
-        let _ = File::create(path);
-
-        return false;
+    if Path::new(&path).exists() {
+        return true;
     }
 
+    let _ = File::create(path);
 
-    true
+    false
 }
 
 fn release(name: &str, state: crate::ZellijState) {

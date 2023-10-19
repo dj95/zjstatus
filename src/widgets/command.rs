@@ -72,14 +72,20 @@ impl Widget for CommandWidget {
         if content.contains("{stdout}") {
             content = content.replace(
                 "{stdout}",
-                command_result.stdout.strip_suffix('\n').unwrap(),
+                command_result
+                    .stdout
+                    .strip_suffix('\n')
+                    .unwrap_or(&command_result.stdout),
             );
         }
 
         if content.contains("{stderr}") {
             content = content.replace(
                 "{stderr}",
-                command_result.stderr.strip_suffix('\n').unwrap(),
+                command_result
+                    .stderr
+                    .strip_suffix('\n')
+                    .unwrap_or(&command_result.stderr),
             );
         }
 

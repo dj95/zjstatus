@@ -1,9 +1,8 @@
 use std::{
     collections::BTreeMap,
-    fs::{self, remove_file, File},
+    fs::{remove_file, File},
     ops::Sub,
     path::Path,
-    time::UNIX_EPOCH,
 };
 
 use chrono::{DateTime, Duration, Local};
@@ -45,6 +44,7 @@ impl CommandWidget {
 
 impl Widget for CommandWidget {
     fn process(&self, name: &str, state: crate::ZellijState) -> String {
+        eprintln!("run command");
         let command_config = match self.config.get(name) {
             Some(cc) => cc,
             None => {
@@ -92,7 +92,8 @@ impl Widget for CommandWidget {
 
 fn run_command_if_needed(command_config: CommandConfig, name: &str, state: crate::ZellijState) {
     let ts = Local::now();
-    let last_run = get_timestamp_from_event_or_default(name, state.clone());
+    let last_run =
+        get_timestamp_from_event_or_default(name, state.clone(), command_config.interval);
 
     if ts.timestamp() - last_run.timestamp() >= command_config.interval {
         let mut context = BTreeMap::new();
@@ -150,10 +151,14 @@ fn parse_config(zj_conf: BTreeMap<String, String>) -> BTreeMap<String, CommandCo
     config
 }
 
-fn get_timestamp_from_event_or_default(name: &str, state: crate::ZellijState) -> DateTime<Local> {
+fn get_timestamp_from_event_or_default(
+    name: &str,
+    state: crate::ZellijState,
+    interval: i64,
+) -> DateTime<Local> {
     let command_result = state.command_results.get(name);
     if command_result.is_none() {
-        if lock(name, state.clone()) {
+        if lock(name, state.clone(), interval) {
             return Local::now();
         }
 
@@ -167,7 +172,7 @@ fn get_timestamp_from_event_or_default(name: &str, state: crate::ZellijState) ->
     }
     let ts_context = ts_context.unwrap();
 
-    if Local::now().timestamp() - state.start_time.timestamp() < 10 {
+    if Local::now().timestamp() - state.start_time.timestamp() < interval {
         release(name, state.clone());
     }
 
@@ -177,16 +182,16 @@ fn get_timestamp_from_event_or_default(name: &str, state: crate::ZellijState) ->
     }
 }
 
-fn lock(name: &str, state: crate::ZellijState) -> bool {
+fn lock(name: &str, state: crate::ZellijState, interval: i64) -> bool {
     let path = format!("/tmp/{}.{}.lock", state.plugin_uuid, name);
 
-    if Path::new(&path).exists() {
-        return true;
+    if !Path::new(&path).exists() {
+        let _ = File::create(path);
+
+        return false;
     }
 
-    let _ = File::create(path);
-
-    false
+    true
 }
 
 fn release(name: &str, state: crate::ZellijState) {

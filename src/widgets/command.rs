@@ -172,7 +172,7 @@ fn get_timestamp_from_event_or_default(
     }
     let ts_context = ts_context.unwrap();
 
-    if Local::now().timestamp() - state.start_time.timestamp() < 10 {
+    if Local::now().timestamp() - state.start_time.timestamp() < interval {
         release(name, state.clone());
     }
 
@@ -191,21 +191,6 @@ fn lock(name: &str, state: crate::ZellijState, interval: i64) -> bool {
         return false;
     }
 
-    // refresh lock, when it's older than the interval for another try.
-    // This must be done when reattaching the session since the command
-    // otherwise won't run because the permissions are received too late
-    if let Ok(metadata) = fs::metadata(path.clone()) {
-        if let Ok(time) = metadata.modified() {
-            let seconds = time.duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
-
-            if Local::now().timestamp() - seconds > interval {
-                release(name, state);
-                let _ = File::create(path);
-
-                return false;
-            }
-        }
-    }
 
     true
 }

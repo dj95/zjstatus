@@ -26,6 +26,7 @@ struct State {
     userspace_configuration: BTreeMap<String, String>,
     module_config: config::ModuleConfig,
     widget_map: BTreeMap<String, Arc<dyn Widget>>,
+    got_permissions: bool,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -65,6 +66,7 @@ impl ZellijPlugin for State {
         self.userspace_configuration = configuration.clone();
         self.module_config = ModuleConfig::new(configuration.clone());
         self.widget_map = register_widgets(configuration);
+        self.got_permissions = false;
         let uid = Uuid::new_v4();
 
         self.state = ZellijState {
@@ -82,6 +84,10 @@ impl ZellijPlugin for State {
         let mut should_render = false;
         match event {
             Event::Mouse(mouse_info) => {
+                if !self.got_permissions {
+                    return false;
+                }
+
                 self.module_config.handle_mouse_action(
                     self.state.clone(),
                     mouse_info,
@@ -89,10 +95,18 @@ impl ZellijPlugin for State {
                 );
             }
             Event::ModeUpdate(mode_info) => {
+                if !self.got_permissions {
+                    return false;
+                }
+
                 self.state.mode = mode_info;
                 should_render = true;
             }
             Event::PaneUpdate(pane_info) => {
+                if !self.got_permissions {
+                    return false;
+                }
+
                 if self.module_config.hide_frame_for_single_pane {
                     frames::hide_frames_on_single_pane(
                         self.state.tabs.clone(),
@@ -103,10 +117,16 @@ impl ZellijPlugin for State {
                     should_render = true;
                 }
             }
-            Event::PermissionRequestResult(_result) => {
+            Event::PermissionRequestResult(result) => {
+                eprintln!("{:?}", result);
                 set_selectable(false);
+                self.got_permissions = true;
             }
             Event::RunCommandResult(exit_code, stdout, stderr, context) => {
+                if !self.got_permissions {
+                    return false;
+                }
+
                 if let Some(name) = context.get("name") {
                     let stdout = match String::from_utf8(stdout) {
                         Ok(s) => s,
@@ -130,6 +150,10 @@ impl ZellijPlugin for State {
                 }
             }
             Event::SessionUpdate(session_info) => {
+                if !self.got_permissions {
+                    return false;
+                }
+
                 if self.module_config.hide_frame_for_single_pane {
                     let current_session = session_info.iter().find(|s| s.is_current_session);
 
@@ -147,6 +171,10 @@ impl ZellijPlugin for State {
                 should_render = true;
             }
             Event::TabUpdate(tab_info) => {
+                if !self.got_permissions {
+                    return false;
+                }
+
                 self.state.tabs = tab_info;
                 should_render = true;
             }
@@ -156,11 +184,24 @@ impl ZellijPlugin for State {
     }
 
     fn render(&mut self, _rows: usize, cols: usize) {
+        if is_detached(self.state.clone()) || !self.got_permissions {
+            return;
+        }
+
         self.state.cols = cols;
 
         self.module_config
             .render_bar(self.state.clone(), self.widget_map.clone());
     }
+}
+
+fn is_detached(state: ZellijState) -> bool {
+    let current_session = match state.sessions.iter().find(|s| s.is_current_session) {
+        Some(s) => s,
+        None => return false,
+    };
+
+    return current_session.connected_clients == 0;
 }
 
 fn register_widgets(configuration: BTreeMap<String, String>) -> BTreeMap<String, Arc<dyn Widget>> {

@@ -30,19 +30,8 @@ impl Default for BorderConfig {
 }
 
 impl BorderConfig {
-    pub fn draw_if_enabled(&self, cols: usize) {
-        if !self.enabled {
-            return;
-        }
-
-        let output = self.char.repeat(cols);
-
-        let mut newline = "";
-        if self.position == BorderPosition::Top {
-            newline = "\n";
-        }
-
-        print!("{}{}", self.format.format_string(output), newline);
+    pub fn draw(&self, cols: usize) -> String {
+        self.format.format_string(self.char.repeat(cols))
     }
 }
 

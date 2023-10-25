@@ -188,17 +188,23 @@ impl ModuleConfig {
             );
         }
 
-        let mut newline = "";
+        let mut border_top = "".to_string();
+        if self.border.enabled && self.border.position == BorderPosition::Top {
+            border_top = format!("{}\n", self.border.draw(state.cols));
+        }
+
+        let mut border_bottom = "".to_string();
         if self.border.enabled && self.border.position == BorderPosition::Bottom {
-            newline = "\n";
+            border_bottom = format!("\n{}", self.border.draw(state.cols));
         }
 
         print!(
-            "{}{}{}{}",
+            "{}{}{}{}{}",
+            border_top,
             output_left,
             self.get_spacer(output_left.clone(), output_right.clone(), state.cols),
             output_right,
-            newline,
+            border_bottom,
         );
     }
 

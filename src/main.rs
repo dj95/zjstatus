@@ -1,4 +1,3 @@
-use border::BorderPosition;
 use config::ModuleConfig;
 use widgets::{
     datetime::DateTimeWidget, mode::ModeWidget, session::SessionWidget,
@@ -121,16 +120,8 @@ impl ZellijPlugin for State {
     fn render(&mut self, _rows: usize, cols: usize) {
         self.state.cols = cols;
 
-        if self.module_config.border.position == BorderPosition::Top {
-            self.module_config.border.draw_if_enabled(cols);
-        }
-
         self.module_config
             .render_bar(self.state.clone(), self.widget_map.clone());
-
-        if self.module_config.border.position == BorderPosition::Bottom {
-            self.module_config.border.draw_if_enabled(cols);
-        }
     }
 }
 

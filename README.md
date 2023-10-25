@@ -83,6 +83,11 @@ layout {
             format_right "{datetime}"
             format_space ""
 
+            border_enabled  "false"
+            border_char     "─"
+            border_format   "#[fg=#6C7086]{char}"
+            border_position "top"
+
             hide_frame_for_single_pane "true"
 
             mode_normal  "#[bg=blue] "
@@ -103,9 +108,29 @@ In order to start using zjstatus you need to specify the widgets you'd like to u
 configuration. Formatting can be done with `#[..]`, while widgets and properties are surrounded by `{..}`.
 The blank space between the left and the right part can be colored with `format_space`.
 
+### 🔧 General configuration
+
+This section describes some general configuration for zjstatus.
+
+#### Hide pane frames for tabs single panes
+
 The option `hide_frame_for_single_pane` will toggle the pane frames depending on how many panes (not plugin panes) are shown.
 This will effectively hide the frame border, when only one pane, like an editor, is shown. Pane frames are toggled as soon
 as there is another pane created.
+
+#### Border for the bar
+
+When hiding the pane frames, zjstatus might blend in too well with the background and opened panes since zellij won't draw
+the border for non-selectable plugins. Therefore zjstatus provides its own border, that can be activated and customized.
+Most important, the pane height for the plugin **must be set to 2**. Otherwise zjstatus won't be able to draw it. For top
+bar configurations the position of the border is also implemented.
+
+```kdl
+border_enabled  "true"           // "true" | "false" for activating the bar
+border_char     "─"              // character used for drawing the bar
+border_format   "#[fg=#6C7086]"  // format specifier for theming
+border_position "top"            // "top" | "bottom" for the border position relative to the bar
+```
 
 ### 🎨 Formatting and theming
 

@@ -3,11 +3,17 @@ layout {
         pane
     }
 
-    pane size=1 borderless=true {
+    pane size=2 borderless=true {
         plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
             format_left  "{mode} #[fg=#89B4FA,bg=#181825,bold]{session} {tabs}"
             format_right "{datetime}"
             format_space "#[bg=#181825]"
+
+            // foo
+            border_enabled  "true"
+            border_char     "─"
+            border_format   "#[fg=#6C7086]{char}"
+            border_position "top"
 
             hide_frame_for_single_pane "true"
 

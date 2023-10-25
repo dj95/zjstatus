@@ -3,7 +3,12 @@ use std::{collections::BTreeMap, sync::Arc};
 use regex::Regex;
 use zellij_tile::prelude::Mouse;
 
-use crate::{render::FormattedPart, widgets::widget::Widget, ZellijState};
+use crate::{
+    border::{parse_border_config, BorderConfig, BorderPosition},
+    render::FormattedPart,
+    widgets::widget::Widget,
+    ZellijState,
+};
 
 #[derive(Default)]
 pub struct ModuleConfig {
@@ -13,6 +18,7 @@ pub struct ModuleConfig {
     pub right_parts: Vec<FormattedPart>,
     pub format_space: FormattedPart,
     pub hide_frame_for_single_pane: bool,
+    pub border: BorderConfig,
 }
 
 impl ModuleConfig {
@@ -37,6 +43,11 @@ impl ModuleConfig {
             right_parts_config = conf;
         }
 
+        let mut border_config = BorderConfig::default();
+        if let Some(bc) = parse_border_config(config.clone()) {
+            border_config = bc;
+        }
+
         Self {
             left_parts_config: left_parts_config.to_string(),
             left_parts: parts_from_config(Some(&left_parts_config.to_string())),
@@ -44,6 +55,7 @@ impl ModuleConfig {
             right_parts: parts_from_config(Some(&right_parts_config.to_string())),
             format_space: FormattedPart::from_format_string(format_space_config.to_string()),
             hide_frame_for_single_pane,
+            border: border_config,
         }
     }
 
@@ -176,11 +188,17 @@ impl ModuleConfig {
             );
         }
 
+        let mut newline = "";
+        if self.border.enabled && self.border.position == BorderPosition::Bottom {
+            newline = "\n";
+        }
+
         print!(
-            "{}{}{}",
+            "{}{}{}{}",
             output_left,
             self.get_spacer(output_left.clone(), output_right.clone(), state.cols),
-            output_right
+            output_right,
+            newline,
         );
     }
 

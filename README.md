@@ -162,6 +162,8 @@ zjstatus contains the following widgets with their respective config.
 
 **Handle** `{command_NAME}`
 
+⚠️  zellij 0.39.0 or newer is needed!
+
 This widget is able to run arbitary commands and prints the result. It behaves a little
 bit different in order to enable running multiple commands. Therefore the command need to
 have a name in form of e.g. `{command_pwd}` or `{command_git_branch}`. The following

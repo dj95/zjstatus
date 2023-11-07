@@ -37,6 +37,11 @@ You could also refer to the plugin guide from zellij, after downloading the bina
 
 Please ensure, that the configuration is correct.
 
+⚠️ **In case you experience any crashes or issues, please in the first step try to clear the cache! (`$HOME/.cache/zellij/` for Linux, `$HOME/Library/Caches/org.Zellij-Contributors.Zellij/` on macOS)**
+
+Sometimes, especially when updating zjstatus, it might come to caching issues, which can be resolved by clearing it. Please keep in
+mind, that it will also clear the cache for running sessions and revokes granted permissions for plugins.
+
 ## ❄️ Installation with nix flake
 
 Add this repository to your inputs and then with the following overlay to your packages.

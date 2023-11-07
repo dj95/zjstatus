@@ -80,7 +80,7 @@ layout {
     pane size=1 borderless=true {
         plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
             format_left  "{mode} #[fg=#89B4FA,bold]{session} {tabs}"
-            format_right "{datetime}"
+            format_right "{command_git_branch} {datetime}"
             format_space ""
 
             border_enabled  "false"
@@ -95,6 +95,10 @@ layout {
 
             tab_normal   "#[fg=#6C7086] {name} "
             tab_active   "#[fg=#9399B2,bold,italic] {name} "
+
+            command_git_branch_command   "git rev-parse --abbrev-ref HEAD"
+            command_git_branch_format    "#[fg=blue] {stdout} "
+            command_git_branch_interval  "10"
 
             datetime        "#[fg=#6C7086,bold] {format} "
             datetime_format "%A, %d %b %Y %H:%M"
@@ -153,6 +157,26 @@ by ansi color codes, the color name can also be used. They refer to the configur
 ### 🧱 Widgets
 
 zjstatus contains the following widgets with their respective config.
+
+#### command
+
+**Handle** `{command_NAME}`
+
+This widget is able to run arbitary commands and prints the result. It behaves a little
+bit different in order to enable running multiple commands. Therefore the command need to
+have a name in form of e.g. `{command_pwd}` or `{command_git_branch}`. The following
+options can be provided per named command.
+
+```kdl
+# the command that should be executed
+command_NAME_command  "pwd"
+
+# themeing and format of the command
+command_NAME_format   "#[fg=blue, bg=black] {exit_code} {stdout} {stderr}"
+
+# interval in seconds, between two command runs
+command_NAME_interval "1"
+```
 
 #### datetime
 

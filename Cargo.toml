@@ -5,10 +5,11 @@ authors = ["Daniel Jankowski"]
 edition = "2018"
 
 [dependencies]
-zellij-tile = "0.38.0"
+zellij-tile = "0.39.0"
 chrono = "0.4.0"
 regex = "1.9.4"
 strip-ansi-escapes = "0.2.0"
 chrono-tz = "0.8.3"
 anyhow = "1.0.75"
 anstyle = "1.0.2"
+uuid = { version = "1.4.1", features = ["v4"] }

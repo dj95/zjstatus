@@ -44,7 +44,7 @@ impl DateTimeWidget {
 }
 
 impl Widget for DateTimeWidget {
-    fn process(&self, _state: crate::ZellijState) -> String {
+    fn process(&self, _name: &str ,_state: crate::ZellijState) -> String {
         let mut output = self.color_format.content.clone();
         if output.contains("{format}") {
             let date = Local::now();

@@ -1,3 +1,4 @@
+pub mod command;
 pub mod datetime;
 pub mod mode;
 pub mod swap_layout;

@@ -11,7 +11,7 @@ impl SessionWidget {
 }
 
 impl Widget for SessionWidget {
-    fn process(&self, state: crate::ZellijState) -> String {
+    fn process(&self, _name: &str, state: crate::ZellijState) -> String {
         match state.mode.session_name {
             Some(name) => name,
             None => "".to_string(),

@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor, Style};
+use regex::Regex;
 use zellij_tile::prelude::bail;
 
 use crate::{widgets::widget::Widget, ZellijState};
@@ -87,18 +88,24 @@ impl FormattedPart {
     ) -> String {
         let mut output = self.content.clone();
 
-        for key in widgets.keys() {
-            let token = format!("{{{key}}}");
-            if !output.contains(token.as_str()) {
-                continue;
+        let widgets_regex = Regex::new("(\\{[a-z_0-9]+\\})").unwrap();
+        for widget in widgets_regex.captures_iter(self.content.clone().as_str()) {
+            let match_name = widget.get(0).unwrap().as_str();
+            let mut widget_key = match_name.trim_matches(|c| c == '{' || c == '}');
+
+            if widget_key.starts_with("command_") {
+                widget_key = "command";
             }
 
-            let result = match widgets.get(key) {
-                Some(widget) => widget.process(state.clone()),
+            let result = match widgets.get(widget_key) {
+                Some(widget) => widget.process(
+                    match_name.trim_matches(|c| c == '{' || c == '}'),
+                    state.clone(),
+                ),
                 None => "Use of uninitialized widget".to_string(),
             };
 
-            output = output.replace(token.as_str(), &result);
+            output = output.replace(match_name, &result);
         }
 
         self.format_string(output)

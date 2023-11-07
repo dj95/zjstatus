@@ -148,7 +148,7 @@ impl ZellijPlugin for State {
                     );
                 }
             }
-            Event::SessionUpdate(session_info) => {
+            Event::SessionUpdate(session_info, _) => {
                 if !self.got_permissions {
                     return false;
                 }

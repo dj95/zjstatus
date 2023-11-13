@@ -16,6 +16,19 @@ pub struct FormattedPart {
 }
 
 impl FormattedPart {
+    pub fn multiple_from_format_string(config: String) -> Vec<Self> {
+        let mut output = Vec::new();
+
+        let color_parts = config.split("#[");
+        for color_part in color_parts {
+            let part = FormattedPart::from_format_string(color_part.to_string());
+
+            output.push(part);
+        }
+
+        output
+    }
+
     pub fn from_format_string(format: String) -> Self {
         let mut format = format;
         if format.starts_with("#[") {

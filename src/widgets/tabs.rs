@@ -19,31 +19,31 @@ impl TabsWidget {
     pub fn new(config: BTreeMap<String, String>) -> Self {
         let mut normal_tab_format: Vec<FormattedPart> = Vec::new();
         if let Some(form) = config.get("tab_normal") {
-            normal_tab_format = get_formatters(form.to_string());
+            normal_tab_format = FormattedPart::multiple_from_format_string(form.to_string());
         }
 
         let normal_tab_fullscreen_format = match config.get("tab_normal_fullscreen") {
-            Some(form) => get_formatters(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
             None => normal_tab_format.clone(),
         };
 
         let normal_tab_sync_format = match config.get("tab_normal_sync") {
-            Some(form) => get_formatters(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
             None => normal_tab_format.clone(),
         };
 
         let mut active_tab_format = normal_tab_format.clone();
         if let Some(form) = config.get("tab_active") {
-            active_tab_format = get_formatters(form.to_string());
+            active_tab_format = FormattedPart::multiple_from_format_string(form.to_string());
         }
 
         let active_tab_fullscreen_format = match config.get("tab_active_fullscreen") {
-            Some(form) => get_formatters(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
             None => active_tab_format.clone(),
         };
 
         let active_tab_sync_format = match config.get("tab_active_sync") {
-            Some(form) => get_formatters(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
             None => active_tab_format.clone(),
         };
 
@@ -138,17 +138,4 @@ impl TabsWidget {
 
         output.to_string()
     }
-}
-
-fn get_formatters(config: String) -> Vec<FormattedPart> {
-    let mut output = Vec::new();
-
-    let color_parts = config.split("#[");
-    for color_part in color_parts {
-        let part = FormattedPart::from_format_string(color_part.to_string());
-
-        output.push(part);
-    }
-
-    output
 }

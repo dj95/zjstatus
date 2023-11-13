@@ -183,7 +183,7 @@ impl ZellijPlugin for State {
     }
 
     fn render(&mut self, _rows: usize, cols: usize) {
-        if is_detached(self.state.clone()) || !self.got_permissions {
+        if !self.got_permissions {
             return;
         }
 
@@ -192,15 +192,6 @@ impl ZellijPlugin for State {
         self.module_config
             .render_bar(self.state.clone(), self.widget_map.clone());
     }
-}
-
-fn is_detached(state: ZellijState) -> bool {
-    let current_session = match state.sessions.iter().find(|s| s.is_current_session) {
-        Some(s) => s,
-        None => return false,
-    };
-
-    current_session.connected_clients == 0
 }
 
 fn register_widgets(configuration: BTreeMap<String, String>) -> BTreeMap<String, Arc<dyn Widget>> {

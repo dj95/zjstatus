@@ -31,7 +31,7 @@
 ## 🚀 Installation
 
 Download the latest binary in the github releases. Place it somewhere, zellij is able to access it. Then the
-plugin can be included by referencing it in a layout file, e.g. in the default layout one.
+plugin can be included by referencing it in a layout file, e.g. the default layout one.
 
 You could also refer to the plugin guide from zellij, after downloading the binary: [https://zellij.dev/documentation/plugin-loading](https://zellij.dev/documentation/plugin-loading)
 
@@ -169,14 +169,16 @@ zjstatus contains the following widgets with their respective config.
 
 ⚠️  zellij 0.39.0 or newer is needed!
 
-This widget is able to run arbitary commands and prints the result. It behaves a little
-bit different in order to enable running multiple commands. Therefore the command need to
-have a name in form of e.g. `{command_pwd}` or `{command_git_branch}`. The following
+This widget is able to run arbitrary commands and prints the result. Keep in mind, that it
+runs **just** the command **not** in a shell. If you'd like to use a shell, please make
+sure you specify it and properly use it for running your command. Since the command widget
+should be able to run multiple commands, it behaves a bit different than the other widgets.
+Therefore the command need to have a name in form of e.g. `{command_pwd}` or `{command_git_branch}`. The following
 options can be provided per named command.
 
 ```kdl
 # the command that should be executed
-command_NAME_command  "pwd"
+command_NAME_command  "bash -c \"pwd | base64\""
 
 # themeing and format of the command
 command_NAME_format   "#[fg=blue, bg=black] {exit_code} {stdout} {stderr}"

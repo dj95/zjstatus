@@ -108,7 +108,8 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: crate
             ts.format(TIMESTAMP_FORMAT).to_string(),
         );
 
-        let command = command_config.command.split(' ').collect::<Vec<&str>>();
+        let command = commandline_parser(&command_config.command);
+        let command = command.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
         run_command(&command, context);
     }
 }
@@ -116,8 +117,8 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: crate
 fn parse_config(zj_conf: BTreeMap<String, String>) -> BTreeMap<String, CommandConfig> {
     let mut keys: Vec<String> = zj_conf
         .keys()
-        .cloned()
         .filter(|k| k.starts_with("command_"))
+        .cloned()
         .collect();
     keys.sort();
 
@@ -204,5 +205,80 @@ fn release(name: &str, state: crate::ZellijState) {
 
     if Path::new(&path).exists() {
         let _ = remove_file(path);
+    }
+}
+
+fn commandline_parser(input: &str) -> Vec<String> {
+    let mut output: Vec<String> = Vec::new();
+
+    let special_chars = ['"', '\''];
+
+    let mut found_special_char = '\0';
+    let mut buffer = "".to_owned();
+    let mut is_escaped = false;
+    let mut is_in_group = false;
+
+    for character in input.chars() {
+        if is_escaped {
+            is_escaped = false;
+            buffer = format!("{}\\{}", buffer.to_owned(), character);
+            continue;
+        }
+
+        if character == '\\' {
+            is_escaped = true;
+            continue;
+        }
+
+        if found_special_char == character && is_in_group {
+            is_in_group = false;
+            found_special_char = '\0';
+            output.push(buffer.clone());
+            buffer = "".to_owned();
+            continue;
+        }
+
+        if special_chars.contains(&character) && !is_in_group {
+            is_in_group = true;
+            found_special_char = character;
+            continue;
+        }
+
+        if character == ' ' && !is_in_group {
+            output.push(buffer.clone());
+            buffer = "".to_owned();
+            continue;
+        }
+
+        buffer = format!("{}{}", buffer, character);
+    }
+
+    if !buffer.is_empty() {
+        output.push(buffer.clone());
+    }
+
+    output
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    pub fn test_commandline_parser() {
+        let input = "pwd";
+        let result = commandline_parser(input);
+        let expected = Vec::from(["pwd"]);
+        assert_eq!(result, expected);
+
+        let input = "bash -c \"pwd | base64 -c \\\"bla\\\"\"";
+        let result = commandline_parser(input);
+        let expected = Vec::from(["bash", "-c", "pwd | base64 -c \\\"bla\\\""]);
+        assert_eq!(result, expected);
+
+        let input = "bash -c \"pwd | base64 -c 'bla' | xxd\"";
+        let result = commandline_parser(input);
+        let expected = Vec::from(["bash", "-c", "pwd | base64 -c 'bla' | xxd"]);
+        assert_eq!(result, expected);
     }
 }

@@ -36,7 +36,7 @@ layout {
             command_git_branch_format    "#[fg=red,bg=black] {stdout} "
             command_git_branch_interval  "2"
 
-            command_3_command   "echo -n 'no newline'"
+            command_3_command   "bash -c \"echo -n 'no newline'\""
             command_3_format    "#[fg=red,bg=black] {stdout} "
             command_3_interval  "10"
 

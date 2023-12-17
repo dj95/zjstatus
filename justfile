@@ -1,5 +1,5 @@
 bench:
-  cargo wasi bench --
+  cargo wasi bench -- --color always | grep --color=never -v "Criterion.rs ERROR"
 
 build:
   cargo build

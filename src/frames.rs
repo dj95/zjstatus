@@ -5,12 +5,10 @@ pub fn hide_frames_on_single_pane(
     pane_info: PaneManifest,
     plugin_pane_id: PluginIds,
 ) {
-    let panes = get_current_panes(tabs, pane_info);
-    if panes.is_none() {
-        return;
-    }
-
-    let panes = panes.unwrap();
+    let panes = match get_current_panes(tabs, pane_info) {
+        Some(panes) => panes,
+        None => return,
+    };
 
     // check if we are running for the current tab since one plugin will run for
     // each tab. If we do not prevent execution, the screen will start to flicker
@@ -21,11 +19,10 @@ pub fn hide_frames_on_single_pane(
 
     let panes: Vec<&PaneInfo> = panes.iter().filter(|p| !p.is_plugin).collect();
 
-    let first_content_pane = panes.first();
-    if first_content_pane.is_none() {
-        return;
-    }
-    let first_pane = first_content_pane.unwrap();
+    let first_pane = match panes.first() {
+        Some(fp) => fp,
+        None => return,
+    };
 
     // frame is enabled, when content does no start at [0, 0]. With default frames
     // it's [1, 1]

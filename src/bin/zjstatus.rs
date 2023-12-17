@@ -10,15 +10,14 @@ use widgets::{
 };
 use zellij_tile::prelude::*;
 
-use chrono::{DateTime, Local};
+use chrono::Local;
 use std::{collections::BTreeMap, sync::Arc, usize};
 use uuid::Uuid;
 
-mod border;
-mod config;
-mod frames;
-mod render;
-mod widgets;
+use zjstatus::{
+    config::{self, ZellijState},
+    frames, widgets,
+};
 
 #[derive(Default)]
 struct State {
@@ -27,17 +26,6 @@ struct State {
     module_config: config::ModuleConfig,
     widget_map: BTreeMap<String, Arc<dyn Widget>>,
     got_permissions: bool,
-}
-
-#[derive(Default, Debug, Clone)]
-pub struct ZellijState {
-    pub cols: usize,
-    pub command_results: BTreeMap<String, CommandResult>,
-    pub mode: ModeInfo,
-    pub plugin_uuid: String,
-    pub tabs: Vec<TabInfo>,
-    pub sessions: Vec<SessionInfo>,
-    pub start_time: DateTime<Local>,
 }
 
 #[cfg(not(test))]

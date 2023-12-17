@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use zellij_tile::{prelude::TabInfo, shim::switch_tab_to};
 
-use crate::render::FormattedPart;
+use crate::{config::ZellijState, render::FormattedPart};
 
 use super::widget::Widget;
 
@@ -59,7 +59,7 @@ impl TabsWidget {
 }
 
 impl Widget for TabsWidget {
-    fn process(&self, _name: &str, state: crate::ZellijState) -> String {
+    fn process(&self, _name: &str, state: ZellijState) -> String {
         let mut output = "".to_string();
 
         for tab in state.tabs {
@@ -71,7 +71,7 @@ impl Widget for TabsWidget {
         output
     }
 
-    fn process_click(&self, state: crate::ZellijState, pos: usize) {
+    fn process_click(&self, state: ZellijState, pos: usize) {
         let mut output = "".to_string();
 
         let mut offset = 0;

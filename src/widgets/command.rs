@@ -11,7 +11,7 @@ use zellij_tile::shim::run_command;
 
 use crate::render::FormattedPart;
 
-use super::widget::Widget;
+use crate::{config::ZellijState, widgets::widget::Widget};
 
 const TIMESTAMP_FORMAT: &str = "%s";
 
@@ -43,7 +43,7 @@ impl CommandWidget {
 }
 
 impl Widget for CommandWidget {
-    fn process(&self, name: &str, state: crate::ZellijState) -> String {
+    fn process(&self, name: &str, state: ZellijState) -> String {
         let command_config = match self.config.get(name) {
             Some(cc) => cc,
             None => {
@@ -92,10 +92,10 @@ impl Widget for CommandWidget {
         command_config.format.format_string(content)
     }
 
-    fn process_click(&self, _state: crate::ZellijState, _pos: usize) {}
+    fn process_click(&self, _state: ZellijState, _pos: usize) {}
 }
 
-fn run_command_if_needed(command_config: CommandConfig, name: &str, state: crate::ZellijState) {
+fn run_command_if_needed(command_config: CommandConfig, name: &str, state: ZellijState) {
     let ts = Local::now();
     let last_run =
         get_timestamp_from_event_or_default(name, state.clone(), command_config.interval);
@@ -159,7 +159,7 @@ fn parse_config(zj_conf: BTreeMap<String, String>) -> BTreeMap<String, CommandCo
 
 fn get_timestamp_from_event_or_default(
     name: &str,
-    state: crate::ZellijState,
+    state: ZellijState,
     interval: i64,
 ) -> DateTime<Local> {
     let command_result = state.command_results.get(name);
@@ -188,7 +188,7 @@ fn get_timestamp_from_event_or_default(
     }
 }
 
-fn lock(name: &str, state: crate::ZellijState) -> bool {
+fn lock(name: &str, state: ZellijState) -> bool {
     let path = format!("/tmp/{}.{}.lock", state.plugin_uuid, name);
 
     if !Path::new(&path).exists() {
@@ -200,7 +200,7 @@ fn lock(name: &str, state: crate::ZellijState) -> bool {
     true
 }
 
-fn release(name: &str, state: crate::ZellijState) {
+fn release(name: &str, state: ZellijState) {
     let path = format!("/tmp/{}.{}.lock", state.plugin_uuid, name);
 
     if Path::new(&path).exists() {

@@ -1,14 +1,25 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use regex::Regex;
-use zellij_tile::prelude::Mouse;
+use zellij_tile::prelude::*;
 
 use crate::{
     border::{parse_border_config, BorderConfig, BorderPosition},
     render::FormattedPart,
-    widgets::widget::Widget,
-    ZellijState,
+    widgets::{command::CommandResult, widget::Widget},
 };
+use chrono::{DateTime, Local};
+
+#[derive(Default, Debug, Clone)]
+pub struct ZellijState {
+    pub cols: usize,
+    pub command_results: BTreeMap<String, CommandResult>,
+    pub mode: ModeInfo,
+    pub plugin_uuid: String,
+    pub tabs: Vec<TabInfo>,
+    pub sessions: Vec<SessionInfo>,
+    pub start_time: DateTime<Local>,
+}
 
 #[derive(Default)]
 pub struct ModuleConfig {

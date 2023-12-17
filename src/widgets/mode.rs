@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use zellij_tile::prelude::InputMode;
 
-use crate::{render::FormattedPart, ZellijState};
+use crate::{render::FormattedPart, config::ZellijState};
 
 use super::widget::Widget;
 

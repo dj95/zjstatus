@@ -72,6 +72,7 @@
           packages = with pkgs; [
             rustWithWasiTarget
             cargo-audit
+            cargo-edit
             cargo-watch
             cargo-wasi
             clippy

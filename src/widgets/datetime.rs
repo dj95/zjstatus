@@ -5,7 +5,7 @@ use chrono_tz::Tz;
 
 use crate::render::FormattedPart;
 
-use super::widget::Widget;
+use crate::{config::ZellijState, widgets::widget::Widget};
 
 pub struct DateTimeWidget {
     format: String,
@@ -44,7 +44,7 @@ impl DateTimeWidget {
 }
 
 impl Widget for DateTimeWidget {
-    fn process(&self, _name: &str ,_state: crate::ZellijState) -> String {
+    fn process(&self, _name: &str ,_state: ZellijState) -> String {
         let mut output = self.color_format.content.clone();
         if output.contains("{format}") {
             let date = Local::now();
@@ -63,5 +63,5 @@ impl Widget for DateTimeWidget {
         self.color_format.format_string(output)
     }
 
-    fn process_click(&self, _state: crate::ZellijState, _pos: usize) {}
+    fn process_click(&self, _state: ZellijState, _pos: usize) {}
 }

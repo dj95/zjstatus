@@ -4,7 +4,7 @@ use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor, Style};
 use regex::Regex;
 use zellij_tile::prelude::bail;
 
-use crate::{widgets::widget::Widget, ZellijState};
+use crate::{config::ZellijState, widgets::widget::Widget};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct FormattedPart {

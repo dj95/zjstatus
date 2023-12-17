@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use zellij_tile::shim::next_swap_layout;
 
-use super::widget::Widget;
+use crate::{config::ZellijState, widgets::widget::Widget};
 
 pub struct SwapLayoutWidget {}
 
@@ -12,7 +12,7 @@ impl SwapLayoutWidget {
 }
 
 impl Widget for SwapLayoutWidget {
-    fn process(&self, _name: &str, state: crate::ZellijState) -> String {
+    fn process(&self, _name: &str, state: ZellijState) -> String {
         let active_tab = state.tabs.iter().find(|t| t.active);
 
         if active_tab.is_none() {
@@ -25,10 +25,9 @@ impl Widget for SwapLayoutWidget {
             Some(n) => n,
             None => "".to_string(),
         }
-
     }
 
-    fn process_click(&self, _state: crate::ZellijState, _pos: usize) {
+    fn process_click(&self, _state: ZellijState, _pos: usize) {
         next_swap_layout()
     }
 }

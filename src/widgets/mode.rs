@@ -116,7 +116,7 @@ impl ModeWidget {
 }
 
 impl Widget for ModeWidget {
-    fn process(&self, _name: &str, state: ZellijState) -> String {
+    fn process(&self, _name: &str, state: &ZellijState) -> String {
         self.select_format(state.mode.mode)
             .iter_mut()
             .map(|f| {
@@ -129,11 +129,11 @@ impl Widget for ModeWidget {
                 f
             })
             .fold("".to_string(), |acc, f| {
-                format!("{acc}{}", f.format_string(f.content.clone()))
+                format!("{acc}{}", f.format_string(&f.content))
             })
     }
 
-    fn process_click(&self, _state: ZellijState, _pos: usize) {}
+    fn process_click(&self, _state: &ZellijState, _pos: usize) {}
 }
 
 impl ModeWidget {

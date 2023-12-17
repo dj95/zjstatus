@@ -44,7 +44,7 @@ impl DateTimeWidget {
 }
 
 impl Widget for DateTimeWidget {
-    fn process(&self, _name: &str ,_state: ZellijState) -> String {
+    fn process(&self, _name: &str ,_state: &ZellijState) -> String {
         let mut output = self.color_format.content.clone();
         if output.contains("{format}") {
             let date = Local::now();
@@ -60,8 +60,8 @@ impl Widget for DateTimeWidget {
             );
         }
 
-        self.color_format.format_string(output)
+        self.color_format.format_string(&output)
     }
 
-    fn process_click(&self, _state: ZellijState, _pos: usize) {}
+    fn process_click(&self, _state: &ZellijState, _pos: usize) {}
 }

@@ -31,7 +31,7 @@ impl Default for BorderConfig {
 
 impl BorderConfig {
     pub fn draw(&self, cols: usize) -> String {
-        self.format.format_string(self.char.repeat(cols))
+        self.format.format_string(&self.char.repeat(cols))
     }
 }
 

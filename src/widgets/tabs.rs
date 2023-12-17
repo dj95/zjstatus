@@ -59,10 +59,10 @@ impl TabsWidget {
 }
 
 impl Widget for TabsWidget {
-    fn process(&self, _name: &str, state: ZellijState) -> String {
+    fn process(&self, _name: &str, state: &ZellijState) -> String {
         let mut output = "".to_string();
 
-        for tab in state.tabs {
+        for tab in &state.tabs {
             let content = self.render_tab(tab);
 
             output = format!("{}{}", output, content);
@@ -71,12 +71,12 @@ impl Widget for TabsWidget {
         output
     }
 
-    fn process_click(&self, state: ZellijState, pos: usize) {
+    fn process_click(&self, state: &ZellijState, pos: usize) {
         let mut output = "".to_string();
 
         let mut offset = 0;
         let mut index = 1;
-        for tab in state.tabs {
+        for tab in &state.tabs {
             let content = strip_ansi_escapes::strip_str(self.render_tab(tab));
 
             if pos > offset && pos < offset + content.chars().count() {
@@ -118,7 +118,7 @@ impl TabsWidget {
         self.normal_tab_format.clone()
     }
 
-    fn render_tab(&self, tab: TabInfo) -> String {
+    fn render_tab(&self, tab: &TabInfo) -> String {
         let formatters = self.select_format(tab.clone());
         let mut output = "".to_string();
 
@@ -133,7 +133,7 @@ impl TabsWidget {
                 content = content.replace("{index}", (tab.position + 1).to_string().as_str());
             }
 
-            output = format!("{}{}", output, f.format_string(content));
+            output = format!("{}{}", output, f.format_string(&content));
         }
 
         output.to_string()

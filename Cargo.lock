@@ -4034,6 +4034,7 @@ dependencies = [
  "chrono-tz",
  "criterion",
  "divan",
+ "lazy_static",
  "regex",
  "strip-ansi-escapes 0.2.0",
  "uuid",

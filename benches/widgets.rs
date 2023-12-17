@@ -25,16 +25,18 @@ fn bench_widget_tabs(c: &mut Criterion) {
 
     let wid = widgets::tabs::TabsWidget::new(config);
 
-    let mut tab_state = TabInfo::default();
-    tab_state.name = "test".to_string();
-    tab_state.active = true;
-
-    let mut state = ZellijState::default();
-    state.tabs = vec![tab_state];
+    let state = ZellijState {
+        tabs: vec![TabInfo {
+            name: "test".to_string(),
+            active: true,
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
 
     c.bench_function("widgets::TabsWidget", |b| {
         b.iter(|| {
-            wid.process("tabs", state.clone());
+            wid.process("tabs", &state);
         })
     });
 }
@@ -47,12 +49,14 @@ fn bench_widget_mod(c: &mut Criterion) {
 
     let wid = widgets::mode::ModeWidget::new(config);
 
-    let mut state = ZellijState::default();
-    state.mode = ModeInfo::default();
+    let state = ZellijState {
+        mode: ModeInfo::default(),
+        ..Default::default()
+    };
 
     c.bench_function("widgets::ModeWidget", |b| {
         b.iter(|| {
-            wid.process("mode", state.clone());
+            wid.process("mode", &state);
         })
     });
 }
@@ -66,7 +70,7 @@ fn bench_widget_datetime(c: &mut Criterion) {
 
     c.bench_function("widgets::DateTimeWidget", |b| {
         b.iter(|| {
-            wid.process("datetime", state.clone());
+            wid.process("datetime", &state);
         })
     });
 }

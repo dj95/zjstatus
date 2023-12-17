@@ -95,7 +95,7 @@ impl ModuleConfig {
             click_pos,
             widget_string_left,
             widget_map.clone(),
-            state.clone(),
+            &state,
             0,
         );
 
@@ -107,7 +107,7 @@ impl ModuleConfig {
             format!(
                 "{}{}",
                 acc,
-                part.format_string_with_widgets(widget_map.clone(), state.clone())
+                part.format_string_with_widgets(&widget_map, &state)
             )
         });
 
@@ -127,7 +127,7 @@ impl ModuleConfig {
             click_pos,
             widget_string_right,
             widget_map,
-            state,
+            &state,
             left_len + widget_spacer.len(),
         );
     }
@@ -137,7 +137,7 @@ impl ModuleConfig {
         click_pos: usize,
         widget_string: String,
         widget_map: BTreeMap<String, Arc<dyn Widget>>,
-        state: ZellijState,
+        state: &ZellijState,
         offset: usize,
     ) -> usize {
         let mut rendered_output = widget_string.clone();
@@ -163,14 +163,14 @@ impl ModuleConfig {
                 None => continue,
             };
 
-            let wid_res = strip_ansi_escapes::strip_str(wid.process(wid_name, state.clone()));
+            let wid_res = strip_ansi_escapes::strip_str(wid.process(wid_name, state));
             rendered_output = rendered_output.replace(match_name, &wid_res);
 
             if click_pos < pos + offset || click_pos > pos + offset + wid_res.len() {
                 continue;
             }
 
-            wid.process_click(state.clone(), click_pos - pos + offset);
+            wid.process_click(state, click_pos - pos + offset);
         }
 
         rendered_output.len()
@@ -180,14 +180,14 @@ impl ModuleConfig {
         let output_left = self.left_parts.iter().fold("".to_string(), |acc, part| {
             format!(
                 "{acc}{}",
-                part.format_string_with_widgets(widget_map.clone(), state.clone())
+                part.format_string_with_widgets(&widget_map, &state)
             )
         });
 
         let output_right = self.right_parts.iter().fold("".to_string(), |acc, part| {
             format!(
                 "{acc}{}",
-                part.format_string_with_widgets(widget_map.clone(), state.clone())
+                part.format_string_with_widgets(&widget_map, &state)
             )
         });
 
@@ -219,7 +219,7 @@ impl ModuleConfig {
         // count of 0 on tab creation
         let space_count = cols.saturating_sub(text_count);
 
-        self.format_space.format_string(" ".repeat(space_count))
+        self.format_space.format_string(&" ".repeat(space_count))
     }
 }
 

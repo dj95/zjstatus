@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use std::{collections::BTreeMap, sync::Arc};
 
 use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor, Style};
@@ -5,6 +6,10 @@ use regex::Regex;
 use zellij_tile::prelude::bail;
 
 use crate::{config::ZellijState, widgets::widget::Widget};
+
+lazy_static! {
+    static ref WIDGET_REGEX: Regex = Regex::new("(\\{[a-z_0-9]+\\})").unwrap();
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct FormattedPart {
@@ -66,7 +71,7 @@ impl FormattedPart {
         result
     }
 
-    pub fn format_string(&self, text: String) -> String {
+    pub fn format_string(&self, text: &str) -> String {
         let mut style = Style::new();
 
         style = style.fg_color(self.fg);
@@ -91,13 +96,12 @@ impl FormattedPart {
 
     pub fn format_string_with_widgets(
         &self,
-        widgets: BTreeMap<String, Arc<dyn Widget>>,
-        state: ZellijState,
+        widgets: &BTreeMap<String, Arc<dyn Widget>>,
+        state: &ZellijState,
     ) -> String {
         let mut output = self.content.clone();
 
-        let widgets_regex = Regex::new("(\\{[a-z_0-9]+\\})").unwrap();
-        for widget in widgets_regex.captures_iter(self.content.clone().as_str()) {
+        for widget in WIDGET_REGEX.captures_iter(&self.content) {
             let match_name = widget.get(0).unwrap().as_str();
             let mut widget_key = match_name.trim_matches(|c| c == '{' || c == '}');
 
@@ -108,7 +112,7 @@ impl FormattedPart {
             let result = match widgets.get(widget_key) {
                 Some(widget) => widget.process(
                     match_name.trim_matches(|c| c == '{' || c == '}'),
-                    state.clone(),
+                    state,
                 ),
                 None => "Use of uninitialized widget".to_string(),
             };
@@ -116,7 +120,7 @@ impl FormattedPart {
             output = output.replace(match_name, &result);
         }
 
-        self.format_string(output)
+        self.format_string(&output)
     }
 }
 

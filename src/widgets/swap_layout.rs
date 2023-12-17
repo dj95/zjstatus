@@ -12,7 +12,7 @@ impl SwapLayoutWidget {
 }
 
 impl Widget for SwapLayoutWidget {
-    fn process(&self, _name: &str, state: ZellijState) -> String {
+    fn process(&self, _name: &str, state: &ZellijState) -> String {
         let active_tab = state.tabs.iter().find(|t| t.active);
 
         if active_tab.is_none() {
@@ -27,7 +27,7 @@ impl Widget for SwapLayoutWidget {
         }
     }
 
-    fn process_click(&self, _state: ZellijState, _pos: usize) {
+    fn process_click(&self, _state: &ZellijState, _pos: usize) {
         next_swap_layout()
     }
 }

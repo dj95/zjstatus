@@ -43,7 +43,7 @@ impl CommandWidget {
 }
 
 impl Widget for CommandWidget {
-    fn process(&self, name: &str, state: ZellijState) -> String {
+    fn process(&self, name: &str, state: &ZellijState) -> String {
         let command_config = match self.config.get(name) {
             Some(cc) => cc,
             None => {
@@ -51,7 +51,7 @@ impl Widget for CommandWidget {
             }
         };
 
-        run_command_if_needed(command_config.clone(), name, state.clone());
+        run_command_if_needed(command_config.clone(), name, state);
 
         let command_result = match state.command_results.get(name) {
             Some(cr) => cr,
@@ -89,13 +89,13 @@ impl Widget for CommandWidget {
             );
         }
 
-        command_config.format.format_string(content)
+        command_config.format.format_string(&content)
     }
 
-    fn process_click(&self, _state: ZellijState, _pos: usize) {}
+    fn process_click(&self, _state: &ZellijState, _pos: usize) {}
 }
 
-fn run_command_if_needed(command_config: CommandConfig, name: &str, state: ZellijState) {
+fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &ZellijState) {
     let ts = Local::now();
     let last_run =
         get_timestamp_from_event_or_default(name, state.clone(), command_config.interval);

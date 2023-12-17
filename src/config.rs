@@ -88,16 +88,10 @@ impl ModuleConfig {
         let widget_string_left = self
             .left_parts
             .iter()
-            .map(|p| p.content.clone())
-            .fold(String::new(), |a, b| a + b.as_str());
+            .fold(String::new(), |a, b| a + &b.content);
 
-        let left_len = self.process_widget_click(
-            click_pos,
-            widget_string_left,
-            widget_map.clone(),
-            &state,
-            0,
-        );
+        let left_len =
+            self.process_widget_click(click_pos, widget_string_left, widget_map.clone(), &state, 0);
 
         if click_pos <= left_len {
             return;
@@ -112,16 +106,15 @@ impl ModuleConfig {
         });
 
         let widget_spacer = strip_ansi_escapes::strip_str(self.get_spacer(
-            " ".repeat(left_len),
-            output_right,
+            &" ".repeat(left_len),
+            &output_right,
             state.cols,
         ));
 
         let widget_string_right = self
             .right_parts
             .iter()
-            .map(|p| p.content.clone())
-            .fold(String::new(), |a, b| a + b.as_str());
+            .fold(String::new(), |a, b| a + &b.content);
 
         self.process_widget_click(
             click_pos,
@@ -191,27 +184,38 @@ impl ModuleConfig {
             )
         });
 
-        let mut border_top = "".to_owned();
-        if self.border.enabled && self.border.position == BorderPosition::Top {
-            border_top = format!("{}\n", self.border.draw(state.cols));
-        }
+        if self.border.enabled {
+            let mut border_top = "".to_owned();
+            if self.border.enabled && self.border.position == BorderPosition::Top {
+                border_top = format!("{}\n", self.border.draw(state.cols));
+            }
 
-        let mut border_bottom = "".to_owned();
-        if self.border.enabled && self.border.position == BorderPosition::Bottom {
-            border_bottom = format!("\n{}", self.border.draw(state.cols));
+            let mut border_bottom = "".to_owned();
+            if self.border.enabled && self.border.position == BorderPosition::Bottom {
+                border_bottom = format!("\n{}", self.border.draw(state.cols));
+            }
+
+            print!(
+                "{}{}{}{}{}",
+                border_top,
+                output_left,
+                self.get_spacer(&output_left, &output_right, state.cols),
+                output_right,
+                border_bottom,
+            );
+
+            return;
         }
 
         print!(
-            "{}{}{}{}{}",
-            border_top,
+            "{}{}{}",
             output_left,
-            self.get_spacer(output_left.clone(), output_right.clone(), state.cols),
+            self.get_spacer(&output_left, &output_right, state.cols),
             output_right,
-            border_bottom,
         );
     }
 
-    fn get_spacer(&self, output_left: String, output_right: String, cols: usize) -> String {
+    fn get_spacer(&self, output_left: &str, output_right: &str, cols: usize) -> String {
         let text_count = strip_ansi_escapes::strip_str(output_left).chars().count()
             + strip_ansi_escapes::strip_str(output_right).chars().count();
 

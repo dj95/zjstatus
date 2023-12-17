@@ -8,6 +8,53 @@ use zjstatus::{
     widgets::{datetime::DateTimeWidget, mode::ModeWidget, session::SessionWidget, widget::Widget},
 };
 
+fn bench_moduleconfig_render_bar(c: &mut Criterion) {
+    let config = BTreeMap::from([
+        ("format_left".to_owned(), "{mode} #[fg=#89B4FA,bg=#181825,bold]{session} {tabs} {command_1} {command_git_branch} {command_3}".to_owned()),
+        ("format_right".to_owned(), "{datetime}".to_owned()),
+        ("format_space".to_owned(), "#[bg=#181825]".to_owned()),
+    ]);
+
+    let module_config = ModuleConfig::new(config.clone());
+
+    let mut widgets: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::new();
+
+    widgets.insert(
+        "mode".to_owned(),
+        Arc::new(ModeWidget::new(BTreeMap::from([(
+            "mode_normal".to_owned(),
+            "#[bg=blue] #[bg=yellow] ".to_owned(),
+        )]))),
+    );
+
+    widgets.insert(
+        "datetime".to_owned(),
+        Arc::new(DateTimeWidget::new(BTreeMap::from([(
+            "datetime".to_owned(),
+            "#[fg=#6C7086,bg=#181825] {index} {name} ".to_owned(),
+        )]))),
+    );
+
+    widgets.insert(
+        "session".to_owned(),
+        Arc::new(SessionWidget::new(BTreeMap::from([]))),
+    );
+
+    let state = ZellijState {
+        mode: ModeInfo::default(),
+        tabs: vec![TabInfo {
+            name: "test".to_owned(),
+            active: true,
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+
+    c.bench_function("ModuleConfig::render_bar", |b| {
+        b.iter(|| module_config.render_bar(state.clone(), widgets.clone()))
+    });
+}
+
 fn bench_formattedpart_format_string_with_widgets(c: &mut Criterion) {
     let format = FormattedPart::from_format_string(
         "#[fg=#9399B2,bg=#181825,bold,italic] {mode} {datetime} {session} [] ".to_owned(),
@@ -75,8 +122,9 @@ fn bench_moduleconfig_new(c: &mut Criterion) {
 
 fn criterion_benchmark(c: &mut Criterion) {
     bench_formattedpart_from_format_string(c);
-    bench_moduleconfig_new(c);
     bench_formattedpart_format_string_with_widgets(c);
+    bench_moduleconfig_new(c);
+    bench_moduleconfig_render_bar(c);
 }
 
 criterion_group!(benches, criterion_benchmark);

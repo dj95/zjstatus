@@ -36,15 +36,14 @@ impl FormattedPart {
 
         let mut result = FormattedPart::default();
 
-        let format_content_split = format.split(']');
+        let mut format_content_split = format.split(']').collect::<Vec<&str>>();
 
-        if format_content_split.clone().count() == 1 {
+        if format_content_split.len() == 1 {
             result.content = format;
 
             return result;
         }
 
-        let mut format_content_split = format_content_split.collect::<Vec<&str>>();
         let parts = format_content_split[0].split(',');
 
         format_content_split.remove(0);
@@ -103,17 +102,15 @@ impl FormattedPart {
 
         for widget in WIDGET_REGEX.captures_iter(&self.content) {
             let match_name = widget.get(0).unwrap().as_str();
-            let mut widget_key = match_name.trim_matches(|c| c == '{' || c == '}');
+            let widget_key = match_name.trim_matches(|c| c == '{' || c == '}');
+            let mut widget_key_name = widget_key;
 
             if widget_key.starts_with("command_") {
-                widget_key = "command";
+                widget_key_name = "command";
             }
 
-            let result = match widgets.get(widget_key) {
-                Some(widget) => widget.process(
-                    match_name.trim_matches(|c| c == '{' || c == '}'),
-                    state,
-                ),
+            let result = match widgets.get(widget_key_name) {
+                Some(widget) => widget.process(widget_key, state),
                 None => "Use of uninitialized widget".to_owned(),
             };
 

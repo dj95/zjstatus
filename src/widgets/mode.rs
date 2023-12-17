@@ -26,10 +26,10 @@ pub struct ModeWidget {
 
 impl ModeWidget {
     pub fn new(config: BTreeMap<String, String>) -> Self {
-        let mut normal_format = Vec::new();
-        if let Some(form) = config.get("mode_normal") {
-            normal_format = FormattedPart::multiple_from_format_string(form.to_string());
-        }
+        let normal_format = match config.get("mode_normal") {
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            None => vec![],
+        };
 
         let locked_format = match config.get("mode_locked") {
             Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
@@ -117,19 +117,20 @@ impl ModeWidget {
 
 impl Widget for ModeWidget {
     fn process(&self, _name: &str, state: ZellijState) -> String {
-        let formatters = self.select_format(state.mode.mode);
-        let mut output = "".to_string();
+        self.select_format(state.mode.mode)
+            .iter_mut()
+            .map(|f| {
+                if f.content.contains("{name}") {
+                    f.content = f
+                        .content
+                        .replace("{name}", format!("{:?}", state.mode.mode).as_str());
+                }
 
-        for f in formatters.iter() {
-            let mut content = f.content.clone();
-            if content.contains("{name}") {
-                content = content.replace("{name}", format!("{:?}", state.mode.mode).as_str());
-            }
-
-            output = format!("{}{}", output, f.format_string(content));
-        }
-
-        output
+                f
+            })
+            .fold("".to_string(), |acc, f| {
+                format!("{acc}{}", f.format_string(f.content.clone()))
+            })
     }
 
     fn process_click(&self, _state: ZellijState, _pos: usize) {}

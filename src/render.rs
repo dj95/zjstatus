@@ -17,23 +17,18 @@ pub struct FormattedPart {
 
 impl FormattedPart {
     pub fn multiple_from_format_string(config: String) -> Vec<Self> {
-        let mut output = Vec::new();
-
-        let color_parts = config.split("#[");
-        for color_part in color_parts {
-            let part = FormattedPart::from_format_string(color_part.to_string());
-
-            output.push(part);
-        }
-
-        output
+        config
+            .split("#[")
+            .map(|c| FormattedPart::from_format_string(c.to_string()))
+            .collect()
     }
 
     pub fn from_format_string(format: String) -> Self {
-        let mut format = format;
-        if format.starts_with("#[") {
-            format = format.strip_prefix("#[").unwrap().to_string();
-        }
+        let format = match format.starts_with("#[") {
+            true => format.strip_prefix("#[").unwrap().to_string(),
+            false => format,
+        };
+
         let mut result = FormattedPart::default();
 
         let format_content_split = format.split(']');
@@ -150,12 +145,11 @@ fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {
 
 fn parse_color(color: &str) -> Option<Color> {
     if color.starts_with('#') {
-        let rgb = hex_to_rgb(color.strip_prefix('#').unwrap());
-        if rgb.is_err() {
-            return None;
-        }
+        let rgb = match hex_to_rgb(color.strip_prefix('#').unwrap()) {
+            Ok(rgb) => rgb,
+            Err(_) => return None,
+        };
 
-        let rgb = rgb.unwrap();
         if rgb.len() != 3 {
             return None;
         }

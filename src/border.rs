@@ -22,7 +22,7 @@ impl Default for BorderConfig {
     fn default() -> Self {
         Self {
             enabled: false,
-            char: DEFAULT_CHAR.to_string(),
+            char: DEFAULT_CHAR.to_owned(),
             format: FormattedPart::default(),
             position: BorderPosition::default(),
         }
@@ -63,8 +63,8 @@ pub fn parse_border_config(config: BTreeMap<String, String>) -> Option<BorderCon
 
     Some(BorderConfig {
         enabled,
-        char: char.to_string(),
-        format: FormattedPart::from_format_string(format.to_string()),
+        char: char.to_owned(),
+        format: FormattedPart::from_format_string(format.to_owned()),
         position,
     })
 }

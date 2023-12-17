@@ -13,8 +13,8 @@ impl SessionWidget {
 impl Widget for SessionWidget {
     fn process(&self, _name: &str, state: &ZellijState) -> String {
         match &state.mode.session_name {
-            Some(name) => name.to_string(),
-            None => "".to_string(),
+            Some(name) => name.to_owned(),
+            None => "".to_owned(),
         }
     }
 

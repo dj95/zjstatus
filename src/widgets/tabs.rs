@@ -19,31 +19,31 @@ impl TabsWidget {
     pub fn new(config: BTreeMap<String, String>) -> Self {
         let mut normal_tab_format: Vec<FormattedPart> = Vec::new();
         if let Some(form) = config.get("tab_normal") {
-            normal_tab_format = FormattedPart::multiple_from_format_string(form.to_string());
+            normal_tab_format = FormattedPart::multiple_from_format_string(form.to_owned());
         }
 
         let normal_tab_fullscreen_format = match config.get("tab_normal_fullscreen") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_tab_format.clone(),
         };
 
         let normal_tab_sync_format = match config.get("tab_normal_sync") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_tab_format.clone(),
         };
 
         let mut active_tab_format = normal_tab_format.clone();
         if let Some(form) = config.get("tab_active") {
-            active_tab_format = FormattedPart::multiple_from_format_string(form.to_string());
+            active_tab_format = FormattedPart::multiple_from_format_string(form.to_owned());
         }
 
         let active_tab_fullscreen_format = match config.get("tab_active_fullscreen") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => active_tab_format.clone(),
         };
 
         let active_tab_sync_format = match config.get("tab_active_sync") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => active_tab_format.clone(),
         };
 
@@ -60,7 +60,7 @@ impl TabsWidget {
 
 impl Widget for TabsWidget {
     fn process(&self, _name: &str, state: &ZellijState) -> String {
-        let mut output = "".to_string();
+        let mut output = "".to_owned();
 
         for tab in &state.tabs {
             let content = self.render_tab(tab);
@@ -72,7 +72,7 @@ impl Widget for TabsWidget {
     }
 
     fn process_click(&self, state: &ZellijState, pos: usize) {
-        let mut output = "".to_string();
+        let mut output = "".to_owned();
 
         let mut offset = 0;
         let mut index = 1;
@@ -120,7 +120,7 @@ impl TabsWidget {
 
     fn render_tab(&self, tab: &TabInfo) -> String {
         let formatters = self.select_format(tab);
-        let mut output = "".to_string();
+        let mut output = "".to_owned();
 
         for f in formatters.iter() {
             let mut content = f.content.clone();
@@ -136,6 +136,6 @@ impl TabsWidget {
             output = format!("{}{}", output, f.format_string(&content));
         }
 
-        output.to_string()
+        output.to_owned()
     }
 }

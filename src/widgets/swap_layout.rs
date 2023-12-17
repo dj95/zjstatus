@@ -16,14 +16,14 @@ impl Widget for SwapLayoutWidget {
         let active_tab = state.tabs.iter().find(|t| t.active);
 
         if active_tab.is_none() {
-            return "".to_string();
+            return "".to_owned();
         }
 
         let active_tab = active_tab.unwrap();
 
         match active_tab.active_swap_layout_name.clone() {
             Some(n) => n,
-            None => "".to_string(),
+            None => "".to_owned(),
         }
     }
 

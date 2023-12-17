@@ -10,16 +10,16 @@ use zjstatus::{
 fn bench_widget_tabs(c: &mut Criterion) {
     let config = BTreeMap::from([
         (
-            "tab_normal".to_string(),
-            "#[fg=#6C7086,bg=#181825] {index} {name} ".to_string(),
+            "tab_normal".to_owned(),
+            "#[fg=#6C7086,bg=#181825] {index} {name} ".to_owned(),
         ),
         (
-            "tab_normal_fullscreen".to_string(),
-            "#[fg=#6C7086,bg=#181825] {index} {name} ".to_string(),
+            "tab_normal_fullscreen".to_owned(),
+            "#[fg=#6C7086,bg=#181825] {index} {name} ".to_owned(),
         ),
         (
-            "tab_active".to_string(),
-            "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} ".to_string(),
+            "tab_active".to_owned(),
+            "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} ".to_owned(),
         ),
     ]);
 
@@ -27,7 +27,7 @@ fn bench_widget_tabs(c: &mut Criterion) {
 
     let state = ZellijState {
         tabs: vec![TabInfo {
-            name: "test".to_string(),
+            name: "test".to_owned(),
             active: true,
             ..Default::default()
         }],
@@ -43,8 +43,8 @@ fn bench_widget_tabs(c: &mut Criterion) {
 
 fn bench_widget_mod(c: &mut Criterion) {
     let config = BTreeMap::from([(
-        "mode_normal".to_string(),
-        "#[bg=blue] #[bg=yellow] ".to_string(),
+        "mode_normal".to_owned(),
+        "#[bg=blue] #[bg=yellow] ".to_owned(),
     )]);
 
     let wid = widgets::mode::ModeWidget::new(config);

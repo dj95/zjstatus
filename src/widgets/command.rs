@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use std::{
     collections::BTreeMap,
     fs::{remove_file, File},
@@ -14,6 +15,10 @@ use crate::render::FormattedPart;
 use crate::{config::ZellijState, widgets::widget::Widget};
 
 const TIMESTAMP_FORMAT: &str = "%s";
+
+lazy_static! {
+    static ref COMMAND_REGEX: Regex = Regex::new("_[a-zA-Z0-9]+$").unwrap();
+}
 
 #[derive(Clone, Debug)]
 struct CommandConfig {
@@ -47,7 +52,7 @@ impl Widget for CommandWidget {
         let command_config = match self.config.get(name) {
             Some(cc) => cc,
             None => {
-                return "".to_string();
+                return "".to_owned();
             }
         };
 
@@ -56,7 +61,7 @@ impl Widget for CommandWidget {
         let command_result = match state.command_results.get(name) {
             Some(cr) => cr,
             None => {
-                return "".to_string();
+                return "".to_owned();
             }
         };
 
@@ -124,9 +129,8 @@ fn parse_config(zj_conf: BTreeMap<String, String>) -> BTreeMap<String, CommandCo
 
     let mut config: BTreeMap<String, CommandConfig> = BTreeMap::new();
 
-    let key_name_regex = Regex::new("_[a-zA-Z0-9]+$").unwrap();
     for key in keys {
-        let command_name = key_name_regex.replace(&key, "").to_string();
+        let command_name = COMMAND_REGEX.replace(&key, "").to_string();
 
         let mut command_conf = CommandConfig {
             command: "".to_owned(),
@@ -139,12 +143,12 @@ fn parse_config(zj_conf: BTreeMap<String, String>) -> BTreeMap<String, CommandCo
         }
 
         if key.ends_with("command") {
-            command_conf.command = zj_conf.get(&key).unwrap().to_string().clone();
+            command_conf.command = zj_conf.get(&key).unwrap().to_owned().clone();
         }
 
         if key.ends_with("format") {
             command_conf.format =
-                FormattedPart::from_format_string(zj_conf.get(&key).unwrap().to_string().clone());
+                FormattedPart::from_format_string(zj_conf.get(&key).unwrap().to_owned().clone());
         }
 
         if key.ends_with("interval") {

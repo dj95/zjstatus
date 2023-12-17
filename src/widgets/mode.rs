@@ -27,72 +27,72 @@ pub struct ModeWidget {
 impl ModeWidget {
     pub fn new(config: BTreeMap<String, String>) -> Self {
         let normal_format = match config.get("mode_normal") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => vec![],
         };
 
         let locked_format = match config.get("mode_locked") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_format.clone(),
         };
 
         let resize_format = match config.get("mode_resize") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_format.clone(),
         };
 
         let pane_format = match config.get("mode_pane") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_format.clone(),
         };
 
         let tab_format = match config.get("mode_tab") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_format.clone(),
         };
 
         let scroll_format = match config.get("mode_scroll") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_format.clone(),
         };
 
         let enter_search_format = match config.get("mode_enter_search") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_format.clone(),
         };
 
         let search_format = match config.get("mode_search") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_format.clone(),
         };
 
         let rename_tab_format = match config.get("mode_rename_tab") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_format.clone(),
         };
 
         let rename_pane_format = match config.get("mode_rename_pane") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_format.clone(),
         };
 
         let session_format = match config.get("mode_session") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_format.clone(),
         };
 
         let move_format = match config.get("mode_move") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_format.clone(),
         };
 
         let prompt_format = match config.get("mode_prompt") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_format.clone(),
         };
 
         let tmux_format = match config.get("mode_tmux") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_string()),
+            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => normal_format.clone(),
         };
 
@@ -130,7 +130,7 @@ impl Widget for ModeWidget {
 
                 (f, content)
             })
-            .fold("".to_string(), |acc, (f, content)| {
+            .fold("".to_owned(), |acc, (f, content)| {
                 format!("{acc}{}", f.format_string(&content))
             })
     }

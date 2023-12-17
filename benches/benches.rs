@@ -10,36 +10,36 @@ use zjstatus::{
 
 fn bench_formattedpart_format_string_with_widgets(c: &mut Criterion) {
     let format = FormattedPart::from_format_string(
-        "#[fg=#9399B2,bg=#181825,bold,italic] {mode} {datetime} {session} [] ".to_string(),
+        "#[fg=#9399B2,bg=#181825,bold,italic] {mode} {datetime} {session} [] ".to_owned(),
     );
 
     let mut widgets: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::new();
 
     widgets.insert(
-        "mode".to_string(),
+        "mode".to_owned(),
         Arc::new(ModeWidget::new(BTreeMap::from([(
-            "mode_normal".to_string(),
-            "#[bg=blue] #[bg=yellow] ".to_string(),
+            "mode_normal".to_owned(),
+            "#[bg=blue] #[bg=yellow] ".to_owned(),
         )]))),
     );
 
     widgets.insert(
-        "datetime".to_string(),
+        "datetime".to_owned(),
         Arc::new(DateTimeWidget::new(BTreeMap::from([(
-            "datetime".to_string(),
-            "#[fg=#6C7086,bg=#181825] {index} {name} ".to_string(),
+            "datetime".to_owned(),
+            "#[fg=#6C7086,bg=#181825] {index} {name} ".to_owned(),
         )]))),
     );
 
     widgets.insert(
-        "session".to_string(),
+        "session".to_owned(),
         Arc::new(SessionWidget::new(BTreeMap::from([]))),
     );
 
     let state = ZellijState {
         mode: ModeInfo::default(),
         tabs: vec![TabInfo {
-            name: "test".to_string(),
+            name: "test".to_owned(),
             active: true,
             ..Default::default()
         }],
@@ -55,7 +55,7 @@ fn bench_formattedpart_from_format_string(c: &mut Criterion) {
     c.bench_function("FormattedPart::from_format_string", |b| {
         b.iter(|| {
             FormattedPart::from_format_string(
-                "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] ".to_string(),
+                "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] ".to_owned(),
             )
         })
     });
@@ -64,9 +64,9 @@ fn bench_formattedpart_from_format_string(c: &mut Criterion) {
 fn bench_moduleconfig_new(c: &mut Criterion) {
     let mut config = BTreeMap::new();
 
-    config.insert("format_left".to_string(), "{mode} #[fg=#89B4FA,bg=#181825,bold]{session} {tabs} {command_1} {command_git_branch} {command_3}".to_string());
-    config.insert("format_right".to_string(), "{datetime}".to_string());
-    config.insert("format_space".to_string(), "#[bg=#181825]".to_string());
+    config.insert("format_left".to_owned(), "{mode} #[fg=#89B4FA,bg=#181825,bold]{session} {tabs} {command_1} {command_git_branch} {command_3}".to_owned());
+    config.insert("format_right".to_owned(), "{datetime}".to_owned());
+    config.insert("format_space".to_owned(), "#[bg=#181825]".to_owned());
 
     c.bench_function("ModuleConfig::new", |b| {
         b.iter(|| ModuleConfig::new(config.clone()))

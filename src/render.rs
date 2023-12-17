@@ -24,13 +24,13 @@ impl FormattedPart {
     pub fn multiple_from_format_string(config: String) -> Vec<Self> {
         config
             .split("#[")
-            .map(|c| FormattedPart::from_format_string(c.to_string()))
+            .map(|c| FormattedPart::from_format_string(c.to_owned()))
             .collect()
     }
 
     pub fn from_format_string(format: String) -> Self {
         let format = match format.starts_with("#[") {
-            true => format.strip_prefix("#[").unwrap().to_string(),
+            true => format.strip_prefix("#[").unwrap().to_owned(),
             false => format,
         };
 
@@ -114,7 +114,7 @@ impl FormattedPart {
                     match_name.trim_matches(|c| c == '{' || c == '}'),
                     state,
                 ),
-                None => "Use of uninitialized widget".to_string(),
+                None => "Use of uninitialized widget".to_owned(),
             };
 
             output = output.replace(match_name, &result);
@@ -131,7 +131,7 @@ impl Default for FormattedPart {
             bg: None,
             bold: false,
             italic: false,
-            content: "".to_string(),
+            content: "".to_owned(),
         }
     }
 }

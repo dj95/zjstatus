@@ -126,7 +126,7 @@ impl ZellijPlugin for State {
                     };
 
                     self.state.command_results.insert(
-                        name.to_string(),
+                        name.to_owned(),
                         CommandResult {
                             exit_code,
                             stdout,
@@ -186,26 +186,26 @@ fn register_widgets(configuration: BTreeMap<String, String>) -> BTreeMap<String,
     let mut widget_map = BTreeMap::<String, Arc<dyn Widget>>::new();
 
     widget_map.insert(
-        "command".to_string(),
+        "command".to_owned(),
         Arc::new(CommandWidget::new(configuration.clone())),
     );
     widget_map.insert(
-        "datetime".to_string(),
+        "datetime".to_owned(),
         Arc::new(DateTimeWidget::new(configuration.clone())),
     );
     widget_map.insert(
-        "swap_layout".to_string(),
+        "swap_layout".to_owned(),
         Arc::new(SwapLayoutWidget::new(configuration.clone())),
     );
     widget_map.insert(
-        "mode".to_string(),
+        "mode".to_owned(),
         Arc::new(ModeWidget::new(configuration.clone())),
     );
     widget_map.insert(
-        "session".to_string(),
+        "session".to_owned(),
         Arc::new(SessionWidget::new(configuration.clone())),
     );
-    widget_map.insert("tabs".to_string(), Arc::new(TabsWidget::new(configuration)));
+    widget_map.insert("tabs".to_owned(), Arc::new(TabsWidget::new(configuration)));
 
     widget_map
 }

@@ -13,7 +13,7 @@ lint:
 
 release version:
   cargo set-version {{version}}
-  cargo build --release
-  git commit -am "chore: bump version to {{version}}"
-  git tag -m "{{version}}" {{version}}
+  direnv exec . cargo build --release
+  git commit -am "chore: bump version to v{{version}}"
+  git tag -m "v{{version}}" v{{version}}
   git cliff --current

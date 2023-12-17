@@ -23,30 +23,30 @@ pub struct ModuleConfig {
 
 impl ModuleConfig {
     pub fn new(config: BTreeMap<String, String>) -> Self {
-        let mut format_space_config = "";
-        if let Some(space_config) = config.get("format_space") {
-            format_space_config = space_config;
-        }
+        let format_space_config = match config.get("format_space") {
+            Some(space_config) => space_config,
+            None => "",
+        };
 
-        let mut hide_frame_for_single_pane = false;
-        if let Some(toggle) = config.get("hide_frame_for_single_pane") {
-            hide_frame_for_single_pane = toggle == "true";
-        }
+        let hide_frame_for_single_pane = match config.get("hide_frame_for_single_pane") {
+            Some(toggle) => toggle == "true",
+            None => false,
+        };
 
-        let mut left_parts_config = "";
-        if let Some(conf) = config.get("format_left") {
-            left_parts_config = conf;
-        }
+        let left_parts_config = match config.get("format_left") {
+            Some(conf) => conf,
+            None => "",
+        };
 
-        let mut right_parts_config = "";
-        if let Some(conf) = config.get("format_right") {
-            right_parts_config = conf;
-        }
+        let right_parts_config = match config.get("format_right") {
+            Some(conf) => conf,
+            None => "",
+        };
 
-        let mut border_config = BorderConfig::default();
-        if let Some(bc) = parse_border_config(config.clone()) {
-            border_config = bc;
-        }
+        let border_config = match parse_border_config(config.clone()) {
+            Some(bc) => bc,
+            None => BorderConfig::default(),
+        };
 
         Self {
             left_parts_config: left_parts_config.to_string(),
@@ -92,14 +92,13 @@ impl ModuleConfig {
             return;
         }
 
-        let mut output_right = "".to_string();
-        for part in self.right_parts.iter() {
-            output_right = format!(
+        let output_right = self.right_parts.iter().fold("".to_string(), |acc, part| {
+            format!(
                 "{}{}",
-                output_right,
+                acc,
                 part.format_string_with_widgets(widget_map.clone(), state.clone())
-            );
-        }
+            )
+        });
 
         let widget_spacer = strip_ansi_escapes::strip_str(self.get_spacer(
             " ".repeat(left_len),
@@ -143,17 +142,15 @@ impl ModuleConfig {
 
             let wid_name = match_name.trim_matches(|c| c == '{' || c == '}');
 
-            let wid = widget_map.get(wid_name);
-            if wid.is_none() {
-                continue;
-            }
-            let wid = wid.unwrap();
+            let wid = match widget_map.get(wid_name) {
+                Some(wid) => wid,
+                None => continue,
+            };
 
-            let pos = rendered_output.find(match_name);
-            if pos.is_none() {
-                continue;
-            }
-            let pos = pos.unwrap();
+            let pos = match rendered_output.find(match_name) {
+                Some(pos) => pos,
+                None => continue,
+            };
 
             let wid_res = strip_ansi_escapes::strip_str(wid.process(wid_name, state.clone()));
             rendered_output = rendered_output.replace(match_name, &wid_res);
@@ -169,23 +166,19 @@ impl ModuleConfig {
     }
 
     pub fn render_bar(&self, state: ZellijState, widget_map: BTreeMap<String, Arc<dyn Widget>>) {
-        let mut output_left = "".to_string();
-        for part in self.left_parts.iter() {
-            output_left = format!(
-                "{}{}",
-                output_left,
+        let output_left = self.left_parts.iter().fold("".to_string(), |acc, part| {
+            format!(
+                "{acc}{}",
                 part.format_string_with_widgets(widget_map.clone(), state.clone())
-            );
-        }
+            )
+        });
 
-        let mut output_right = "".to_string();
-        for part in self.right_parts.iter() {
-            output_right = format!(
-                "{}{}",
-                output_right,
+        let output_right = self.right_parts.iter().fold("".to_string(), |acc, part| {
+            format!(
+                "{acc}{}",
                 part.format_string_with_widgets(widget_map.clone(), state.clone())
-            );
-        }
+            )
+        });
 
         let mut border_top = "".to_string();
         if self.border.enabled && self.border.position == BorderPosition::Top {
@@ -211,34 +204,22 @@ impl ModuleConfig {
         let text_count = strip_ansi_escapes::strip_str(output_left).chars().count()
             + strip_ansi_escapes::strip_str(output_right).chars().count();
 
-        let mut space_count = cols;
         // verify we are able to count the difference, since zellij sometimes drops a col
         // count of 0 on tab creation
-        if space_count > text_count {
-            space_count -= text_count;
-        }
+        let space_count = cols.saturating_sub(text_count);
 
         self.format_space.format_string(" ".repeat(space_count))
     }
 }
 
 fn parts_from_config(format: Option<&String>) -> Vec<FormattedPart> {
-    if format.is_none() {
-        return Vec::new();
+    match format {
+        Some(format) => format
+            .split("#[")
+            .map(|f| FormattedPart::from_format_string(f.to_string()))
+            .collect(),
+        None => vec![],
     }
-
-    let mut output = Vec::new();
-
-    let format_left = format.unwrap();
-
-    let color_parts = format_left.split("#[");
-    for color_part in color_parts {
-        let part = FormattedPart::from_format_string(color_part.to_string());
-
-        output.push(part);
-    }
-
-    output
 }
 
 #[cfg(test)]

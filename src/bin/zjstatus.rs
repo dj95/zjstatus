@@ -187,25 +187,25 @@ fn register_widgets(configuration: &BTreeMap<String, String>) -> BTreeMap<String
 
     widget_map.insert(
         "command".to_owned(),
-        Arc::new(CommandWidget::new(&configuration)),
+        Arc::new(CommandWidget::new(configuration)),
     );
     widget_map.insert(
         "datetime".to_owned(),
-        Arc::new(DateTimeWidget::new(&configuration)),
+        Arc::new(DateTimeWidget::new(configuration)),
     );
     widget_map.insert(
         "swap_layout".to_owned(),
-        Arc::new(SwapLayoutWidget::new(&configuration)),
+        Arc::new(SwapLayoutWidget::new(configuration)),
     );
     widget_map.insert(
         "mode".to_owned(),
-        Arc::new(ModeWidget::new(&configuration)),
+        Arc::new(ModeWidget::new(configuration)),
     );
     widget_map.insert(
         "session".to_owned(),
-        Arc::new(SessionWidget::new(&configuration)),
+        Arc::new(SessionWidget::new(configuration)),
     );
-    widget_map.insert("tabs".to_owned(), Arc::new(TabsWidget::new(&configuration)));
+    widget_map.insert("tabs".to_owned(), Arc::new(TabsWidget::new(configuration)));
 
     widget_map
 }

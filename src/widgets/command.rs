@@ -40,7 +40,7 @@ pub struct CommandWidget {
 }
 
 impl CommandWidget {
-    pub fn new(config: BTreeMap<String, String>) -> Self {
+    pub fn new(config: &BTreeMap<String, String>) -> Self {
         Self {
             config: parse_config(config),
         }
@@ -119,7 +119,7 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &Zell
     }
 }
 
-fn parse_config(zj_conf: BTreeMap<String, String>) -> BTreeMap<String, CommandConfig> {
+fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandConfig> {
     let mut keys: Vec<String> = zj_conf
         .keys()
         .filter(|k| k.starts_with("command_"))

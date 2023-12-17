@@ -51,9 +51,9 @@ impl ZellijPlugin for State {
             EventType::RunCommandResult,
         ]);
 
-        self.userspace_configuration = configuration.clone();
-        self.module_config = ModuleConfig::new(configuration.clone());
-        self.widget_map = register_widgets(configuration);
+        self.module_config = ModuleConfig::new(&configuration);
+        self.widget_map = register_widgets(&configuration);
+        self.userspace_configuration = configuration;
         self.got_permissions = false;
         let uid = Uuid::new_v4();
 
@@ -182,30 +182,30 @@ impl ZellijPlugin for State {
     }
 }
 
-fn register_widgets(configuration: BTreeMap<String, String>) -> BTreeMap<String, Arc<dyn Widget>> {
+fn register_widgets(configuration: &BTreeMap<String, String>) -> BTreeMap<String, Arc<dyn Widget>> {
     let mut widget_map = BTreeMap::<String, Arc<dyn Widget>>::new();
 
     widget_map.insert(
         "command".to_owned(),
-        Arc::new(CommandWidget::new(configuration.clone())),
+        Arc::new(CommandWidget::new(&configuration)),
     );
     widget_map.insert(
         "datetime".to_owned(),
-        Arc::new(DateTimeWidget::new(configuration.clone())),
+        Arc::new(DateTimeWidget::new(&configuration)),
     );
     widget_map.insert(
         "swap_layout".to_owned(),
-        Arc::new(SwapLayoutWidget::new(configuration.clone())),
+        Arc::new(SwapLayoutWidget::new(&configuration)),
     );
     widget_map.insert(
         "mode".to_owned(),
-        Arc::new(ModeWidget::new(configuration.clone())),
+        Arc::new(ModeWidget::new(&configuration)),
     );
     widget_map.insert(
         "session".to_owned(),
-        Arc::new(SessionWidget::new(configuration.clone())),
+        Arc::new(SessionWidget::new(&configuration)),
     );
-    widget_map.insert("tabs".to_owned(), Arc::new(TabsWidget::new(configuration)));
+    widget_map.insert("tabs".to_owned(), Arc::new(TabsWidget::new(&configuration)));
 
     widget_map
 }

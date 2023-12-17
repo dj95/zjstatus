@@ -16,7 +16,7 @@ pub struct TabsWidget {
 }
 
 impl TabsWidget {
-    pub fn new(config: BTreeMap<String, String>) -> Self {
+    pub fn new(config: &BTreeMap<String, String>) -> Self {
         let mut normal_tab_format: Vec<FormattedPart> = Vec::new();
         if let Some(form) = config.get("tab_normal") {
             normal_tab_format = FormattedPart::multiple_from_format_string(form.to_owned());

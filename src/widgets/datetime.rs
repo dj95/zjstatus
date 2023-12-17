@@ -14,7 +14,7 @@ pub struct DateTimeWidget {
 }
 
 impl DateTimeWidget {
-    pub fn new(config: BTreeMap<String, String>) -> Self {
+    pub fn new(config: &BTreeMap<String, String>) -> Self {
         let mut format = "%H:%M";
         if let Some(form) = config.get("datetime_format") {
             format = form;

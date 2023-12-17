@@ -25,7 +25,7 @@ pub struct ModeWidget {
 }
 
 impl ModeWidget {
-    pub fn new(config: BTreeMap<String, String>) -> Self {
+    pub fn new(config: &BTreeMap<String, String>) -> Self {
         let normal_format = match config.get("mode_normal") {
             Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
             None => vec![],

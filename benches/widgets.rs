@@ -23,7 +23,7 @@ fn bench_widget_tabs(c: &mut Criterion) {
         ),
     ]);
 
-    let wid = widgets::tabs::TabsWidget::new(config);
+    let wid = widgets::tabs::TabsWidget::new(&config);
 
     let state = ZellijState {
         tabs: vec![TabInfo {
@@ -47,7 +47,7 @@ fn bench_widget_mod(c: &mut Criterion) {
         "#[bg=blue] #[bg=yellow] ".to_owned(),
     )]);
 
-    let wid = widgets::mode::ModeWidget::new(config);
+    let wid = widgets::mode::ModeWidget::new(&config);
 
     let state = ZellijState {
         mode: ModeInfo::default(),
@@ -64,7 +64,7 @@ fn bench_widget_mod(c: &mut Criterion) {
 fn bench_widget_datetime(c: &mut Criterion) {
     let config = BTreeMap::new();
 
-    let wid = widgets::datetime::DateTimeWidget::new(config);
+    let wid = widgets::datetime::DateTimeWidget::new(&config);
 
     let state = ZellijState::default();
 

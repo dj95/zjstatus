@@ -33,7 +33,7 @@ pub struct ModuleConfig {
 }
 
 impl ModuleConfig {
-    pub fn new(config: BTreeMap<String, String>) -> Self {
+    pub fn new(config: &BTreeMap<String, String>) -> Self {
         let format_space_config = match config.get("format_space") {
             Some(space_config) => space_config,
             None => "",

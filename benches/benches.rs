@@ -15,13 +15,13 @@ fn bench_moduleconfig_render_bar(c: &mut Criterion) {
         ("format_space".to_owned(), "#[bg=#181825]".to_owned()),
     ]);
 
-    let module_config = ModuleConfig::new(config.clone());
+    let module_config = ModuleConfig::new(&config);
 
     let mut widgets: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::new();
 
     widgets.insert(
         "mode".to_owned(),
-        Arc::new(ModeWidget::new(BTreeMap::from([(
+        Arc::new(ModeWidget::new(&BTreeMap::from([(
             "mode_normal".to_owned(),
             "#[bg=blue] #[bg=yellow] ".to_owned(),
         )]))),
@@ -29,7 +29,7 @@ fn bench_moduleconfig_render_bar(c: &mut Criterion) {
 
     widgets.insert(
         "datetime".to_owned(),
-        Arc::new(DateTimeWidget::new(BTreeMap::from([(
+        Arc::new(DateTimeWidget::new(&BTreeMap::from([(
             "datetime".to_owned(),
             "#[fg=#6C7086,bg=#181825] {index} {name} ".to_owned(),
         )]))),
@@ -37,7 +37,7 @@ fn bench_moduleconfig_render_bar(c: &mut Criterion) {
 
     widgets.insert(
         "session".to_owned(),
-        Arc::new(SessionWidget::new(BTreeMap::from([]))),
+        Arc::new(SessionWidget::new(&BTreeMap::from([]))),
     );
 
     let state = ZellijState {
@@ -64,7 +64,7 @@ fn bench_formattedpart_format_string_with_widgets(c: &mut Criterion) {
 
     widgets.insert(
         "mode".to_owned(),
-        Arc::new(ModeWidget::new(BTreeMap::from([(
+        Arc::new(ModeWidget::new(&BTreeMap::from([(
             "mode_normal".to_owned(),
             "#[bg=blue] #[bg=yellow] ".to_owned(),
         )]))),
@@ -72,7 +72,7 @@ fn bench_formattedpart_format_string_with_widgets(c: &mut Criterion) {
 
     widgets.insert(
         "datetime".to_owned(),
-        Arc::new(DateTimeWidget::new(BTreeMap::from([(
+        Arc::new(DateTimeWidget::new(&BTreeMap::from([(
             "datetime".to_owned(),
             "#[fg=#6C7086,bg=#181825] {index} {name} ".to_owned(),
         )]))),
@@ -80,7 +80,7 @@ fn bench_formattedpart_format_string_with_widgets(c: &mut Criterion) {
 
     widgets.insert(
         "session".to_owned(),
-        Arc::new(SessionWidget::new(BTreeMap::from([]))),
+        Arc::new(SessionWidget::new(&BTreeMap::from([]))),
     );
 
     let state = ZellijState {
@@ -116,7 +116,7 @@ fn bench_moduleconfig_new(c: &mut Criterion) {
     config.insert("format_space".to_owned(), "#[bg=#181825]".to_owned());
 
     c.bench_function("ModuleConfig::new", |b| {
-        b.iter(|| ModuleConfig::new(config.clone()))
+        b.iter(|| ModuleConfig::new(&config))
     });
 }
 

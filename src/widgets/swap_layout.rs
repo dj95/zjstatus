@@ -6,7 +6,7 @@ use crate::{config::ZellijState, widgets::widget::Widget};
 pub struct SwapLayoutWidget {}
 
 impl SwapLayoutWidget {
-    pub fn new(_config: BTreeMap<String, String>) -> Self {
+    pub fn new(_config: &BTreeMap<String, String>) -> Self {
         Self {}
     }
 }

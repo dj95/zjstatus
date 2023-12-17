@@ -118,18 +118,20 @@ impl ModeWidget {
 impl Widget for ModeWidget {
     fn process(&self, _name: &str, state: &ZellijState) -> String {
         self.select_format(state.mode.mode)
-            .iter_mut()
+            .iter()
             .map(|f| {
+                let mut content = f.content.clone();
+
                 if f.content.contains("{name}") {
-                    f.content = f
+                    content = f
                         .content
                         .replace("{name}", format!("{:?}", state.mode.mode).as_str());
                 }
 
-                f
+                (f, content)
             })
-            .fold("".to_string(), |acc, f| {
-                format!("{acc}{}", f.format_string(&f.content))
+            .fold("".to_string(), |acc, (f, content)| {
+                format!("{acc}{}", f.format_string(&content))
             })
     }
 
@@ -137,22 +139,22 @@ impl Widget for ModeWidget {
 }
 
 impl ModeWidget {
-    fn select_format(&self, mode: InputMode) -> Vec<FormattedPart> {
+    fn select_format(&self, mode: InputMode) -> &Vec<FormattedPart> {
         match mode {
-            InputMode::Normal => self.normal_format.clone(),
-            InputMode::Locked => self.locked_format.clone(),
-            InputMode::Resize => self.resize_format.clone(),
-            InputMode::Pane => self.pane_format.clone(),
-            InputMode::Tab => self.tab_format.clone(),
-            InputMode::Scroll => self.scroll_format.clone(),
-            InputMode::EnterSearch => self.enter_search_format.clone(),
-            InputMode::Search => self.search_format.clone(),
-            InputMode::RenameTab => self.rename_tab_format.clone(),
-            InputMode::RenamePane => self.rename_pane_format.clone(),
-            InputMode::Session => self.session_format.clone(),
-            InputMode::Move => self.move_format.clone(),
-            InputMode::Prompt => self.prompt_format.clone(),
-            InputMode::Tmux => self.tmux_format.clone(),
+            InputMode::Normal => &self.normal_format,
+            InputMode::Locked => &self.locked_format,
+            InputMode::Resize => &self.resize_format,
+            InputMode::Pane => &self.pane_format,
+            InputMode::Tab => &self.tab_format,
+            InputMode::Scroll => &self.scroll_format,
+            InputMode::EnterSearch => &self.enter_search_format,
+            InputMode::Search => &self.search_format,
+            InputMode::RenameTab => &self.rename_tab_format,
+            InputMode::RenamePane => &self.rename_pane_format,
+            InputMode::Session => &self.session_format,
+            InputMode::Move => &self.move_format,
+            InputMode::Prompt => &self.prompt_format,
+            InputMode::Tmux => &self.tmux_format,
         }
     }
 }

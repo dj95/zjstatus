@@ -94,32 +94,32 @@ impl Widget for TabsWidget {
 }
 
 impl TabsWidget {
-    fn select_format(&self, info: TabInfo) -> Vec<FormattedPart> {
+    fn select_format(&self, info: &TabInfo) -> &Vec<FormattedPart> {
         if info.active && info.is_fullscreen_active {
-            return self.active_tab_fullscreen_format.clone();
+            return &self.active_tab_fullscreen_format;
         }
 
         if info.active && info.is_sync_panes_active {
-            return self.active_tab_sync_format.clone();
+            return &self.active_tab_sync_format;
         }
 
         if info.active {
-            return self.active_tab_format.clone();
+            return &self.active_tab_format;
         }
 
         if info.is_fullscreen_active {
-            return self.normal_tab_fullscreen_format.clone();
+            return &self.normal_tab_fullscreen_format;
         }
 
         if info.is_sync_panes_active {
-            return self.normal_tab_sync_format.clone();
+            return &self.normal_tab_sync_format;
         }
 
-        self.normal_tab_format.clone()
+        &self.normal_tab_format
     }
 
     fn render_tab(&self, tab: &TabInfo) -> String {
-        let formatters = self.select_format(tab.clone());
+        let formatters = self.select_format(tab);
         let mut output = "".to_string();
 
         for f in formatters.iter() {

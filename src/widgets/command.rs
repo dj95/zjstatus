@@ -98,7 +98,7 @@ impl Widget for CommandWidget {
 fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &ZellijState) {
     let ts = Local::now();
     let last_run =
-        get_timestamp_from_event_or_default(name, state.clone(), command_config.interval);
+        get_timestamp_from_event_or_default(name, state, command_config.interval);
 
     if ts.timestamp() - last_run.timestamp() >= command_config.interval {
         let mut context = BTreeMap::new();
@@ -159,7 +159,7 @@ fn parse_config(zj_conf: BTreeMap<String, String>) -> BTreeMap<String, CommandCo
 
 fn get_timestamp_from_event_or_default(
     name: &str,
-    state: ZellijState,
+    state: &ZellijState,
     interval: i64,
 ) -> DateTime<Local> {
     let command_result = state.command_results.get(name);

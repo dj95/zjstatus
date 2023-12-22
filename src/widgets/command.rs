@@ -14,7 +14,7 @@ use crate::render::FormattedPart;
 
 use crate::{config::ZellijState, widgets::widget::Widget};
 
-const TIMESTAMP_FORMAT: &str = "%s";
+pub const TIMESTAMP_FORMAT: &str = "%s";
 
 lazy_static! {
     static ref COMMAND_REGEX: Regex = Regex::new("_[a-zA-Z0-9]+$").unwrap();
@@ -115,6 +115,7 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &Zell
 
         let command = commandline_parser(&command_config.command);
         let command = command.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
+        #[cfg(not(feature = "bench"))]
         run_command(&command, context);
     }
 }

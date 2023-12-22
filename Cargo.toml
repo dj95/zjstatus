@@ -4,6 +4,9 @@ version = "0.10.0"
 authors = ["Daniel Jankowski"]
 edition = "2018"
 
+[features]
+bench = []
+
 [dependencies]
 zellij-tile = "0.39.0"
 chrono = { version = "0.4.0", default-features = false }

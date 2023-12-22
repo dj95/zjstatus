@@ -1,5 +1,5 @@
 bench:
-  cargo wasi bench -- --color always | grep --color=never -v "Criterion.rs ERROR"
+  cargo wasi bench --features bench -- --color always | grep --color=never -v "Criterion.rs ERROR"
 
 build:
   cargo build
@@ -8,7 +8,7 @@ test:
   cargo wasi test -- --nocapture
 
 lint:
-  cargo clippy --all-targets --all-features -- -D warnings
+  cargo clippy --all-targets -- -D warnings
   cargo audit
 
 release version:

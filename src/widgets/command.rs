@@ -93,8 +93,12 @@ impl Widget for CommandWidget {
                     .unwrap_or(&command_result.stderr),
             );
         }
-
-        command_config.format.format_string(&content)
+        if command_config.format != FormattedPart::default() {
+            command_config.format.format_string(&content)
+        }
+        else{
+            return content;
+        }
     }
 
     fn process_click(&self, _state: &ZellijState, _pos: usize) {}

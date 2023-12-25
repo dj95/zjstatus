@@ -64,7 +64,7 @@ pub fn parse_border_config(config: BTreeMap<String, String>) -> Option<BorderCon
     Some(BorderConfig {
         enabled,
         char: char.to_owned(),
-        format: FormattedPart::from_format_string(format.to_owned()),
+        format: FormattedPart::from_format_string(format),
         position,
     })
 }

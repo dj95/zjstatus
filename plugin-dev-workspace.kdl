@@ -36,9 +36,10 @@ layout {
             command_git_branch_format    "#[fg=red,bg=black] {stdout} "
             command_git_branch_interval  "2"
 
-            command_3_command   "bash -c \"foobar\""
-            command_3_format    "#[fg=red,bg=black] {stdout} {exit_code}"
+            command_3_command   "echo -e \"#[fg=red,bg=#000000,italic,bold] foo #[bg=red,fg=#000000,italic] bar \""
+            command_3_format    "{stdout}"
             command_3_interval  "10"
+            command_3_rendermode "dynamic"
 
             datetime          "#[fg=#6C7086,bg=#181825,bold] {format} "
             datetime_format   "%A, %d %b %Y %H:%M"

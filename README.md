@@ -101,9 +101,10 @@ layout {
             tab_normal   "#[fg=#6C7086] {name} "
             tab_active   "#[fg=#9399B2,bold,italic] {name} "
 
-            command_git_branch_command   "git rev-parse --abbrev-ref HEAD"
-            command_git_branch_format    "#[fg=blue] {stdout} "
-            command_git_branch_interval  "10"
+            command_git_branch_command     "git rev-parse --abbrev-ref HEAD"
+            command_git_branch_format      "#[fg=blue] {stdout} "
+            command_git_branch_interval    "10"
+            command_git_branch_rendermode  "static"
 
             datetime        "#[fg=#6C7086,bold] {format} "
             datetime_format "%A, %d %b %Y %H:%M"
@@ -185,6 +186,18 @@ command_NAME_format   "#[fg=blue, bg=black] {exit_code} {stdout} {stderr}"
 
 # interval in seconds, between two command runs
 command_NAME_interval "1"
+
+# render mode of the command. ["static", "dynamic", "raw"]
+#
+# "static"  :: format the command with the given format from the config and don't
+#              consider any other formatting directives
+# "dynamic" :: format the command based on the command output. When the command
+#              output contains formatting strings for zjstatus, zjstatus will
+#              try to render them. This might lead to unexpected behavior, in case
+#              the formatting is not correct.
+# "raw"     :: do not apply any formatting. This can be used to properly render
+#              ansi escape sequences from the command output.
+command_NAME_rendermode "static"
 ```
 
 #### datetime

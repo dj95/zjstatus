@@ -21,16 +21,16 @@ pub struct FormattedPart {
 }
 
 impl FormattedPart {
-    pub fn multiple_from_format_string(config: String) -> Vec<Self> {
+    pub fn multiple_from_format_string(config: &str) -> Vec<Self> {
         config
             .split("#[")
-            .map(|c| FormattedPart::from_format_string(c.to_owned()))
+            .map(FormattedPart::from_format_string)
             .collect()
     }
 
-    pub fn from_format_string(format: String) -> Self {
+    pub fn from_format_string(format: &str) -> Self {
         let format = match format.starts_with("#[") {
-            true => format.strip_prefix("#[").unwrap().to_owned(),
+            true => format.strip_prefix("#[").unwrap(),
             false => format,
         };
 
@@ -39,7 +39,7 @@ impl FormattedPart {
         let mut format_content_split = format.split(']').collect::<Vec<&str>>();
 
         if format_content_split.len() == 1 {
-            result.content = format;
+            result.content = format.to_owned();
 
             return result;
         }

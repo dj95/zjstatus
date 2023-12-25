@@ -37,7 +37,7 @@ impl DateTimeWidget {
 
         Self {
             format: format.to_owned(),
-            color_format: FormattedPart::from_format_string(color_format.to_owned()),
+            color_format: FormattedPart::from_format_string(color_format),
             time_zone,
         }
     }

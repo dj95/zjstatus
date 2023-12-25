@@ -19,31 +19,31 @@ impl TabsWidget {
     pub fn new(config: &BTreeMap<String, String>) -> Self {
         let mut normal_tab_format: Vec<FormattedPart> = Vec::new();
         if let Some(form) = config.get("tab_normal") {
-            normal_tab_format = FormattedPart::multiple_from_format_string(form.to_owned());
+            normal_tab_format = FormattedPart::multiple_from_format_string(form);
         }
 
         let normal_tab_fullscreen_format = match config.get("tab_normal_fullscreen") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
+            Some(form) => FormattedPart::multiple_from_format_string(form),
             None => normal_tab_format.clone(),
         };
 
         let normal_tab_sync_format = match config.get("tab_normal_sync") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
+            Some(form) => FormattedPart::multiple_from_format_string(form),
             None => normal_tab_format.clone(),
         };
 
         let mut active_tab_format = normal_tab_format.clone();
         if let Some(form) = config.get("tab_active") {
-            active_tab_format = FormattedPart::multiple_from_format_string(form.to_owned());
+            active_tab_format = FormattedPart::multiple_from_format_string(form);
         }
 
         let active_tab_fullscreen_format = match config.get("tab_active_fullscreen") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
+            Some(form) => FormattedPart::multiple_from_format_string(form),
             None => active_tab_format.clone(),
         };
 
         let active_tab_sync_format = match config.get("tab_active_sync") {
-            Some(form) => FormattedPart::multiple_from_format_string(form.to_owned()),
+            Some(form) => FormattedPart::multiple_from_format_string(form),
             None => active_tab_format.clone(),
         };
 

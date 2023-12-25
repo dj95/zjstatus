@@ -57,7 +57,7 @@ fn bench_moduleconfig_render_bar(c: &mut Criterion) {
 
 fn bench_formattedpart_format_string_with_widgets(c: &mut Criterion) {
     let format = FormattedPart::from_format_string(
-        "#[fg=#9399B2,bg=#181825,bold,italic] {mode} {datetime} {session} [] ".to_owned(),
+        "#[fg=#9399B2,bg=#181825,bold,italic] {mode} {datetime} {session} [] ",
     );
 
     let mut widgets: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::new();
@@ -102,7 +102,7 @@ fn bench_formattedpart_from_format_string(c: &mut Criterion) {
     c.bench_function("FormattedPart::from_format_string", |b| {
         b.iter(|| {
             FormattedPart::from_format_string(
-                "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] ".to_owned(),
+                "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] ",
             )
         })
     });

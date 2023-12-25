@@ -64,7 +64,7 @@ impl ModuleConfig {
             left_parts: parts_from_config(Some(&left_parts_config.to_owned())),
             right_parts_config: right_parts_config.to_owned(),
             right_parts: parts_from_config(Some(&right_parts_config.to_owned())),
-            format_space: FormattedPart::from_format_string(format_space_config.to_owned()),
+            format_space: FormattedPart::from_format_string(format_space_config),
             hide_frame_for_single_pane,
             border: border_config,
         }
@@ -231,7 +231,7 @@ fn parts_from_config(format: Option<&String>) -> Vec<FormattedPart> {
     match format {
         Some(format) => format
             .split("#[")
-            .map(|f| FormattedPart::from_format_string(f.to_owned()))
+            .map(FormattedPart::from_format_string)
             .collect(),
         None => vec![],
     }
@@ -246,7 +246,7 @@ mod test {
     fn test_formatted_part_from_string() {
         let input = "#[fg=#ff0000,bg=#00ff00,bold,italic]foo";
 
-        let part = FormattedPart::from_format_string(input.to_owned());
+        let part = FormattedPart::from_format_string(input);
 
         assert_eq!(
             part,

@@ -6,7 +6,10 @@ use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor, Style};
 use regex::Regex;
 use zellij_tile::prelude::bail;
 
-use crate::{config::ZellijState, widgets::widget::Widget};
+use crate::{
+    config::{event_mask_from_widget_name, UpdateEventMask, ZellijState},
+    widgets::widget::Widget,
+};
 
 lazy_static! {
     static ref WIDGET_REGEX: Regex = Regex::new("(\\{[a-z_0-9]+\\})").unwrap();
@@ -19,6 +22,9 @@ pub struct FormattedPart {
     pub bold: bool,
     pub italic: bool,
     pub content: String,
+    pub cache_mask: u8,
+    pub cached_content: String,
+    pub cache: BTreeMap<String, String>,
 }
 
 #[cached(
@@ -53,7 +59,10 @@ impl FormattedPart {
             false => format,
         };
 
-        let mut result = FormattedPart::default();
+        let mut result = FormattedPart {
+            cache_mask: cache_mask_from_content(format),
+            ..Default::default()
+        };
 
         let mut format_content_split = format.split(']').collect::<Vec<&str>>();
 
@@ -113,10 +122,15 @@ impl FormattedPart {
     }
 
     pub fn format_string_with_widgets(
-        &self,
+        &mut self,
         widgets: &BTreeMap<String, Arc<dyn Widget>>,
         state: &ZellijState,
     ) -> String {
+        let skip_cache = self.cache_mask & UpdateEventMask::Always as u8 != 0;
+        if !skip_cache && self.cache_mask & state.cache_mask == 0 {
+            return self.cached_content.to_owned();
+        }
+
         let mut output = self.content.clone();
 
         for widget in WIDGET_REGEX.captures_iter(&self.content) {
@@ -128,15 +142,28 @@ impl FormattedPart {
                 widget_key_name = "command";
             }
 
+            let widget_mask = event_mask_from_widget_name(widget_key_name);
+            if !skip_cache && widget_mask & state.cache_mask == 0 {
+                if let Some(res) = self.cache.get(widget_key) {
+                    output = output.replace(match_name, res);
+                    continue;
+                }
+            }
+
             let result = match widgets.get(widget_key_name) {
                 Some(widget) => widget.process(widget_key, state),
                 None => "Use of uninitialized widget".to_owned(),
             };
 
+            self.cache.insert(widget_key.to_owned(), result.to_owned());
+
             output = output.replace(match_name, &result);
         }
 
-        self.format_string(&output)
+        let res = self.format_string(&output);
+        self.cached_content = res.clone();
+
+        res
     }
 }
 
@@ -148,8 +175,27 @@ impl Default for FormattedPart {
             bold: false,
             italic: false,
             content: "".to_owned(),
+            cache_mask: 0,
+            cached_content: "".to_owned(),
+            cache: BTreeMap::new(),
         }
     }
+}
+
+fn cache_mask_from_content(content: &str) -> u8 {
+    let mut output = 0;
+    for widget in WIDGET_REGEX.captures_iter(content) {
+        let match_name = widget.get(0).unwrap().as_str();
+        let widget_key = match_name.trim_matches(|c| c == '{' || c == '}');
+        let mut widget_key_name = widget_key;
+
+        if widget_key.starts_with("command_") {
+            widget_key_name = "command";
+        }
+
+        output |= event_mask_from_widget_name(widget_key_name);
+    }
+    output
 }
 
 fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {

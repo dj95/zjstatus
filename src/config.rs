@@ -19,6 +19,28 @@ pub struct ZellijState {
     pub tabs: Vec<TabInfo>,
     pub sessions: Vec<SessionInfo>,
     pub start_time: DateTime<Local>,
+    pub cache_mask: u8,
+}
+
+pub enum UpdateEventMask {
+    Always = 0b10000000,
+    Mode = 0b00000001,
+    Tab = 0b00000010,
+    Command = 0b00000100,
+    Session = 0b00001000,
+    None = 0b00000000,
+}
+
+pub fn event_mask_from_widget_name(name: &str) -> u8 {
+    match name {
+        "command" => UpdateEventMask::Command as u8 | UpdateEventMask::Session as u8,
+        "datetime" => UpdateEventMask::Always as u8,
+        "mode" => UpdateEventMask::Mode as u8,
+        "session" => UpdateEventMask::Session as u8,
+        "swap_layout" => UpdateEventMask::Tab as u8,
+        "tabs" => UpdateEventMask::Tab as u8,
+        _ => UpdateEventMask::None as u8,
+    }
 }
 
 #[derive(Default)]
@@ -71,7 +93,7 @@ impl ModuleConfig {
     }
 
     pub fn handle_mouse_action(
-        &self,
+        &mut self,
         state: ZellijState,
         mouse: Mouse,
         widget_map: BTreeMap<String, Arc<dyn Widget>>,
@@ -97,13 +119,16 @@ impl ModuleConfig {
             return;
         }
 
-        let output_right = self.right_parts.iter().fold("".to_owned(), |acc, part| {
-            format!(
-                "{}{}",
-                acc,
-                part.format_string_with_widgets(&widget_map, &state)
-            )
-        });
+        let output_right = self
+            .right_parts
+            .iter_mut()
+            .fold("".to_owned(), |acc, part| {
+                format!(
+                    "{}{}",
+                    acc,
+                    part.format_string_with_widgets(&widget_map, &state)
+                )
+            });
 
         let widget_spacer = strip_ansi_escapes::strip_str(self.get_spacer(
             &" ".repeat(left_len),
@@ -169,20 +194,27 @@ impl ModuleConfig {
         rendered_output.len()
     }
 
-    pub fn render_bar(&self, state: ZellijState, widget_map: BTreeMap<String, Arc<dyn Widget>>) {
-        let output_left = self.left_parts.iter().fold("".to_owned(), |acc, part| {
+    pub fn render_bar(
+        &mut self,
+        state: ZellijState,
+        widget_map: BTreeMap<String, Arc<dyn Widget>>,
+    ) {
+        let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
             format!(
                 "{acc}{}",
                 part.format_string_with_widgets(&widget_map, &state)
             )
         });
 
-        let output_right = self.right_parts.iter().fold("".to_owned(), |acc, part| {
-            format!(
-                "{acc}{}",
-                part.format_string_with_widgets(&widget_map, &state)
-            )
-        });
+        let output_right = self
+            .right_parts
+            .iter_mut()
+            .fold("".to_owned(), |acc, part| {
+                format!(
+                    "{acc}{}",
+                    part.format_string_with_widgets(&widget_map, &state)
+                )
+            });
 
         if self.border.enabled {
             let mut border_top = "".to_owned();
@@ -256,6 +288,7 @@ mod test {
                 bold: true,
                 italic: true,
                 content: "foo".to_owned(),
+                ..Default::default()
             },
         )
     }

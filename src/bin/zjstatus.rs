@@ -15,7 +15,7 @@ use std::{collections::BTreeMap, sync::Arc, usize};
 use uuid::Uuid;
 
 use zjstatus::{
-    config::{self, ZellijState},
+    config::{self, ZellijState, UpdateEventMask},
     frames, widgets,
 };
 
@@ -65,6 +65,7 @@ impl ZellijPlugin for State {
             tabs: Vec::new(),
             sessions: Vec::new(),
             start_time: Local::now(),
+            cache_mask: 0,
         };
     }
 
@@ -88,6 +89,7 @@ impl ZellijPlugin for State {
                 }
 
                 self.state.mode = mode_info;
+                self.state.cache_mask = UpdateEventMask::Mode as u8;
                 should_render = true;
             }
             Event::PaneUpdate(pane_info) => {
@@ -113,6 +115,7 @@ impl ZellijPlugin for State {
                 if !self.got_permissions {
                     return false;
                 }
+                self.state.cache_mask = UpdateEventMask::Command as u8;
 
                 if let Some(name) = context.get("name") {
                     let stdout = match String::from_utf8(stdout) {
@@ -153,6 +156,7 @@ impl ZellijPlugin for State {
                     }
                 }
 
+                self.state.cache_mask = UpdateEventMask::Session as u8;
                 self.state.sessions = session_info;
 
                 should_render = true;
@@ -162,6 +166,7 @@ impl ZellijPlugin for State {
                     return false;
                 }
 
+                self.state.cache_mask = UpdateEventMask::Tab as u8;
                 self.state.tabs = tab_info;
                 should_render = true;
             }

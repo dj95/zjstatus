@@ -28,7 +28,7 @@ layout {
             tab_active_sync         "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} <> "
 
 
-            command_1_command   "pwd"
+            command_1_command   "date"
             command_1_format    "#[fg=blue,bg=black] {exit_code} {stdout} "
             command_1_interval  "1"
 

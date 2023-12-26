@@ -24,6 +24,10 @@
 <b><a href="./examples/swap-layouts.kdl">example for swapping layouts with zjstatus</a></b>
 <img src="./examples/swap-layouts.png" alt="example for swapping layouts with zjstatus" />
 <br>
+<b><a href="./examples/conky.kdl">conky status (thanks to @benzwt)</a></b>
+<a href="./examples/conky.conf">conky.conf</a>
+<img src="./examples/conky.png" alt="conky status" />
+<br>
 <b>Demo GIF</b>
 <img src="./assets/demo.gif" alt="Demo GIF of zellij with zjstatus" />
 </details>

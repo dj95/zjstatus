@@ -63,7 +63,7 @@ fn bench_widget_command_dynamic(c: &mut Criterion) {
             "command_test".to_owned(),
             widgets::command::CommandResult {
                 exit_code: Some(0),
-                stdout: "#[fg=#9399B2,bg=#181825,bold,italic] test".to_owned(),
+                stdout: "#[fg=#9399B2,bg=#181825,bold,italic] test #[fg=#9399B2,bg=#181825,bold,italic] test".to_owned(),
                 stderr: "".to_owned(),
                 context: BTreeMap::from([(
                     "timestamp".to_owned(),

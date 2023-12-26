@@ -8,9 +8,10 @@ use std::{
 
 use chrono::{DateTime, Duration, Local};
 use regex::Regex;
+#[cfg(not(feature = "bench"))]
 use zellij_tile::shim::run_command;
 
-use crate::render::FormattedPart;
+use crate::render::{formatted_parts_from_string_cached, FormattedPart};
 
 use crate::{config::ZellijState, widgets::widget::Widget};
 
@@ -113,7 +114,7 @@ impl Widget for CommandWidget {
 }
 
 fn render_dynamic_formatted_content(content: &str) -> String {
-    FormattedPart::multiple_from_format_string(content)
+    formatted_parts_from_string_cached(content)
         .iter()
         .map(|fp| fp.format_string(&fp.content))
         .collect::<Vec<String>>()
@@ -133,9 +134,11 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &Zell
         );
 
         let command = commandline_parser(&command_config.command);
-        let command = command.iter().map(|x| x.as_str()).collect::<Vec<&str>>();
         #[cfg(not(feature = "bench"))]
-        run_command(&command, context);
+        run_command(
+            &command.iter().map(|x| x.as_str()).collect::<Vec<&str>>(),
+            context,
+        );
     }
 }
 

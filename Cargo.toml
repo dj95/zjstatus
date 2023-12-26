@@ -17,6 +17,7 @@ anyhow = "1.0.75"
 anstyle = "1.0.2"
 uuid = { version = "1.6.1", features = ["v4"] }
 lazy_static = "1.4.0"
+cached = { version = "0.46.1", features = ["wasm"] }
 
 [dev-dependencies]
 criterion = { version = "0.5.1", default-features = false, features = ["html_reports"] }

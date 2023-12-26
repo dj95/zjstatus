@@ -1,3 +1,4 @@
+use cached::{proc_macro::cached, SizedCache};
 use lazy_static::lazy_static;
 use std::{collections::BTreeMap, sync::Arc};
 
@@ -18,6 +19,24 @@ pub struct FormattedPart {
     pub bold: bool,
     pub italic: bool,
     pub content: String,
+}
+
+#[cached(
+    type = "SizedCache<String, FormattedPart>",
+    create = "{ SizedCache::with_size(100) }",
+    convert = r#"{ (format.to_owned()) }"#
+)]
+pub fn formatted_part_from_string_cached(format: &str) -> FormattedPart {
+    FormattedPart::from_format_string(format)
+}
+
+#[cached(
+    type = "SizedCache<String, Vec<FormattedPart>>",
+    create = "{ SizedCache::with_size(100) }",
+    convert = r#"{ (config.to_owned()) }"#
+)]
+pub fn formatted_parts_from_string_cached(config: &str) -> Vec<FormattedPart> {
+    FormattedPart::multiple_from_format_string(config)
 }
 
 impl FormattedPart {
@@ -144,6 +163,11 @@ fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {
         .collect()
 }
 
+#[cached(
+    type = "SizedCache<String, Option<Color>>",
+    create = "{ SizedCache::with_size(100) }",
+    convert = r#"{ (color.to_owned()) }"#
+)]
 fn parse_color(color: &str) -> Option<Color> {
     if color.starts_with('#') {
         let rgb = match hex_to_rgb(color.strip_prefix('#').unwrap()) {

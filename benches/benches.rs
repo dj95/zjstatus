@@ -4,7 +4,9 @@ use zellij_tile::prelude::{ModeInfo, TabInfo};
 
 use zjstatus::{
     config::{ModuleConfig, ZellijState},
-    render::FormattedPart,
+    render::{
+        formatted_part_from_string_cached, formatted_parts_from_string_cached, FormattedPart,
+    },
     widgets::{datetime::DateTimeWidget, mode::ModeWidget, session::SessionWidget, widget::Widget},
 };
 
@@ -108,6 +110,36 @@ fn bench_formattedpart_from_format_string(c: &mut Criterion) {
     });
 }
 
+fn bench_formattedpart_from_format_string_cached(c: &mut Criterion) {
+    c.bench_function("formatted_part_from_string_cached", |b| {
+        b.iter(|| {
+            formatted_part_from_string_cached(
+                "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] ",
+            )
+        })
+    });
+}
+
+fn bench_formattedpart_multiple_from_format_string(c: &mut Criterion) {
+    c.bench_function("FormattedPart::multiple_from_format_string", |b| {
+        b.iter(|| {
+            FormattedPart::multiple_from_format_string(
+                "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] #[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] ",
+            )
+        })
+    });
+}
+
+fn bench_formattedparts_from_format_string_cached(c: &mut Criterion) {
+    c.bench_function("formatted_parts_from_string_cached", |b| {
+        b.iter(|| {
+            formatted_parts_from_string_cached(
+                "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] #[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] ",
+            )
+        })
+    });
+}
+
 fn bench_moduleconfig_new(c: &mut Criterion) {
     let mut config = BTreeMap::new();
 
@@ -122,6 +154,9 @@ fn bench_moduleconfig_new(c: &mut Criterion) {
 
 fn criterion_benchmark(c: &mut Criterion) {
     bench_formattedpart_from_format_string(c);
+    bench_formattedpart_from_format_string_cached(c);
+    bench_formattedpart_multiple_from_format_string(c);
+    bench_formattedparts_from_format_string_cached(c);
     bench_formattedpart_format_string_with_widgets(c);
     bench_moduleconfig_new(c);
     bench_moduleconfig_render_bar(c);

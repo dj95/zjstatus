@@ -1,6 +1,6 @@
 layout {
     pane split_direction="vertical" {
-        pane
+        pane borderless=true
     }
 
     pane size=2 borderless=true {

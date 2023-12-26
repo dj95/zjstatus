@@ -19,14 +19,9 @@ pub fn hide_frames_on_single_pane(
 
     let panes: Vec<&PaneInfo> = panes.iter().filter(|p| !p.is_plugin).collect();
 
-    let first_pane = match panes.first() {
-        Some(fp) => fp,
-        None => return,
-    };
-
     // frame is enabled, when content does no start at [0, 0]. With default frames
     // it's [1, 1]
-    let frame_enabled = first_pane.pane_content_x > 0;
+    let frame_enabled = panes.iter().any(|p| p.pane_content_x - p.pane_x > 0);
 
     if panes.len() == 1 && frame_enabled {
         toggle_pane_frames();
@@ -38,19 +33,14 @@ pub fn hide_frames_on_single_pane(
 }
 
 fn is_plugin_for_current_tab(panes: &[PaneInfo], plugin_pane_id: PluginIds) -> bool {
-    let plugin_pane = panes
+    panes
         .iter()
-        .find(|p| p.is_plugin && p.id == plugin_pane_id.plugin_id);
-
-    plugin_pane.is_some()
+        .any(|p| p.is_plugin && p.id == plugin_pane_id.plugin_id)
 }
 
 fn get_current_panes(tabs: &[TabInfo], pane_info: &PaneManifest) -> Option<Vec<PaneInfo>> {
     let active_tab = tabs.iter().find(|t| t.active);
     let active_tab = active_tab.as_ref()?;
 
-    pane_info
-        .panes
-        .get(&active_tab.position)
-        .cloned()
+    pane_info.panes.get(&active_tab.position).cloned()
 }

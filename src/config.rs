@@ -33,7 +33,7 @@ pub enum UpdateEventMask {
 
 pub fn event_mask_from_widget_name(name: &str) -> u8 {
     match name {
-        "command" => UpdateEventMask::Command as u8 | UpdateEventMask::Session as u8,
+        "command" => UpdateEventMask::Always as u8,
         "datetime" => UpdateEventMask::Always as u8,
         "mode" => UpdateEventMask::Mode as u8,
         "session" => UpdateEventMask::Session as u8,

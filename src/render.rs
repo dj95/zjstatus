@@ -127,7 +127,7 @@ impl FormattedPart {
         state: &ZellijState,
     ) -> String {
         let skip_cache = self.cache_mask & UpdateEventMask::Always as u8 != 0;
-        if !skip_cache && self.cache_mask & state.cache_mask == 0 {
+        if !skip_cache && self.cache_mask & state.cache_mask == 0 && !self.cache.is_empty() {
             return self.cached_content.to_owned();
         }
 

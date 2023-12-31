@@ -1,11 +1,15 @@
 bench:
-  cargo wasi bench --features bench -- --color always | grep --color=never -v "Criterion.rs ERROR"
+  #!/usr/bin/env bash
+  benchmarks="$(cargo bench --target wasm32-wasi --features=bench --no-run --color=always 2>&1 | tee /dev/tty | grep -oP 'target/.*.wasm')"
+
+  echo "$benchmarks" \
+    | xargs -I{} wasmtime --dir $PWD/target::target {} --bench --color=always
 
 build:
   cargo build
 
 test:
-  cargo wasi test -- --nocapture
+  cargo component test -- --nocapture
 
 lint:
   cargo clippy --all-targets -- -D warnings

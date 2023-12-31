@@ -15,7 +15,7 @@ use std::{collections::BTreeMap, sync::Arc, usize};
 use uuid::Uuid;
 
 use zjstatus::{
-    config::{self, ZellijState, UpdateEventMask},
+    config::{self, UpdateEventMask, ZellijState},
     frames, widgets,
 };
 
@@ -182,8 +182,11 @@ impl ZellijPlugin for State {
 
         self.state.cols = cols;
 
-        self.module_config
-            .render_bar(self.state.clone(), self.widget_map.clone());
+        print!(
+            "{}",
+            self.module_config
+                .render_bar(self.state.clone(), self.widget_map.clone())
+        );
     }
 }
 
@@ -202,10 +205,7 @@ fn register_widgets(configuration: &BTreeMap<String, String>) -> BTreeMap<String
         "swap_layout".to_owned(),
         Arc::new(SwapLayoutWidget::new(configuration)),
     );
-    widget_map.insert(
-        "mode".to_owned(),
-        Arc::new(ModeWidget::new(configuration)),
-    );
+    widget_map.insert("mode".to_owned(), Arc::new(ModeWidget::new(configuration)));
     widget_map.insert(
         "session".to_owned(),
         Arc::new(SessionWidget::new(configuration)),

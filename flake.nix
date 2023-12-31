@@ -72,9 +72,9 @@
           packages = with pkgs; [
             rustWithWasiTarget
             cargo-audit
+            cargo-component
             cargo-edit
             cargo-watch
-            cargo-wasi
             clippy
             libiconv
             wasmtime

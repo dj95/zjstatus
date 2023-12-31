@@ -198,7 +198,7 @@ impl ModuleConfig {
         &mut self,
         state: ZellijState,
         widget_map: BTreeMap<String, Arc<dyn Widget>>,
-    ) {
+    ) -> String {
         let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
             format!(
                 "{acc}{}",
@@ -227,7 +227,7 @@ impl ModuleConfig {
                 border_bottom = format!("\n{}", self.border.draw(state.cols));
             }
 
-            print!(
+            return format!(
                 "{}{}{}{}{}",
                 border_top,
                 output_left,
@@ -235,16 +235,14 @@ impl ModuleConfig {
                 output_right,
                 border_bottom,
             );
-
-            return;
         }
 
-        print!(
+        format!(
             "{}{}{}",
             output_left,
             self.get_spacer(&output_left, &output_right, state.cols),
             output_right,
-        );
+        )
     }
 
     fn get_spacer(&self, output_left: &str, output_right: &str, cols: usize) -> String {

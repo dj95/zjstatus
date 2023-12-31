@@ -8,6 +8,9 @@ bench:
 build:
   cargo build
 
+run: build
+  zellij -l ./plugin-dev-workspace.kdl -s zjstatus-dev
+
 test:
   cargo component test -- --nocapture
 

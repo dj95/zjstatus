@@ -26,7 +26,7 @@ layout {
             tab_active              "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} "
             tab_active_fullscreen   "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] "
             tab_active_sync         "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} <> "
-
+            tab_separator           "#[fg=#6C7086,bg=#181825] | "
 
             command_1_command   "date"
             command_1_format    "#[fg=blue,bg=black] {exit_code} {stdout} "

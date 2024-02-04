@@ -282,6 +282,9 @@ tab_normal_sync         "#[fg=#6C7086] {index} :: {name} <> "
 tab_active              "#[fg=#9399B2,bold,italic] {name} "
 tab_active_fullscreen   "#[fg=#9399B2,bold,italic] {name} [] "
 tab_active_sync         "#[fg=#9399B2,bold,italic] {name} <> "
+
+# separator between the tabs
+tab_separator           "#[fg=#6C7086,bg=#181825] | "
 ```
 
 ## 🚧 Development

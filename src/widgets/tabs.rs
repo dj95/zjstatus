@@ -13,6 +13,7 @@ pub struct TabsWidget {
     normal_tab_format: Vec<FormattedPart>,
     normal_tab_fullscreen_format: Vec<FormattedPart>,
     normal_tab_sync_format: Vec<FormattedPart>,
+    separator: Option<FormattedPart>,
 }
 
 impl TabsWidget {
@@ -47,6 +48,10 @@ impl TabsWidget {
             None => active_tab_format.clone(),
         };
 
+        let separator = config
+            .get("tab_separator")
+            .map(|s| FormattedPart::from_format_string(s));
+
         Self {
             normal_tab_format,
             normal_tab_fullscreen_format,
@@ -54,6 +59,7 @@ impl TabsWidget {
             active_tab_format,
             active_tab_fullscreen_format,
             active_tab_sync_format,
+            separator,
         }
     }
 }
@@ -61,11 +67,19 @@ impl TabsWidget {
 impl Widget for TabsWidget {
     fn process(&self, _name: &str, state: &ZellijState) -> String {
         let mut output = "".to_owned();
+        let mut counter = 0;
 
         for tab in &state.tabs {
             let content = self.render_tab(tab);
+            counter += 1;
 
             output = format!("{}{}", output, content);
+
+            if counter < state.tabs.len() {
+                if let Some(sep) = &self.separator {
+                    output = format!("{}{}", output, sep.format_string(&sep.content));
+                }
+            }
         }
 
         output
@@ -76,8 +90,20 @@ impl Widget for TabsWidget {
 
         let mut offset = 0;
         let mut index = 1;
+        let mut counter = 0;
         for tab in &state.tabs {
-            let content = strip_ansi_escapes::strip_str(self.render_tab(tab));
+            counter += 1;
+
+            let mut rendered_content = self.render_tab(tab);
+
+            if counter < state.tabs.len() {
+                if let Some(sep) = &self.separator {
+                    rendered_content =
+                        format!("{}{}", rendered_content, sep.format_string(&sep.content));
+                }
+            }
+
+            let content = strip_ansi_escapes::strip_str(rendered_content);
 
             if pos > offset && pos < offset + content.chars().count() {
                 switch_tab_to(index);

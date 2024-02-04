@@ -229,7 +229,9 @@ datetime_timezone "Europe/Berlin"
 **Handle** `{mode}`
 
 Indicate the current active mode in zellij. Each mode can be configured individually. If a mode is not configured, it will
-fall back to the format of `mode_normal`. The name of the mode can be used in the `{name}` variable.
+fall back to the format of `mode_normal`, if `mode_default_to_mode` is not specified or invalid. Otherwise it will use the
+format referenced in `mode_default_to_mode`, if the format for a mode is unspecified. The name of the mode can be used
+in the `{name}` variable.
 
 ```kdl
 mode_normal        "#[bg=#89B4FA] {name} "
@@ -246,6 +248,8 @@ mode_session       "#[bg=#89B4FA] {name} "
 mode_move          "#[bg=#89B4FA] {name} "
 mode_prompt        "#[bg=#89B4FA] {name} "
 mode_tmux          "#[bg=#ffc387] {name} "
+
+mode_default_to_mode "tmux"
 ```
 
 #### session

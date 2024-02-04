@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use zellij_tile::prelude::InputMode;
 
-use crate::{render::FormattedPart, config::ZellijState};
+use crate::{config::ZellijState, render::FormattedPart};
 
 use super::widget::Widget;
 
@@ -22,6 +22,7 @@ pub struct ModeWidget {
     move_format: Vec<FormattedPart>,
     prompt_format: Vec<FormattedPart>,
     tmux_format: Vec<FormattedPart>,
+    default_to_mode: Option<String>,
 }
 
 impl ModeWidget {
@@ -33,68 +34,70 @@ impl ModeWidget {
 
         let locked_format = match config.get("mode_locked") {
             Some(form) => FormattedPart::multiple_from_format_string(form),
-            None => normal_format.clone(),
+            None => vec![],
         };
 
         let resize_format = match config.get("mode_resize") {
             Some(form) => FormattedPart::multiple_from_format_string(form),
-            None => normal_format.clone(),
+            None => vec![],
         };
 
         let pane_format = match config.get("mode_pane") {
             Some(form) => FormattedPart::multiple_from_format_string(form),
-            None => normal_format.clone(),
+            None => vec![],
         };
 
         let tab_format = match config.get("mode_tab") {
             Some(form) => FormattedPart::multiple_from_format_string(form),
-            None => normal_format.clone(),
+            None => vec![],
         };
 
         let scroll_format = match config.get("mode_scroll") {
             Some(form) => FormattedPart::multiple_from_format_string(form),
-            None => normal_format.clone(),
+            None => vec![],
         };
 
         let enter_search_format = match config.get("mode_enter_search") {
             Some(form) => FormattedPart::multiple_from_format_string(form),
-            None => normal_format.clone(),
+            None => vec![],
         };
 
         let search_format = match config.get("mode_search") {
             Some(form) => FormattedPart::multiple_from_format_string(form),
-            None => normal_format.clone(),
+            None => vec![],
         };
 
         let rename_tab_format = match config.get("mode_rename_tab") {
             Some(form) => FormattedPart::multiple_from_format_string(form),
-            None => normal_format.clone(),
+            None => vec![],
         };
 
         let rename_pane_format = match config.get("mode_rename_pane") {
             Some(form) => FormattedPart::multiple_from_format_string(form),
-            None => normal_format.clone(),
+            None => vec![],
         };
 
         let session_format = match config.get("mode_session") {
             Some(form) => FormattedPart::multiple_from_format_string(form),
-            None => normal_format.clone(),
+            None => vec![],
         };
 
         let move_format = match config.get("mode_move") {
             Some(form) => FormattedPart::multiple_from_format_string(form),
-            None => normal_format.clone(),
+            None => vec![],
         };
 
         let prompt_format = match config.get("mode_prompt") {
             Some(form) => FormattedPart::multiple_from_format_string(form),
-            None => normal_format.clone(),
+            None => vec![],
         };
 
         let tmux_format = match config.get("mode_tmux") {
             Some(form) => FormattedPart::multiple_from_format_string(form),
-            None => normal_format.clone(),
+            None => vec![],
         };
+
+        let default_to_mode = config.get("mode_default_to_mode").map(|s| s.to_string());
 
         Self {
             normal_format,
@@ -111,6 +114,7 @@ impl ModeWidget {
             move_format,
             prompt_format,
             tmux_format,
+            default_to_mode,
         }
     }
 }
@@ -139,7 +143,7 @@ impl Widget for ModeWidget {
 }
 
 impl ModeWidget {
-    fn select_format(&self, mode: InputMode) -> &Vec<FormattedPart> {
+    fn get_format_by_mode(&self, mode: InputMode) -> &Vec<FormattedPart> {
         match mode {
             InputMode::Normal => &self.normal_format,
             InputMode::Locked => &self.locked_format,
@@ -156,5 +160,49 @@ impl ModeWidget {
             InputMode::Prompt => &self.prompt_format,
             InputMode::Tmux => &self.tmux_format,
         }
+    }
+
+    fn select_format(&self, mode: InputMode) -> &Vec<FormattedPart> {
+        let output = self.get_format_by_mode(mode);
+
+        if output.is_empty() {
+            return match self.default_to_mode {
+                Some(ref mode) => match map_string_to_mode(mode) {
+                    Some(mode) => {
+                        let out = self.get_format_by_mode(mode);
+
+                        if out.is_empty() {
+                            return &self.normal_format;
+                        }
+
+                        return out;
+                    }
+                    None => &self.normal_format,
+                },
+                None => &self.normal_format,
+            };
+        }
+
+        output
+    }
+}
+
+fn map_string_to_mode(s: &str) -> Option<InputMode> {
+    match s {
+        "normal" => Some(InputMode::Normal),
+        "locked" => Some(InputMode::Locked),
+        "resize" => Some(InputMode::Resize),
+        "pane" => Some(InputMode::Pane),
+        "tab" => Some(InputMode::Tab),
+        "scroll" => Some(InputMode::Scroll),
+        "enter_search" => Some(InputMode::EnterSearch),
+        "search" => Some(InputMode::Search),
+        "rename_tab" => Some(InputMode::RenameTab),
+        "rename_pane" => Some(InputMode::RenamePane),
+        "session" => Some(InputMode::Session),
+        "move" => Some(InputMode::Move),
+        "prompt" => Some(InputMode::Prompt),
+        "tmux" => Some(InputMode::Tmux),
+        _ => None,
     }
 }

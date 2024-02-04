@@ -17,8 +17,9 @@ layout {
 
             hide_frame_for_single_pane "true"
 
-            mode_normal  "#[bg=blue] #[bg=yellow] "
-            mode_tmux    "#[bg=yellow] "
+            mode_normal          "#[bg=blue] #[bg=yellow] "
+            mode_tmux            "#[bg=yellow] "
+            mode_default_to_mode "tmux"
 
             tab_normal              "#[fg=#6C7086,bg=#181825] {index} {name} "
             tab_normal_fullscreen   "#[fg=#6C7086,bg=#181825] {index} {name} [] "

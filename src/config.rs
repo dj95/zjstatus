@@ -130,7 +130,7 @@ impl ModuleConfig {
                 )
             });
 
-        let widget_spacer = strip_ansi_escapes::strip_str(self.get_spacer(
+        let widget_spacer_len = console::measure_text_width(&self.get_spacer(
             &" ".repeat(left_len),
             &output_right,
             state.cols,
@@ -146,7 +146,7 @@ impl ModuleConfig {
             widget_string_right,
             widget_map,
             &state,
-            left_len + widget_spacer.len(),
+            left_len + widget_spacer_len,
         );
     }
 
@@ -177,21 +177,26 @@ impl ModuleConfig {
             };
 
             let pos = match rendered_output.find(match_name) {
-                Some(pos) => pos,
+                Some(_pos) => {
+                    let pref = rendered_output.split(match_name).collect::<Vec<&str>>()[0];
+                    console::measure_text_width(pref)
+                }
                 None => continue,
             };
 
-            let wid_res = strip_ansi_escapes::strip_str(wid.process(wid_name, state));
+            let wid_res = wid.process(wid_name, state);
             rendered_output = rendered_output.replace(match_name, &wid_res);
 
-            if click_pos < pos + offset || click_pos > pos + offset + wid_res.len() {
+            if click_pos < pos + offset
+                || click_pos > pos + offset + console::measure_text_width(&wid_res)
+            {
                 continue;
             }
 
             wid.process_click(state, click_pos - pos + offset);
         }
 
-        rendered_output.len()
+        console::measure_text_width(&rendered_output)
     }
 
     pub fn render_bar(
@@ -246,8 +251,8 @@ impl ModuleConfig {
     }
 
     fn get_spacer(&self, output_left: &str, output_right: &str, cols: usize) -> String {
-        let text_count = strip_ansi_escapes::strip_str(output_left).chars().count()
-            + strip_ansi_escapes::strip_str(output_right).chars().count();
+        let text_count =
+            console::measure_text_width(output_left) + console::measure_text_width(output_right);
 
         // verify we are able to count the difference, since zellij sometimes drops a col
         // count of 0 on tab creation

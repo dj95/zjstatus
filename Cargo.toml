@@ -18,13 +18,13 @@ bench = []
 zellij-tile = "0.39.0"
 chrono = { version = "0.4.0", default-features = false }
 regex = "1.10.0"
-strip-ansi-escapes = "0.2.0"
 chrono-tz = "0.8.3"
 anyhow = "1.0.75"
 anstyle = "1.0.2"
 uuid = { version = "1.6.1", features = ["v4"] }
 lazy_static = "1.4.0"
 cached = { version = "0.46.1", features = ["wasm"] }
+console = "0.15.8"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", default-features = false, features = ["html_reports"] }

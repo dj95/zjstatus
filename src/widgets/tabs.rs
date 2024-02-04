@@ -86,8 +86,6 @@ impl Widget for TabsWidget {
     }
 
     fn process_click(&self, state: &ZellijState, pos: usize) {
-        let mut output = "".to_owned();
-
         let mut offset = 0;
         let mut index = 1;
         let mut counter = 0;
@@ -103,18 +101,16 @@ impl Widget for TabsWidget {
                 }
             }
 
-            let content = strip_ansi_escapes::strip_str(rendered_content);
+            let content_len = console::measure_text_width(&rendered_content);
 
-            if pos > offset && pos < offset + content.chars().count() {
+            if pos > offset && pos < offset + content_len {
                 switch_tab_to(index);
 
                 break;
             }
 
             index += 1;
-            offset += content.chars().count();
-
-            output = format!("{}{}", output, content);
+            offset += content_len;
         }
     }
 }

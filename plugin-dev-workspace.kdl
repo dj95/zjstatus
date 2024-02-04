@@ -5,7 +5,7 @@ layout {
 
     pane size=2 borderless=true {
         plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
-            format_left  "{mode} #[fg=#89B4FA,bg=#181825,bold]{session} {tabs} {command_1} {command_git_branch} {command_3}"
+            format_left  "{mode} #[fg=#89B4FA,bg=#181825,bold]{session} {tabs} {command_0} {command_1} {command_git_branch} {command_3}"
             format_right "{datetime}"
             format_space "#[bg=#181825]"
 
@@ -27,6 +27,10 @@ layout {
             tab_active_fullscreen   "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] "
             tab_active_sync         "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} <> "
             tab_separator           "#[fg=#6C7086,bg=#181825] | "
+
+            command_0_command  "echo \"平仮名, ひらがな 📦\""
+            command_0_format    "#[fg=blue,bg=black] {exit_code} {stdout} "
+            command_0_interval  "1"
 
             command_1_command   "date"
             command_1_format    "#[fg=blue,bg=black] {exit_code} {stdout} "

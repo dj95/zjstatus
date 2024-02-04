@@ -61,6 +61,7 @@ impl ZellijPlugin for State {
             cols: 0,
             command_results: BTreeMap::new(),
             mode: ModeInfo::default(),
+            panes: PaneManifest::default(),
             plugin_uuid: uid.to_string(),
             tabs: Vec::new(),
             sessions: Vec::new(),
@@ -100,12 +101,15 @@ impl ZellijPlugin for State {
                 if self.module_config.hide_frame_for_single_pane {
                     frames::hide_frames_on_single_pane(
                         self.state.tabs.clone(),
-                        pane_info,
+                        &pane_info,
                         get_plugin_ids(),
                     );
-
-                    should_render = true;
                 }
+
+                self.state.panes = pane_info;
+                self.state.cache_mask = UpdateEventMask::Tab as u8;
+
+                should_render = true;
             }
             Event::PermissionRequestResult(_result) => {
                 set_selectable(false);
@@ -150,7 +154,7 @@ impl ZellijPlugin for State {
                     if let Some(current_session) = current_session {
                         frames::hide_frames_on_single_pane(
                             current_session.clone().tabs,
-                            current_session.clone().panes,
+                            &current_session.panes,
                             get_plugin_ids(),
                         );
                     }

@@ -15,6 +15,7 @@ pub struct ZellijState {
     pub cols: usize,
     pub command_results: BTreeMap<String, CommandResult>,
     pub mode: ModeInfo,
+    pub panes: PaneManifest,
     pub plugin_uuid: String,
     pub tabs: Vec<TabInfo>,
     pub sessions: Vec<SessionInfo>,

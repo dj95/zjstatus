@@ -24,7 +24,7 @@ layout {
             tab_normal              "#[fg=#6C7086,bg=#181825] {index} {name} "
             tab_normal_fullscreen   "#[fg=#6C7086,bg=#181825] {index} {name} [] "
             tab_normal_sync         "#[fg=#6C7086,bg=#181825] {index} {name} <> "
-            tab_active              "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} "
+            tab_active              "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} {floating_total_count}"
             tab_active_fullscreen   "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] "
             tab_active_sync         "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} <> "
             tab_separator           "#[fg=#6C7086,bg=#181825] | "

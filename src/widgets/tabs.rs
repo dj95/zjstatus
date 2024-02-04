@@ -1,6 +1,9 @@
 use std::collections::BTreeMap;
 
-use zellij_tile::{prelude::TabInfo, shim::switch_tab_to};
+use zellij_tile::{
+    prelude::{PaneInfo, PaneManifest, TabInfo},
+    shim::switch_tab_to,
+};
 
 use crate::{config::ZellijState, render::FormattedPart};
 
@@ -70,7 +73,7 @@ impl Widget for TabsWidget {
         let mut counter = 0;
 
         for tab in &state.tabs {
-            let content = self.render_tab(tab);
+            let content = self.render_tab(tab, &state.panes);
             counter += 1;
 
             output = format!("{}{}", output, content);
@@ -92,7 +95,7 @@ impl Widget for TabsWidget {
         for tab in &state.tabs {
             counter += 1;
 
-            let mut rendered_content = self.render_tab(tab);
+            let mut rendered_content = self.render_tab(tab, &state.panes);
 
             if counter < state.tabs.len() {
                 if let Some(sep) = &self.separator {
@@ -140,7 +143,7 @@ impl TabsWidget {
         &self.normal_tab_format
     }
 
-    fn render_tab(&self, tab: &TabInfo) -> String {
+    fn render_tab(&self, tab: &TabInfo, panes: &PaneManifest) -> String {
         let formatters = self.select_format(tab);
         let mut output = "".to_owned();
 
@@ -153,6 +156,16 @@ impl TabsWidget {
 
             if content.contains("{index}") {
                 content = content.replace("{index}", (tab.position + 1).to_string().as_str());
+            }
+
+            if content.contains("{floating_total_count}") {
+                let panes_for_tab: Vec<PaneInfo> =
+                    panes.panes.get(&tab.position).cloned().unwrap_or(vec![]);
+
+                content = content.replace(
+                    "{floating_total_count}",
+                    &format!("{}", panes_for_tab.iter().filter(|p| p.is_floating).count()),
+                );
             }
 
             output = format!("{}{}", output, f.format_string(&content));

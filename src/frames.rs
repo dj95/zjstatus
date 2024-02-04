@@ -2,10 +2,10 @@ use zellij_tile::prelude::*;
 
 pub fn hide_frames_on_single_pane(
     tabs: Vec<TabInfo>,
-    pane_info: PaneManifest,
+    pane_info: &PaneManifest,
     plugin_pane_id: PluginIds,
 ) {
-    let panes = match get_current_panes(&tabs, &pane_info) {
+    let panes = match get_current_panes(&tabs, pane_info) {
         Some(panes) => panes,
         None => return,
     };

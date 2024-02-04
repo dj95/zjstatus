@@ -274,7 +274,8 @@ sequence right before the handle in `format_left` or `format_right`.
 
 Print a list of current tabs. The name of the tab can be used with `{name}` in the config. The active tab will
 default to the normal formatting, if not configured.
-With `{index}` the tab position can also be used.
+With `{index}` the tab position can also be used. With `{floating_total_count}` you can print the total amount
+of floating panes.
 
 ```kdl
 # formatting for inactive tabs

@@ -302,7 +302,7 @@ tab_separator           "#[fg=#6C7086,bg=#181825] | "
 # indicators
 tab_sync_indicator       "<> "
 tab_fullscreen_indicator "[] "
-tab_float_indicator      "⬚ "
+tab_floating_indicator   "⬚ "
 ```
 
 ## 🚧 Development

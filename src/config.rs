@@ -48,6 +48,8 @@ pub fn event_mask_from_widget_name(name: &str) -> u8 {
 pub struct ModuleConfig {
     pub left_parts_config: String,
     pub left_parts: Vec<FormattedPart>,
+    pub center_parts_config: String,
+    pub center_parts: Vec<FormattedPart>,
     pub right_parts_config: String,
     pub right_parts: Vec<FormattedPart>,
     pub format_space: FormattedPart,
@@ -77,6 +79,11 @@ impl ModuleConfig {
             None => "",
         };
 
+        let center_parts_config = match config.get("format_center") {
+            Some(conf) => conf,
+            None => "",
+        };
+
         let border_config = match parse_border_config(config.clone()) {
             Some(bc) => bc,
             None => BorderConfig::default(),
@@ -85,6 +92,8 @@ impl ModuleConfig {
         Self {
             left_parts_config: left_parts_config.to_owned(),
             left_parts: parts_from_config(Some(&left_parts_config.to_owned())),
+            center_parts_config: center_parts_config.to_owned(),
+            center_parts: parts_from_config(Some(&center_parts_config.to_owned())),
             right_parts_config: right_parts_config.to_owned(),
             right_parts: parts_from_config(Some(&right_parts_config.to_owned())),
             format_space: FormattedPart::from_format_string(format_space_config),
@@ -108,15 +117,43 @@ impl ModuleConfig {
             Mouse::Release(_, y) => y,
         };
 
-        let widget_string_left = self
-            .left_parts
-            .iter()
-            .fold(String::new(), |a, b| a + &b.content);
+        let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
+            format!(
+                "{}{}",
+                acc,
+                part.format_string_with_widgets(&widget_map, &state)
+            )
+        });
 
-        let left_len =
-            self.process_widget_click(click_pos, widget_string_left, widget_map.clone(), &state, 0);
+        let mut offset = console::measure_text_width(&output_left);
 
-        if click_pos <= left_len {
+        self.process_widget_click(click_pos, &self.left_parts, &widget_map, &state, 0);
+
+        if click_pos <= offset {
+            return;
+        }
+
+        let output_center = self
+            .center_parts
+            .iter_mut()
+            .fold("".to_owned(), |acc, part| {
+                format!(
+                    "{}{}",
+                    acc,
+                    part.format_string_with_widgets(&widget_map, &state)
+                )
+            });
+
+        offset += console::measure_text_width(&self.get_spacer_left(
+            &output_left,
+            &output_center,
+            state.cols,
+        ));
+
+        offset +=
+            self.process_widget_click(click_pos, &self.center_parts, &widget_map, &state, offset);
+
+        if click_pos <= offset {
             return;
         }
 
@@ -131,34 +168,25 @@ impl ModuleConfig {
                 )
             });
 
-        let widget_spacer_len = console::measure_text_width(&self.get_spacer(
-            &" ".repeat(left_len),
+        offset += console::measure_text_width(&self.get_spacer_right(
             &output_right,
+            &output_center,
             state.cols,
         ));
 
-        let widget_string_right = self
-            .right_parts
-            .iter()
-            .fold(String::new(), |a, b| a + &b.content);
-
-        self.process_widget_click(
-            click_pos,
-            widget_string_right,
-            widget_map,
-            &state,
-            left_len + widget_spacer_len,
-        );
+        self.process_widget_click(click_pos, &self.right_parts, &widget_map, &state, offset);
     }
 
     fn process_widget_click(
         &self,
         click_pos: usize,
-        widget_string: String,
-        widget_map: BTreeMap<String, Arc<dyn Widget>>,
+        widgets: &[FormattedPart],
+        widget_map: &BTreeMap<String, Arc<dyn Widget>>,
         state: &ZellijState,
         offset: usize,
     ) -> usize {
+        let widget_string = widgets.iter().fold(String::new(), |a, b| a + &b.content);
+
         let mut rendered_output = widget_string.clone();
 
         let tokens: Vec<String> = widget_map.keys().map(|k| format!("{{{k}}}")).collect();
@@ -194,7 +222,7 @@ impl ModuleConfig {
                 continue;
             }
 
-            wid.process_click(state, click_pos - pos + offset);
+            wid.process_click(state, click_pos - (pos + offset));
         }
 
         console::measure_text_width(&rendered_output)
@@ -211,6 +239,16 @@ impl ModuleConfig {
                 part.format_string_with_widgets(&widget_map, &state)
             )
         });
+
+        let output_center = self
+            .center_parts
+            .iter_mut()
+            .fold("".to_owned(), |acc, part| {
+                format!(
+                    "{acc}{}",
+                    part.format_string_with_widgets(&widget_map, &state)
+                )
+            });
 
         let output_right = self
             .right_parts
@@ -234,30 +272,50 @@ impl ModuleConfig {
             }
 
             return format!(
-                "{}{}{}{}{}",
+                "{}{}{}{}{}{}{}",
                 border_top,
                 output_left,
-                self.get_spacer(&output_left, &output_right, state.cols),
+                self.get_spacer_left(&output_left, &output_center, state.cols),
+                output_center,
+                self.get_spacer_right(&output_right, &output_center, state.cols),
                 output_right,
                 border_bottom,
             );
         }
 
         format!(
-            "{}{}{}",
+            "{}{}{}{}{}",
             output_left,
-            self.get_spacer(&output_left, &output_right, state.cols),
+            self.get_spacer_left(&output_left, &output_center, state.cols),
+            output_center,
+            self.get_spacer_right(&output_right, &output_center, state.cols),
             output_right,
         )
     }
 
-    fn get_spacer(&self, output_left: &str, output_right: &str, cols: usize) -> String {
-        let text_count =
-            console::measure_text_width(output_left) + console::measure_text_width(output_right);
+    fn get_spacer_left(&self, output_left: &str, output_center: &str, cols: usize) -> String {
+        let text_count = console::measure_text_width(output_left)
+            + (console::measure_text_width(output_center) as f32 / 2.0).floor() as usize;
+
+        let center_pos = (cols as f32 / 2.0).floor() as usize;
 
         // verify we are able to count the difference, since zellij sometimes drops a col
         // count of 0 on tab creation
-        let space_count = cols.saturating_sub(text_count);
+        let space_count = center_pos.saturating_sub(text_count);
+
+        eprintln!("space_count: {:?}", space_count);
+        self.format_space.format_string(&" ".repeat(space_count))
+    }
+
+    fn get_spacer_right(&self, output_right: &str, output_center: &str, cols: usize) -> String {
+        let text_count = console::measure_text_width(output_right)
+            + (console::measure_text_width(output_center) as f32 / 2.0).ceil() as usize;
+
+        let center_pos = (cols as f32 / 2.0).ceil() as usize;
+
+        // verify we are able to count the difference, since zellij sometimes drops a col
+        // count of 0 on tab creation
+        let space_count = center_pos.saturating_sub(text_count);
 
         self.format_space.format_string(&" ".repeat(space_count))
     }

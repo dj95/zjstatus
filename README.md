@@ -88,9 +88,10 @@ layout {
 
     pane size=1 borderless=true {
         plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
-            format_left  "{mode} #[fg=#89B4FA,bold]{session} {tabs}"
-            format_right "{command_git_branch} {datetime}"
-            format_space ""
+            format_left   "{mode} #[fg=#89B4FA,bold]{session}"
+            format_center "{tabs}"
+            format_right  "{command_git_branch} {datetime}"
+            format_space  ""
 
             border_enabled  "false"
             border_char     "─"
@@ -118,7 +119,7 @@ layout {
 }
 ```
 
-In order to start using zjstatus you need to specify the widgets you'd like to use under the `format_left` and/or `format_right`
+In order to start using zjstatus you need to specify the widgets you'd like to use under the `format_left` and/or `format_center` and/or `format_right`
 configuration. Formatting can be done with `#[..]`, while widgets and properties are surrounded by `{..}`.
 The blank space between the left and the right part can be colored with `format_space`.
 
@@ -260,7 +261,7 @@ mode_default_to_mode "tmux"
 **Handle** `{session}`
 
 Print the current session name. This module cannot be configured. For formatting, please put the Formatting
-sequence right before the handle in `format_left` or `format_right`.
+sequence right before the handle in `format_left`, `format_center` or `format_right`.
 
 #### swap layout
 
@@ -268,7 +269,7 @@ sequence right before the handle in `format_left` or `format_right`.
 **Click behavior** Switch to the next swap layout
 
 Print the active swap layout. This module cannot be configured. For formatting, please put the Formatting
-sequence right before the handle in `format_left` or `format_right`.
+sequence right before the handle in `format_left`, `format_center` or `format_right`.
 
 #### tabs
 

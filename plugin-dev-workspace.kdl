@@ -5,8 +5,9 @@ layout {
 
     pane size=2 borderless=true {
         plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
-            format_left  "{mode} #[fg=#89B4FA,bg=#181825,bold]{session} {tabs} {command_0} {command_1} {command_git_branch} {command_3}"
-            format_right "{datetime}"
+            format_left  "{mode} #[fg=#89B4FA,bg=#181825,bold]{session} {tabs} "
+            format_center "{command_0} {command_1} {command_git_branch} {command_3}"
+            format_right "{tabs} {datetime}"
             format_space "#[bg=#181825]"
 
             // foo
@@ -24,7 +25,7 @@ layout {
             tab_normal              "#[fg=#6C7086,bg=#181825] {index} {name} {floating_indicator} "
             tab_normal_fullscreen   "#[fg=#6C7086,bg=#181825] {index} {name} [] "
             tab_normal_sync         "#[fg=#6C7086,bg=#181825] {index} {name} <> "
-            tab_active              "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} {floating_total_count} {floating_indicator} {sync_indicator} {fullscreen_indicator}"
+            tab_active              "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} {floating_total_count}{floating_indicator}{sync_indicator}{fullscreen_indicator}"
             tab_separator           "#[fg=#6C7086,bg=#181825] | "
             tab_floating_indicator  "F"
             tab_sync_indicator      "S"

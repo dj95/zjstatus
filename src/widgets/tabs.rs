@@ -17,6 +17,9 @@ pub struct TabsWidget {
     normal_tab_fullscreen_format: Vec<FormattedPart>,
     normal_tab_sync_format: Vec<FormattedPart>,
     separator: Option<FormattedPart>,
+    fullscreen_indicator: Option<String>,
+    floating_indicator: Option<String>,
+    sync_indicator: Option<String>,
 }
 
 impl TabsWidget {
@@ -63,6 +66,9 @@ impl TabsWidget {
             active_tab_fullscreen_format,
             active_tab_sync_format,
             separator,
+            floating_indicator: config.get("tab_floating_indicator").cloned(),
+            sync_indicator: config.get("tab_sync_indicator").cloned(),
+            fullscreen_indicator: config.get("tab_fullscreen_indicator").cloned(),
         }
     }
 }
@@ -168,9 +174,54 @@ impl TabsWidget {
                 );
             }
 
+            content = self.replace_indicators(content, tab, panes);
+
             output = format!("{}{}", output, f.format_string(&content));
         }
 
         output.to_owned()
+    }
+
+    fn replace_indicators(&self, content: String, tab: &TabInfo, panes: &PaneManifest) -> String {
+        let mut content = content;
+        if content.contains("{fullscreen_indicator}") && self.fullscreen_indicator.is_some() {
+            content = content.replace(
+                "{fullscreen_indicator}",
+                if tab.is_fullscreen_active {
+                    self.fullscreen_indicator.as_ref().unwrap()
+                } else {
+                    ""
+                },
+            );
+        }
+
+        if content.contains("{sync_indicator}") && self.sync_indicator.is_some() {
+            content = content.replace(
+                "{sync_indicator}",
+                if tab.is_sync_panes_active {
+                    self.sync_indicator.as_ref().unwrap()
+                } else {
+                    ""
+                },
+            );
+        }
+
+        if content.contains("{floating_indicator}") && self.floating_indicator.is_some() {
+            let panes_for_tab: Vec<PaneInfo> =
+                panes.panes.get(&tab.position).cloned().unwrap_or(vec![]);
+
+            let is_floating = panes_for_tab.iter().any(|p| p.is_floating);
+
+            content = content.replace(
+                "{floating_indicator}",
+                if is_floating {
+                    self.floating_indicator.as_ref().unwrap()
+                } else {
+                    ""
+                },
+            );
+        }
+
+        content
     }
 }

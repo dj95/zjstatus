@@ -279,6 +279,10 @@ Print a list of current tabs. The name of the tab can be used with `{name}` in t
 default to the normal formatting, if not configured.
 With `{index}` the tab position can also be used. With `{floating_total_count}` you can print the total amount
 of floating panes.
+In addition to separate formats for sync and fullscreen tabs, you can use `{sync_indicator}`,
+`{fullscreen_indicator}` and `{floating_indicator}` in each format. It will be replaced with the respective
+configuration from `tab_sync_indicator` and so on. Please be aware, that the indicators are only replaced
+when they are configured.
 
 ```kdl
 # formatting for inactive tabs
@@ -287,12 +291,17 @@ tab_normal_fullscreen   "#[fg=#6C7086] {index} :: {name} [] "
 tab_normal_sync         "#[fg=#6C7086] {index} :: {name} <> "
 
 # formatting for the current active tab
-tab_active              "#[fg=#9399B2,bold,italic] {name} "
-tab_active_fullscreen   "#[fg=#9399B2,bold,italic] {name} [] "
-tab_active_sync         "#[fg=#9399B2,bold,italic] {name} <> "
+tab_active              "#[fg=#9399B2,bold,italic] {name} {floating_indicator}"
+tab_active_fullscreen   "#[fg=#9399B2,bold,italic] {name} {fullscreen_indicator}"
+tab_active_sync         "#[fg=#9399B2,bold,italic] {name} {sync_indicator}"
 
 # separator between the tabs
 tab_separator           "#[fg=#6C7086,bg=#181825] | "
+
+# indicators
+tab_sync_indicator       "<> "
+tab_fullscreen_indicator "[] "
+tab_float_indicator      "⬚ "
 ```
 
 ## 🚧 Development

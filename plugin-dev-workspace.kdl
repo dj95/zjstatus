@@ -21,13 +21,14 @@ layout {
             mode_tmux            "#[bg=yellow] "
             mode_default_to_mode "tmux"
 
-            tab_normal              "#[fg=#6C7086,bg=#181825] {index} {name} "
+            tab_normal              "#[fg=#6C7086,bg=#181825] {index} {name} {floating_indicator} "
             tab_normal_fullscreen   "#[fg=#6C7086,bg=#181825] {index} {name} [] "
             tab_normal_sync         "#[fg=#6C7086,bg=#181825] {index} {name} <> "
-            tab_active              "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} {floating_total_count}"
-            tab_active_fullscreen   "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] "
-            tab_active_sync         "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} <> "
+            tab_active              "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} {floating_total_count} {floating_indicator} {sync_indicator} {fullscreen_indicator}"
             tab_separator           "#[fg=#6C7086,bg=#181825] | "
+            tab_floating_indicator  "F"
+            tab_sync_indicator      "S"
+            tab_fullscreen_indicator "FS"
 
             command_0_command  "echo \"平仮名, ひらがな 📦\""
             command_0_format    "#[fg=blue,bg=black] {exit_code} {stdout} "

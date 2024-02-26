@@ -18,6 +18,9 @@
 <b><a href="./examples/tmux.kdl">tmux style</a></b>
 <img src="./examples/tmux.png" alt="tmux style bar" />
 <br>
+<b><a href="./examples/simple.kdl">simple style</a></b>
+<img src="./examples/simple.png" alt="simple style bar" />
+<br>
 <b><a href="./examples/slanted.kdl">slanted style</a></b>
 <img src="./examples/slanted.png" alt="slanted style bar" />
 <br>

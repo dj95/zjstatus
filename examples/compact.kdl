@@ -1,0 +1,24 @@
+layout {
+    pane split_direction="vertical" {
+        pane
+    }
+
+    pane size=1 borderless=true {
+        plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
+            format_left  "#[fg=#FFFFFF,bold] {session} {mode} {tabs}"
+            format_right "#[bg=#8A8A8A,fg=#000000] #[bg=#8A8A8A,fg=#000000,bold]{swap_layout} #[bg=#000000,fg=#8A8A8A]"
+
+            mode_locked "#[fg=#FF00D9,bold] {name} "
+            mode_normal "#[fg=#AFFF00,bold] {name} "
+            mode_resize "#[fg=#D75F00,bold] {name} "
+            mode_default_to_mode "resize"
+
+            tab_normal "#[bg=#8A8A8A,fg=#000000] #[bg=#8A8A8A,fg=#000000,bold]{name} {sync_indicator}{fullscreen_indicator}{floating_indicator} #[bg=#000000,fg=#8A8A8A]"
+            tab_active "#[bg=#AFFF00,fg=#000000] #[bg=#AFFF00,fg=#000000,bold]{name} {sync_indicator}{fullscreen_indicator}{floating_indicator} #[bg=#000000,fg=#AFFF00]"
+
+            tab_sync_indicator       " "
+            tab_fullscreen_indicator "□ "
+            tab_floating_indicator   "󰉈 "
+        }
+    }
+}

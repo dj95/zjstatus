@@ -1,6 +1,6 @@
 [package]
 name = "zjstatus"
-version = "0.13.0"
+version = "0.13.1"
 authors = ["Daniel Jankowski"]
 edition = "2018"
 

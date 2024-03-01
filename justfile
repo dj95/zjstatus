@@ -23,4 +23,5 @@ release version:
   direnv exec . cargo build --release
   git commit -am "chore: bump version to v{{version}}"
   git tag -m "v{{version}}" v{{version}}
-  git cliff --current
+  git push origin main
+  git push origin "v{{version}}"

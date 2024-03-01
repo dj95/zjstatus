@@ -144,19 +144,6 @@ impl ModuleConfig {
                 )
             });
 
-        offset += console::measure_text_width(&self.get_spacer_left(
-            &output_left,
-            &output_center,
-            state.cols,
-        ));
-
-        offset +=
-            self.process_widget_click(click_pos, &self.center_parts, &widget_map, &state, offset);
-
-        if click_pos <= offset {
-            return;
-        }
-
         let output_right = self
             .right_parts
             .iter_mut()
@@ -168,11 +155,37 @@ impl ModuleConfig {
                 )
             });
 
-        offset += console::measure_text_width(&self.get_spacer_right(
-            &output_right,
-            &output_center,
-            state.cols,
-        ));
+        if !output_center.is_empty() {
+            offset += console::measure_text_width(&self.get_spacer_left(
+                &output_left,
+                &output_center,
+                state.cols,
+            ));
+
+            offset += self.process_widget_click(
+                click_pos,
+                &self.center_parts,
+                &widget_map,
+                &state,
+                offset,
+            );
+
+            if click_pos <= offset {
+                return;
+            }
+
+            offset += console::measure_text_width(&self.get_spacer_right(
+                &output_right,
+                &output_center,
+                state.cols,
+            ));
+        } else {
+            offset += console::measure_text_width(&self.get_spacer(
+                &output_left,
+                &output_right,
+                state.cols,
+            ));
+        }
 
         self.process_widget_click(click_pos, &self.right_parts, &widget_map, &state, offset);
     }
@@ -271,24 +284,44 @@ impl ModuleConfig {
                 border_bottom = format!("\n{}", self.border.draw(state.cols));
             }
 
+            if !output_center.is_empty() {
+                return format!(
+                    "{}{}{}{}{}{}{}",
+                    border_top,
+                    output_left,
+                    self.get_spacer_left(&output_left, &output_center, state.cols),
+                    output_center,
+                    self.get_spacer_right(&output_right, &output_center, state.cols),
+                    output_right,
+                    border_bottom,
+                );
+            }
+
             return format!(
-                "{}{}{}{}{}{}{}",
+                "{}{}{}{}{}",
                 border_top,
                 output_left,
-                self.get_spacer_left(&output_left, &output_center, state.cols),
-                output_center,
-                self.get_spacer_right(&output_right, &output_center, state.cols),
+                self.get_spacer(&output_left, &output_right, state.cols),
                 output_right,
                 border_bottom,
             );
         }
 
+        if !output_center.is_empty() {
+            return format!(
+                "{}{}{}{}{}",
+                output_left,
+                self.get_spacer_left(&output_left, &output_center, state.cols),
+                output_center,
+                self.get_spacer_right(&output_right, &output_center, state.cols),
+                output_right,
+            );
+        }
+
         format!(
-            "{}{}{}{}{}",
+            "{}{}{}",
             output_left,
-            self.get_spacer_left(&output_left, &output_center, state.cols),
-            output_center,
-            self.get_spacer_right(&output_right, &output_center, state.cols),
+            self.get_spacer(&output_left, &output_right, state.cols),
             output_right,
         )
     }
@@ -316,6 +349,17 @@ impl ModuleConfig {
         // verify we are able to count the difference, since zellij sometimes drops a col
         // count of 0 on tab creation
         let space_count = center_pos.saturating_sub(text_count);
+
+        self.format_space.format_string(&" ".repeat(space_count))
+    }
+
+    fn get_spacer(&self, output_left: &str, output_right: &str, cols: usize) -> String {
+        let text_count =
+            console::measure_text_width(output_left) + console::measure_text_width(output_right);
+
+        // verify we are able to count the difference, since zellij sometimes drops a col
+        // count of 0 on tab creation
+        let space_count = cols.saturating_sub(text_count);
 
         self.format_space.format_string(&" ".repeat(space_count))
     }

@@ -9,6 +9,10 @@
   <a href="https://github.com/dj95/zjstatus/releases">
     <img alt="latest version" src="https://img.shields.io/github/v/tag/dj95/zjstatus.svg?sort=semver" />
   </a>
+  <a href="https://github.com/dj95/zjstatus/releases">
+    <img alt="GitHub Downloads (specific asset, all releases)" src="https://img.shields.io/github/downloads/dj95/zjstatus/zjstatus.wasm">
+  </a>
+
   <br><br>
   The goal of this statusbar is to provide a highly customizable and extensible statusbar for zellij. Single
   modules can be formatted separately. Due to the widget structure new modules can be created with ease.

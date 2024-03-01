@@ -92,8 +92,7 @@ config file, you can use `${pkgs.zjstatus}/bin/zjstatus.wasm` as the path.
 
 Configuration can be performed in the layout file, when importing the plugin. Here's a short example.
 
-```kdl
-
+```javascript
 layout {
     pane split_direction="vertical" {
         pane
@@ -153,7 +152,7 @@ the border for non-selectable plugins. Therefore zjstatus provides its own borde
 Most important, the pane height for the plugin **must be set to 2**. Otherwise zjstatus won't be able to draw it. For top
 bar configurations the position of the border is also implemented.
 
-```kdl
+```javascript
 border_enabled  "true"           // "true" | "false" for activating the bar
 border_char     "─"              // character used for drawing the bar
 border_format   "#[fg=#6C7086]"  // format specifier for theming
@@ -195,26 +194,26 @@ should be able to run multiple commands, it behaves a bit different than the oth
 Therefore the command need to have a name in form of e.g. `{command_pwd}` or `{command_git_branch}`. The following
 options can be provided per named command.
 
-```kdl
-# the command that should be executed
+```javascript
+// the command that should be executed
 command_NAME_command  "bash -c \"pwd | base64\""
 
-# themeing and format of the command
+// themeing and format of the command
 command_NAME_format   "#[fg=blue, bg=black] {exit_code} {stdout} {stderr}"
 
-# interval in seconds, between two command runs
+// interval in seconds, between two command runs
 command_NAME_interval "1"
 
-# render mode of the command. ["static", "dynamic", "raw"]
-#
-# "static"  :: format the command with the given format from the config and don't
-#              consider any other formatting directives
-# "dynamic" :: format the command based on the command output. When the command
-#              output contains formatting strings for zjstatus, zjstatus will
-#              try to render them. This might lead to unexpected behavior, in case
-#              the formatting is not correct.
-# "raw"     :: do not apply any formatting. This can be used to properly render
-#              ansi escape sequences from the command output.
+// render mode of the command. ["static", "dynamic", "raw"]
+//
+// "static"  :: format the command with the given format from the config and don't
+//              consider any other formatting directives
+// "dynamic" :: format the command based on the command output. When the command
+//              output contains formatting strings for zjstatus, zjstatus will
+//              try to render them. This might lead to unexpected behavior, in case
+//              the formatting is not correct.
+// "raw"     :: do not apply any formatting. This can be used to properly render
+//              ansi escape sequences from the command output.
 command_NAME_rendermode "static"
 ```
 
@@ -230,14 +229,14 @@ For the `datetime_format` syntax, you can also check the specifiers table
 available in the chrono documentation:
 [https://docs.rs/chrono/latest/chrono/format/strftime/index.html](https://docs.rs/chrono/latest/chrono/format/strftime/index.html).
 
-```kdl
-# theme formatting for colors. Datetime output is printed in {format}.
+```javascript
+// theme formatting for colors. Datetime output is printed in {format}.
 datetime        "#[fg=#6C7086,bold] {format} "
 
-# format of the date
+// format of the date
 datetime_format "%A, %d %b %Y %H:%M"
 
-# timezone to print
+// timezone to print
 datetime_timezone "Europe/Berlin"
 ```
 
@@ -250,7 +249,7 @@ fall back to the format of `mode_normal`, if `mode_default_to_mode` is not speci
 format referenced in `mode_default_to_mode`, if the format for a mode is unspecified. The name of the mode can be used
 in the `{name}` variable.
 
-```kdl
+```javascript
 mode_normal        "#[bg=#89B4FA] {name} "
 mode_locked        "#[bg=#89B4FA] {name} "
 mode_resize        "#[bg=#89B4FA] {name} "
@@ -298,21 +297,21 @@ In addition to separate formats for sync and fullscreen tabs, you can use `{sync
 configuration from `tab_sync_indicator` and so on. Please be aware, that the indicators are only replaced
 when they are configured.
 
-```kdl
-# formatting for inactive tabs
+```javascript
+// formatting for inactive tabs
 tab_normal              "#[fg=#6C7086] {index} :: {name} "
 tab_normal_fullscreen   "#[fg=#6C7086] {index} :: {name} [] "
 tab_normal_sync         "#[fg=#6C7086] {index} :: {name} <> "
 
-# formatting for the current active tab
+// formatting for the current active tab
 tab_active              "#[fg=#9399B2,bold,italic] {name} {floating_indicator}"
 tab_active_fullscreen   "#[fg=#9399B2,bold,italic] {name} {fullscreen_indicator}"
 tab_active_sync         "#[fg=#9399B2,bold,italic] {name} {sync_indicator}"
 
-# separator between the tabs
+// separator between the tabs
 tab_separator           "#[fg=#6C7086,bg=#181825] | "
 
-# indicators
+// indicators
 tab_sync_indicator       "<> "
 tab_fullscreen_indicator "[] "
 tab_floating_indicator   "⬚ "

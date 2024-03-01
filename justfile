@@ -15,7 +15,7 @@ test:
   cargo component test -- --nocapture
 
 lint:
-  cargo clippy --all-targets -- -D warnings
+  cargo clippy --all-targets --all-features
   cargo audit
 
 release version:

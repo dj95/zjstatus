@@ -133,6 +133,7 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &Zell
             ts.format(TIMESTAMP_FORMAT).to_string(),
         );
 
+        #[allow(unused_variables)]
         let command = commandline_parser(&command_config.command);
         #[cfg(not(feature = "bench"))]
         run_command(

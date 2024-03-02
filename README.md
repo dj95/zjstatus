@@ -10,7 +10,7 @@
     <img alt="latest version" src="https://img.shields.io/github/v/tag/dj95/zjstatus.svg?sort=semver" />
   </a>
   <a href="https://github.com/dj95/zjstatus/wiki">
-    <img alt="GitHub Wiki" src="https://img.shields.io/badge/documentation-wiki-green">
+    <img alt="GitHub Wiki" src="https://img.shields.io/badge/documentation-wiki-wiki?logo=github">
   </a>
 
   <br><br>

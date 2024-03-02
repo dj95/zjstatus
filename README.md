@@ -9,8 +9,8 @@
   <a href="https://github.com/dj95/zjstatus/releases">
     <img alt="latest version" src="https://img.shields.io/github/v/tag/dj95/zjstatus.svg?sort=semver" />
   </a>
-  <a href="https://github.com/dj95/zjstatus/releases">
-    <img alt="GitHub Downloads (specific asset, all releases)" src="https://img.shields.io/github/downloads/dj95/zjstatus/zjstatus.wasm">
+  <a href="https://github.com/dj95/zjstatus/wiki">
+    <img alt="GitHub Wiki" src="https://img.shields.io/badge/documentation-wiki-green">
   </a>
 
   <br><br>

@@ -96,20 +96,12 @@ config file, you can use `${pkgs.zjstatus}/bin/zjstatus.wasm` as the path.
 
 For configuring zjstatus, please follow the [documentation](https://github.com/dj95/zjstatus/wiki/2-%E2%80%90-Configuration).
 
-## 🧱 Widgets
+## 🏎️ Quick Start
 
-The documentation for the widgets can be found in the [wiki](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets).
+Place this configuration in your default layout file, e.g. `~/.config/zellij/layouts/default.kdl`:
 
-The following widgets are available:
-
-- [command](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#command)
-- [datetime](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#datetime)
-- [mode](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#mode)
-- [session](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#session)
-- [swap layout](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#swap-layout)
-- [tabs](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#tabs)
-
-## 🧪 Example configuration
+> [!IMPORTANT]
+> Using zjstatus involves creating new layouts and overriding the default one. This will lead to swap layouts not working, when they are not configured correctly. Please follow [this documentation](https://github.com/dj95/zjstatus/wiki/2-%E2%80%90-Configuration#swap-layouts) for getting swap layouts back to work, if you need them.
 
 ```javascript
 layout {
@@ -148,6 +140,19 @@ layout {
     }
 }
 ```
+
+## 🧱 Widgets
+
+The documentation for the widgets can be found in the [wiki](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets).
+
+The following widgets are available:
+
+- [command](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#command)
+- [datetime](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#datetime)
+- [mode](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#mode)
+- [session](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#session)
+- [swap layout](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#swap-layout)
+- [tabs](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#tabs)
 
 ## 🚧 Development
 

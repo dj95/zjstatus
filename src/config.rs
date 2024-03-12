@@ -336,7 +336,6 @@ impl ModuleConfig {
         // count of 0 on tab creation
         let space_count = center_pos.saturating_sub(text_count);
 
-        eprintln!("space_count: {:?}", space_count);
         self.format_space.format_string(&" ".repeat(space_count))
     }
 

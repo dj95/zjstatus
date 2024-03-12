@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 use zjstatus::{
     config::{self, UpdateEventMask, ZellijState},
-    frames, widgets,
+    frames, pipe, widgets,
 };
 
 #[derive(Default)]
@@ -68,6 +68,25 @@ impl ZellijPlugin for State {
             start_time: Local::now(),
             cache_mask: 0,
         };
+    }
+
+    fn pipe(&mut self, pipe_message: PipeMessage) -> bool {
+        let mut should_render = false;
+
+        match pipe_message.source {
+            PipeSource::Cli(_) => {
+                if let Some(input) = pipe_message.payload {
+                    should_render = pipe::parse_protocol(&mut self.state, &input);
+                }
+            }
+            PipeSource::Plugin(_) => {
+                if let Some(input) = pipe_message.payload {
+                    should_render = pipe::parse_protocol(&mut self.state, &input);
+                }
+            }
+        }
+
+        should_render
     }
 
     fn update(&mut self, event: Event) -> bool {

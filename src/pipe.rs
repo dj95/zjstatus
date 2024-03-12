@@ -21,7 +21,7 @@ use crate::{config::ZellijState, widgets::command::TIMESTAMP_FORMAT};
 /// The function returns a boolean indicating whether the state has been
 /// changed and the UI should be re-rendered.
 pub fn parse_protocol(state: &mut ZellijState, input: &str) -> bool {
-    let lines = input.split("\n").collect::<Vec<&str>>();
+    let lines = input.split('\n').collect::<Vec<&str>>();
 
     let mut should_render = false;
     for line in lines {

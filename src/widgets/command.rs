@@ -208,13 +208,13 @@ fn get_timestamp_from_event_or_default(
             return Local::now();
         }
 
-        return Sub::<Duration>::sub(Local::now(), Duration::days(1));
+        return Sub::<Duration>::sub(Local::now(), Duration::try_days(1).unwrap());
     }
     let command_result = command_result.unwrap();
 
     let ts_context = command_result.context.get("timestamp");
     if ts_context.is_none() {
-        return Sub::<Duration>::sub(Local::now(), Duration::days(1));
+        return Sub::<Duration>::sub(Local::now(), Duration::try_days(1).unwrap());
     }
     let ts_context = ts_context.unwrap();
 
@@ -224,7 +224,7 @@ fn get_timestamp_from_event_or_default(
 
     match DateTime::parse_from_str(ts_context, TIMESTAMP_FORMAT) {
         Ok(ts) => ts.into(),
-        Err(_) => Sub::<Duration>::sub(Local::now(), Duration::days(1)),
+        Err(_) => Sub::<Duration>::sub(Local::now(), Duration::try_days(1).unwrap()),
     }
 }
 

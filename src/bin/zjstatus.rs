@@ -8,10 +8,13 @@ use widgets::{
     tabs::TabsWidget,
     widget::Widget,
 };
+
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
 use zellij_tile::prelude::*;
 
 use chrono::Local;
-use std::{collections::BTreeMap, sync::Arc, usize};
+use std::{collections::BTreeMap, fs::File, sync::Arc, usize};
 use uuid::Uuid;
 
 use zjstatus::{
@@ -31,8 +34,25 @@ struct State {
 #[cfg(not(test))]
 register_plugin!(State);
 
+#[cfg(feature = "tracing")]
+fn init_tracing() {
+    let file = File::create(".zjstatus.log");
+    let file = match file {
+        Ok(file) => file,
+        Err(error) => panic!("Error: {:?}", error),
+    };
+    let debug_log = tracing_subscriber::fmt::layer().with_writer(Arc::new(file));
+
+    tracing_subscriber::registry().with(debug_log).init();
+
+    tracing::info!("tracing initialized");
+}
+
 impl ZellijPlugin for State {
     fn load(&mut self, configuration: BTreeMap<String, String>) {
+        #[cfg(feature = "tracing")]
+        init_tracing();
+
         // we need the ReadApplicationState permission to receive the ModeUpdate and TabUpdate
         // events
         // we need the RunCommands permission to run "cargo test" in a floating window
@@ -41,6 +61,7 @@ impl ZellijPlugin for State {
             PermissionType::ChangeApplicationState,
             PermissionType::RunCommands,
         ]);
+
         subscribe(&[
             EventType::Mouse,
             EventType::ModeUpdate,
@@ -89,11 +110,16 @@ impl ZellijPlugin for State {
         should_render
     }
 
+    #[tracing::instrument(skip_all, fields(event_type))]
     fn update(&mut self, event: Event) -> bool {
         let mut should_render = false;
         match event {
             Event::Mouse(mouse_info) => {
+                tracing::Span::current().record("event_type", "Event::Mouse");
+                tracing::debug!(mouse = ?mouse_info);
+
                 if !self.got_permissions {
+                    tracing::info!("no permissions");
                     return false;
                 }
 
@@ -104,7 +130,11 @@ impl ZellijPlugin for State {
                 );
             }
             Event::ModeUpdate(mode_info) => {
+                tracing::Span::current().record("event_type", "Event::ModeUpdate");
+                tracing::debug!(mode = ?mode_info.mode);
+
                 if !self.got_permissions {
+                    tracing::info!("no permissions");
                     return false;
                 }
 
@@ -113,7 +143,11 @@ impl ZellijPlugin for State {
                 should_render = true;
             }
             Event::PaneUpdate(pane_info) => {
+                tracing::Span::current().record("event_type", "Event::PaneUpdate");
+                tracing::debug!(pane_count = ?pane_info.panes.len());
+
                 if !self.got_permissions {
+                    tracing::info!("no permissions");
                     return false;
                 }
 
@@ -130,12 +164,23 @@ impl ZellijPlugin for State {
 
                 should_render = true;
             }
-            Event::PermissionRequestResult(_result) => {
+            Event::PermissionRequestResult(result) => {
+                tracing::Span::current().record("event_type", "Event::PermissionRequestResult");
+                tracing::debug!(result = ?result);
                 set_selectable(false);
                 self.got_permissions = true;
             }
             Event::RunCommandResult(exit_code, stdout, stderr, context) => {
+                tracing::Span::current().record("event_type", "Event::RunCommandResult");
+                tracing::debug!(
+                    exit_code = ?exit_code,
+                    stdout = ?String::from_utf8(stdout.clone()),
+                    stderr = ?String::from_utf8(stderr.clone()),
+                    context = ?context
+                );
+
                 if !self.got_permissions {
+                    tracing::info!("no permissions");
                     return false;
                 }
                 self.state.cache_mask = UpdateEventMask::Command as u8;
@@ -163,7 +208,10 @@ impl ZellijPlugin for State {
                 }
             }
             Event::SessionUpdate(session_info, _) => {
+                tracing::Span::current().record("event_type", "Event::SessionUpdate");
+
                 if !self.got_permissions {
+                    tracing::info!("no permissions");
                     return false;
                 }
 
@@ -185,7 +233,11 @@ impl ZellijPlugin for State {
                 should_render = true;
             }
             Event::TabUpdate(tab_info) => {
+                tracing::Span::current().record("event_type", "Event::TabUpdate");
+                tracing::debug!(tab_count = ?tab_info.len());
+
                 if !self.got_permissions {
+                    tracing::info!("no permissions");
                     return false;
                 }
 
@@ -234,6 +286,8 @@ fn register_widgets(configuration: &BTreeMap<String, String>) -> BTreeMap<String
         Arc::new(SessionWidget::new(configuration)),
     );
     widget_map.insert("tabs".to_owned(), Arc::new(TabsWidget::new(configuration)));
+
+    tracing::debug!("registered widgets: {:?}", widget_map.keys());
 
     widget_map
 }

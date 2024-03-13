@@ -4,13 +4,14 @@ use crate::render::FormattedPart;
 
 const DEFAULT_CHAR: &str = "─";
 
-#[derive(Default, PartialEq)]
+#[derive(Default, PartialEq, Debug)]
 pub enum BorderPosition {
     #[default]
     Top,
     Bottom,
 }
 
+#[derive(Debug)]
 pub struct BorderConfig {
     pub enabled: bool,
     pub char: String,

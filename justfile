@@ -6,7 +6,7 @@ bench:
     | xargs -I{} wasmtime --dir $PWD/target::target {} --bench --color=always
 
 build:
-  cargo build
+  cargo build --features tracing
 
 run: build
   zellij -l ./plugin-dev-workspace.kdl -s zjstatus-dev

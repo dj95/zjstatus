@@ -121,6 +121,7 @@ fn render_dynamic_formatted_content(content: &str) -> String {
         .join("")
 }
 
+#[tracing::instrument(skip(command_config, state))]
 fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &ZellijState) {
     let ts = Local::now();
     let last_run = get_timestamp_from_event_or_default(name, state, command_config.interval);
@@ -135,6 +136,7 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &Zell
 
         #[allow(unused_variables)]
         let command = commandline_parser(&command_config.command);
+        tracing::debug!("Running command: {:?}", command);
         #[cfg(not(feature = "bench"))]
         run_command(
             &command.iter().map(|x| x.as_str()).collect::<Vec<&str>>(),

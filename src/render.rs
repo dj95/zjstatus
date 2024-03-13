@@ -121,15 +121,19 @@ impl FormattedPart {
         )
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn format_string_with_widgets(
         &mut self,
         widgets: &BTreeMap<String, Arc<dyn Widget>>,
         state: &ZellijState,
     ) -> String {
         let skip_cache = self.cache_mask & UpdateEventMask::Always as u8 != 0;
+        
         if !skip_cache && self.cache_mask & state.cache_mask == 0 && !self.cache.is_empty() {
+            tracing::debug!(msg = "hit",  typ = "format_string", format = self.content);
             return self.cached_content.to_owned();
         }
+        tracing::debug!(msg = "miss",  typ = "format_string", format = self.content);
 
         let mut output = self.content.clone();
 
@@ -143,12 +147,22 @@ impl FormattedPart {
             }
 
             let widget_mask = event_mask_from_widget_name(widget_key_name);
-            if !skip_cache && widget_mask & state.cache_mask == 0 {
+            let skip_widget_cache = widget_mask & UpdateEventMask::Always as u8 != 0;
+            if !skip_widget_cache && widget_mask & state.cache_mask == 0 {
                 if let Some(res) = self.cache.get(widget_key) {
+                    tracing::debug!(msg = "hit",  typ = "widget", widget = widget_key);
                     output = output.replace(match_name, res);
                     continue;
                 }
             }
+            
+            tracing::debug!(
+                msg = "miss",  
+                typ = "widget", 
+                widget = widget_key, 
+                mask = widget_mask & state.cache_mask,
+                skip_cache = skip_cache,
+            );
 
             let result = match widgets.get(widget_key_name) {
                 Some(widget) => widget.process(widget_key, state),

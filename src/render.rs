@@ -19,8 +19,20 @@ lazy_static! {
 pub struct FormattedPart {
     pub fg: Option<Color>,
     pub bg: Option<Color>,
+    pub us: Option<Color>,
+    pub effects: anstyle::Effects,
     pub bold: bool,
     pub italic: bool,
+    pub underscore: bool,
+    pub reverse: bool,
+    pub blink: bool,
+    pub hidden: bool,
+    pub dimmed: bool,
+    pub strikethrough: bool,
+    pub double_underscore: bool,
+    pub curly_underscore: bool,
+    pub dotted_underscore: bool,
+    pub dashed_underscore: bool,
     pub content: String,
     pub cache_mask: u8,
     pub cached_content: String,
@@ -86,16 +98,60 @@ impl FormattedPart {
                 result.bg = parse_color(part.strip_prefix("bg=").unwrap());
             }
 
-            if part.eq("bold") {
-                result.bold = true;
+            if part.starts_with("us=") {
+                result.us = parse_color(part.strip_prefix("us=").unwrap());
             }
 
-            if part.eq("italic") {
-                result.italic = true;
+            if part.eq("reverse") {
+                result.reverse = true;
             }
+
+            result.parse_and_set_effect(part);
         }
 
         result
+    }
+
+    fn parse_and_set_effect(&mut self, part: &str) {
+        match part {
+            "bold" => {
+                self.effects |= anstyle::Effects::BOLD;
+            }
+            "italic" | "italics" => {
+                self.effects |= anstyle::Effects::ITALIC;
+            }
+            "underscore" => {
+                self.effects |= anstyle::Effects::UNDERLINE;
+            }
+            "blink" => {
+                self.effects |= anstyle::Effects::BLINK;
+            }
+            "hidden" => {
+                self.effects |= anstyle::Effects::HIDDEN;
+            }
+            "dim" => {
+                self.effects |= anstyle::Effects::DIMMED;
+            }
+            "strikethrough" => {
+                self.effects |= anstyle::Effects::STRIKETHROUGH;
+            }
+            "double-underscore" => {
+                self.effects |= anstyle::Effects::DOUBLE_UNDERLINE;
+            }
+            "curly-underscore" => {
+                self.effects |= anstyle::Effects::CURLY_UNDERLINE;
+            }
+            "dotted-underscore" => {
+                self.effects |= anstyle::Effects::DOTTED_UNDERLINE;
+            }
+            "dashed-underscore" => {
+                self.effects |= anstyle::Effects::DASHED_UNDERLINE;
+            }
+            "reverse" => {
+                self.effects |= anstyle::Effects::INVERT;
+            }
+            _ => {}
+        }
     }
 
     pub fn format_string(&self, text: &str) -> String {
@@ -103,14 +159,8 @@ impl FormattedPart {
 
         style = style.fg_color(self.fg);
         style = style.bg_color(self.bg);
-
-        if self.italic {
-            style = style.italic();
-        }
-
-        if self.bold {
-            style = style.bold();
-        }
+        style = style.underline_color(self.us);
+        style = style.effects(self.effects);
 
         format!(
             "{}{}{}{}",
@@ -128,12 +178,12 @@ impl FormattedPart {
         state: &ZellijState,
     ) -> String {
         let skip_cache = self.cache_mask & UpdateEventMask::Always as u8 != 0;
-        
+
         if !skip_cache && self.cache_mask & state.cache_mask == 0 && !self.cache.is_empty() {
-            tracing::debug!(msg = "hit",  typ = "format_string", format = self.content);
+            tracing::debug!(msg = "hit", typ = "format_string", format = self.content);
             return self.cached_content.to_owned();
         }
-        tracing::debug!(msg = "miss",  typ = "format_string", format = self.content);
+        tracing::debug!(msg = "miss", typ = "format_string", format = self.content);
 
         let mut output = self.content.clone();
 
@@ -150,16 +200,16 @@ impl FormattedPart {
             let skip_widget_cache = widget_mask & UpdateEventMask::Always as u8 != 0;
             if !skip_widget_cache && widget_mask & state.cache_mask == 0 {
                 if let Some(res) = self.cache.get(widget_key) {
-                    tracing::debug!(msg = "hit",  typ = "widget", widget = widget_key);
+                    tracing::debug!(msg = "hit", typ = "widget", widget = widget_key);
                     output = output.replace(match_name, res);
                     continue;
                 }
             }
-            
+
             tracing::debug!(
-                msg = "miss",  
-                typ = "widget", 
-                widget = widget_key, 
+                msg = "miss",
+                typ = "widget",
+                widget = widget_key,
                 mask = widget_mask & state.cache_mask,
                 skip_cache = skip_cache,
             );
@@ -186,8 +236,20 @@ impl Default for FormattedPart {
         Self {
             fg: None,
             bg: None,
+            us: None,
+            effects: anstyle::Effects::new(),
             bold: false,
             italic: false,
+            underscore: false,
+            reverse: false,
+            blink: false,
+            hidden: false,
+            dimmed: false,
+            strikethrough: false,
+            double_underscore: false,
+            curly_underscore: false,
+            dotted_underscore: false,
+            dashed_underscore: false,
             content: "".to_owned(),
             cache_mask: 0,
             cached_content: "".to_owned(),
@@ -229,6 +291,7 @@ fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {
     convert = r#"{ (color.to_owned()) }"#
 )]
 fn parse_color(color: &str) -> Option<Color> {
+    let mut color = color;
     if color.starts_with('#') {
         let rgb = match hex_to_rgb(color.strip_prefix('#').unwrap()) {
             Ok(rgb) => rgb,
@@ -253,6 +316,10 @@ fn parse_color(color: &str) -> Option<Color> {
         return Some(color.into());
     }
 
+    if color.starts_with("colour") {
+        color = color.strip_prefix("colour").unwrap();
+    }
+
     if let Ok(result) = color.parse::<u8>() {
         return Some(Ansi256Color(result).into());
     }
@@ -270,6 +337,7 @@ fn color_by_name(color: &str) -> Option<AnsiColor> {
         "magenta" => Some(AnsiColor::Magenta),
         "cyan" => Some(AnsiColor::Cyan),
         "white" => Some(AnsiColor::White),
+        "default" => None,
         _ => None,
     }
 }

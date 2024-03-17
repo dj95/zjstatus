@@ -32,18 +32,18 @@ layout {
             tab_fullscreen_indicator "FS"
 
             command_0_command  "echo \"平仮名, ひらがな 📦\""
-            command_0_format    "#[fg=blue,bg=black] {exit_code} {stdout} "
+            command_0_format    "#[fg=colour80] {exit_code} {stdout} "
             command_0_interval  "1"
 
             command_1_command   "date"
-            command_1_format    "#[fg=blue,bg=black] {exit_code} {stdout} "
+            command_1_format    "#[fg=blue,reverse,dashed-underscore,bg=default,us=red,blink,dim,strikethrough] {exit_code} {stdout} "
             command_1_interval  "1"
 
             command_git_branch_command   "git rev-parse --abbrev-ref HEAD"
-            command_git_branch_format    "#[fg=red,bg=black] {stdout} "
+            command_git_branch_format    "#[fg=red] {stdout} "
             command_git_branch_interval  "2"
 
-            command_3_command   "echo -e \"#[fg=red,bg=#000000,italic,bold] foo #[bg=red,fg=#000000,italic] bar \""
+            command_3_command   "echo -e \"#[italic,bold] foo #[dim,bold,italic] bar \""
             command_3_format    "{stdout}"
             command_3_interval  "10"
             command_3_rendermode "dynamic"

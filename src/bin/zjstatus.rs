@@ -88,6 +88,7 @@ impl ZellijPlugin for State {
             sessions: Vec::new(),
             start_time: Local::now(),
             cache_mask: 0,
+            incoming_notification: None,
         };
     }
 
@@ -286,6 +287,12 @@ fn register_widgets(configuration: &BTreeMap<String, String>) -> BTreeMap<String
         Arc::new(SessionWidget::new(configuration)),
     );
     widget_map.insert("tabs".to_owned(), Arc::new(TabsWidget::new(configuration)));
+    widget_map.insert(
+        "notifications".to_owned(),
+        Arc::new(widgets::notification::NotificationWidget::new(
+            configuration,
+        )),
+    );
 
     tracing::debug!("registered widgets: {:?}", widget_map.keys());
 

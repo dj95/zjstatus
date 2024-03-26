@@ -5,12 +5,15 @@ layout {
 
     pane size=2 borderless=true {
         plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
-            format_left  "{mode} #[fg=#89B4FA,bg=#181825,bold]{session} {tabs} "
+            format_left  "{mode}#[fg=#89B4FA,bg=#181825,bold] {session} {tabs}"
             format_center "{command_0} {command_1} {command_git_branch} {command_3}"
-            format_right "{tabs} {datetime}"
+            format_right "{notifications}{datetime}"
             format_space "#[bg=#181825]"
 
-            // foo
+            notification_format_unread "#[fg=#89B4FA,bg=#181825,blink]  #[fg=#89B4FA,bg=#181825] {message} "
+            notification_format_no_notifications "#[fg=#89B4FA,bg=#181825,dim]   "
+            notification_show_interval "10"
+
             border_enabled  "true"
             border_char     "─"
             border_format   "#[fg=#6C7086]{char}"
@@ -36,7 +39,7 @@ layout {
             command_0_interval  "1"
 
             command_1_command   "date"
-            command_1_format    "#[fg=blue,reverse,dashed-underscore,bg=default,us=red,blink,dim,strikethrough] {exit_code} {stdout} "
+            command_1_format    "#[fg=blue,reverse,bg=default,us=red,blink,dim,strikethrough] {exit_code} {stdout} "
             command_1_interval  "1"
 
             command_git_branch_command   "git rev-parse --abbrev-ref HEAD"

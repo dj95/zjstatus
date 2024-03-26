@@ -19,7 +19,7 @@ use uuid::Uuid;
 
 use zjstatus::{
     config::{self, UpdateEventMask, ZellijState},
-    frames, widgets,
+    frames, pipe, widgets,
 };
 
 #[derive(Default)]
@@ -88,7 +88,32 @@ impl ZellijPlugin for State {
             sessions: Vec::new(),
             start_time: Local::now(),
             cache_mask: 0,
+            incoming_notification: None,
         };
+    }
+
+    fn pipe(&mut self, pipe_message: PipeMessage) -> bool {
+        let mut should_render = false;
+
+        match pipe_message.source {
+            PipeSource::Cli(_) => {
+                if let Some(input) = pipe_message.payload {
+                    should_render = pipe::parse_protocol(&mut self.state, &input);
+                }
+            }
+            PipeSource::Plugin(_) => {
+                if let Some(input) = pipe_message.payload {
+                    should_render = pipe::parse_protocol(&mut self.state, &input);
+                }
+            }
+            PipeSource::Keybind => {
+                if let Some(input) = pipe_message.payload {
+                    should_render = pipe::parse_protocol(&mut self.state, &input);
+                }
+            }
+        }
+
+        should_render
     }
 
     #[tracing::instrument(skip_all, fields(event_type))]
@@ -267,6 +292,12 @@ fn register_widgets(configuration: &BTreeMap<String, String>) -> BTreeMap<String
         Arc::new(SessionWidget::new(configuration)),
     );
     widget_map.insert("tabs".to_owned(), Arc::new(TabsWidget::new(configuration)));
+    widget_map.insert(
+        "notifications".to_owned(),
+        Arc::new(widgets::notification::NotificationWidget::new(
+            configuration,
+        )),
+    );
 
     tracing::debug!("registered widgets: {:?}", widget_map.keys());
 

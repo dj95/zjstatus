@@ -6,7 +6,7 @@ use zellij_tile::prelude::*;
 use crate::{
     border::{parse_border_config, BorderConfig, BorderPosition},
     render::FormattedPart,
-    widgets::{command::CommandResult, widget::Widget},
+    widgets::{command::CommandResult, notification, widget::Widget},
 };
 use chrono::{DateTime, Local};
 
@@ -20,6 +20,7 @@ pub struct ZellijState {
     pub tabs: Vec<TabInfo>,
     pub sessions: Vec<SessionInfo>,
     pub start_time: DateTime<Local>,
+    pub incoming_notification: Option<notification::Message>,
     pub cache_mask: u8,
 }
 
@@ -37,6 +38,7 @@ pub fn event_mask_from_widget_name(name: &str) -> u8 {
         "command" => UpdateEventMask::Always as u8,
         "datetime" => UpdateEventMask::Always as u8,
         "mode" => UpdateEventMask::Mode as u8,
+        "notifications" => UpdateEventMask::Always as u8,
         "session" => UpdateEventMask::Session as u8,
         "swap_layout" => UpdateEventMask::Tab as u8,
         "tabs" => UpdateEventMask::Tab as u8,

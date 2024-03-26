@@ -16,8 +16,8 @@ bench = []
 tracing = []
 
 [dependencies]
-zellij-tile = "0.39.0"
-chrono = { version = "0.4.0", default-features = false }
+zellij-tile = "0.40.0"
+chrono = { version = "= 0.4.35", default-features = false } # wait for chrono-tz to resolve LocalResult -> TzResolution
 regex = "1.10.0"
 chrono-tz = "0.8.3"
 anyhow = "1.0.75"
@@ -41,3 +41,6 @@ harness = false
 [[bench]]
 name = "widgets"
 harness = false
+
+[patch.crates-io]
+zelij-tile = { git = 'https://github.com/zellij-org/zellij', package = 'zellij-tile' }

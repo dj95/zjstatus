@@ -1,5 +1,6 @@
 use zellij_tile::prelude::*;
 
+#[tracing::instrument(skip_all)]
 pub fn hide_frames_on_single_pane(
     tabs: Vec<TabInfo>,
     pane_info: &PaneManifest,
@@ -17,7 +18,9 @@ pub fn hide_frames_on_single_pane(
         return;
     }
 
-    let panes: Vec<&PaneInfo> = panes.iter().filter(|p| !p.is_plugin).collect();
+    tracing::debug!("panes {:?}", panes);
+
+    let panes: Vec<&PaneInfo> = panes.iter().filter(|p| !p.is_plugin && !p.is_floating).collect();
 
     // frame is enabled, when content does no start at [0, 0]. With default frames
     // it's [1, 1]

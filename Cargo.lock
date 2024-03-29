@@ -1942,9 +1942,9 @@ dependencies = [
 
 [[package]]
 name = "memchr"
-version = "2.7.1"
+version = "2.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "523dc4f511e55ab87b694dc30d0f820d60906ef06413f93d4d7a1385599cc149"
+checksum = "6c8640c5d730cb13ebd907d8d04b52f55ac9a2eec55b440c8892f40d56c76c1d"
 
 [[package]]
 name = "memmem"
@@ -2193,9 +2193,9 @@ dependencies = [
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.101"
+version = "0.9.102"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dda2b0f344e78efc2facf7d195d098df0dd72151b26ab98da807afc26c198dff"
+checksum = "c597637d56fbc83893a35eb0dd04b2b8e7a50c91e64e9493e398b5df4fb45fa2"
 dependencies = [
  "cc",
  "libc",
@@ -2755,9 +2755,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
+checksum = "adad44e29e4c806119491a7f06f03de4d1af22c3a680dd47f1e6e179439d1f56"
 
 [[package]]
 name = "rmp"
@@ -4132,7 +4132,7 @@ checksum = "32b752e52a2da0ddfbdbcc6fceadfeede4c939ed16d13e648833a61dfb611ed8"
 [[package]]
 name = "zellij-tile"
 version = "0.40.0"
-source = "git+https://github.com/zellij-org/zellij#b24dd87b8044be59a9897bb19604deee85b236b0"
+source = "git+https://github.com/zellij-org/zellij#d267948689a30a276adbe9e7cedf2be792d15b73"
 dependencies = [
  "clap 3.2.25",
  "serde",
@@ -4145,7 +4145,7 @@ dependencies = [
 [[package]]
 name = "zellij-utils"
 version = "0.40.0"
-source = "git+https://github.com/zellij-org/zellij#b24dd87b8044be59a9897bb19604deee85b236b0"
+source = "git+https://github.com/zellij-org/zellij#d267948689a30a276adbe9e7cedf2be792d15b73"
 dependencies = [
  "anyhow",
  "async-channel 1.9.0",

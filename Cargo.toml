@@ -41,6 +41,3 @@ harness = false
 [[bench]]
 name = "widgets"
 harness = false
-
-[patch.crates-io]
-zelij-tile = { git = 'https://github.com/zellij-org/zellij', package = 'zellij-tile' }

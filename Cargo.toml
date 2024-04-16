@@ -16,10 +16,10 @@ bench = []
 tracing = []
 
 [dependencies]
-zellij-tile = "0.39.0"
-chrono = { version = "0.4.0", default-features = false }
+zellij-tile = "0.40.0"
+chrono = { version = "0.4.35", default-features = false }
 regex = "1.10.0"
-chrono-tz = "0.8.3"
+chrono-tz = "0.9.0"
 anyhow = "1.0.75"
 anstyle = "1.0.2"
 uuid = { version = "1.6.1", features = ["v4"] }

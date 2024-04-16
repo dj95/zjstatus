@@ -19,7 +19,7 @@ fn bench_widget_command(c: &mut Criterion) {
 
     let wid = widgets::command::CommandWidget::new(&config);
 
-    let ts = Local::now().sub(Duration::seconds(1));
+    let ts = Local::now().sub(Duration::try_seconds(1).unwrap());
 
     let state = ZellijState {
         command_results: BTreeMap::from([(
@@ -56,7 +56,7 @@ fn bench_widget_command_dynamic(c: &mut Criterion) {
 
     let wid = widgets::command::CommandWidget::new(&config);
 
-    let ts = Local::now().sub(Duration::seconds(1));
+    let ts = Local::now().sub(Duration::try_seconds(1).unwrap());
 
     let state = ZellijState {
         command_results: BTreeMap::from([(

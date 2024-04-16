@@ -1,25 +1,20 @@
-use config::ModuleConfig;
-use widgets::{
-    command::{CommandResult, CommandWidget},
-    datetime::DateTimeWidget,
-    mode::ModeWidget,
-    session::SessionWidget,
-    swap_layout::SwapLayoutWidget,
-    tabs::TabsWidget,
-    widget::Widget,
-};
-
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
 use zellij_tile::prelude::*;
 
 use chrono::Local;
-use std::{collections::BTreeMap, fs::File, sync::Arc, usize};
+use std::{collections::BTreeMap, sync::Arc, usize};
 use uuid::Uuid;
 
 use zjstatus::{
-    config::{self, UpdateEventMask, ZellijState},
-    frames, widgets,
+    config::{self, ModuleConfig, UpdateEventMask, ZellijState},
+    frames, pipe,
+    widgets::command::{CommandResult, CommandWidget},
+    widgets::datetime::DateTimeWidget,
+    widgets::mode::ModeWidget,
+    widgets::notification::NotificationWidget,
+    widgets::session::SessionWidget,
+    widgets::swap_layout::SwapLayoutWidget,
+    widgets::tabs::TabsWidget,
+    widgets::widget::Widget,
 };
 
 #[derive(Default)]
@@ -36,6 +31,9 @@ register_plugin!(State);
 
 #[cfg(feature = "tracing")]
 fn init_tracing() {
+    use std::fs::File;
+    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
     let file = File::create(".zjstatus.log");
     let file = match file {
         Ok(file) => file,
@@ -88,7 +86,32 @@ impl ZellijPlugin for State {
             sessions: Vec::new(),
             start_time: Local::now(),
             cache_mask: 0,
+            incoming_notification: None,
         };
+    }
+
+    fn pipe(&mut self, pipe_message: PipeMessage) -> bool {
+        let mut should_render = false;
+
+        match pipe_message.source {
+            PipeSource::Cli(_) => {
+                if let Some(input) = pipe_message.payload {
+                    should_render = pipe::parse_protocol(&mut self.state, &input);
+                }
+            }
+            PipeSource::Plugin(_) => {
+                if let Some(input) = pipe_message.payload {
+                    should_render = pipe::parse_protocol(&mut self.state, &input);
+                }
+            }
+            PipeSource::Keybind => {
+                if let Some(input) = pipe_message.payload {
+                    should_render = pipe::parse_protocol(&mut self.state, &input);
+                }
+            }
+        }
+
+        should_render
     }
 
     #[tracing::instrument(skip_all, fields(event_type))]
@@ -267,6 +290,10 @@ fn register_widgets(configuration: &BTreeMap<String, String>) -> BTreeMap<String
         Arc::new(SessionWidget::new(configuration)),
     );
     widget_map.insert("tabs".to_owned(), Arc::new(TabsWidget::new(configuration)));
+    widget_map.insert(
+        "notifications".to_owned(),
+        Arc::new(NotificationWidget::new(configuration)),
+    );
 
     tracing::debug!("registered widgets: {:?}", widget_map.keys());
 

@@ -170,7 +170,7 @@ If you are missing features or find some annoying bugs please feel free to submi
 
 ## 📝 License
 
-© 2023 Daniel Jankowski
+© 2024 Daniel Jankowski
 
 This project is licensed under the MIT license.
 

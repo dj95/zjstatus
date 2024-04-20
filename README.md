@@ -103,6 +103,9 @@ Place this configuration in your default layout file, e.g. `~/.config/zellij/lay
 > [!IMPORTANT]
 > Using zjstatus involves creating new layouts and overriding the default one. This will lead to swap layouts not working, when they are not configured correctly. Please follow [this documentation](https://github.com/dj95/zjstatus/wiki/2-%E2%80%90-Configuration#swap-layouts) for getting swap layouts back to work, if you need them.
 
+> [!IMPORTANT]
+> If you want to hide borders, please remove the `hide_frame_for_single_pane` option or set it to `false`. Otherwise zjstatus will toggle frame borders even if the are hidden in zellijs config!
+
 ```javascript
 layout {
     default_tab_template {

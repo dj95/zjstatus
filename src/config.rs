@@ -39,7 +39,7 @@ pub fn event_mask_from_widget_name(name: &str) -> u8 {
         "datetime" => UpdateEventMask::Always as u8,
         "mode" => UpdateEventMask::Mode as u8,
         "notifications" => UpdateEventMask::Always as u8,
-        "session" => UpdateEventMask::Session as u8,
+        "session" => UpdateEventMask::Mode as u8,
         "swap_layout" => UpdateEventMask::Tab as u8,
         "tabs" => UpdateEventMask::Tab as u8,
         _ => UpdateEventMask::None as u8,

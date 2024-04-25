@@ -136,14 +136,16 @@ impl ZellijPlugin for State {
             Event::ModeUpdate(mode_info) => {
                 tracing::Span::current().record("event_type", "Event::ModeUpdate");
                 tracing::debug!(mode = ?mode_info.mode);
+                tracing::debug!(mode = ?mode_info.session_name);
+
+                self.state.mode = mode_info;
+                self.state.cache_mask = UpdateEventMask::Mode as u8;
 
                 if !self.got_permissions {
                     tracing::info!("no permissions");
                     return false;
                 }
 
-                self.state.mode = mode_info;
-                self.state.cache_mask = UpdateEventMask::Mode as u8;
                 should_render = true;
             }
             Event::PaneUpdate(pane_info) => {
@@ -231,8 +233,8 @@ impl ZellijPlugin for State {
                     }
                 }
 
-                self.state.cache_mask = UpdateEventMask::Session as u8;
                 self.state.sessions = session_info;
+                self.state.cache_mask = UpdateEventMask::Session as u8;
 
                 should_render = true;
             }
@@ -240,13 +242,14 @@ impl ZellijPlugin for State {
                 tracing::Span::current().record("event_type", "Event::TabUpdate");
                 tracing::debug!(tab_count = ?tab_info.len());
 
+                self.state.cache_mask = UpdateEventMask::Tab as u8;
+                self.state.tabs = tab_info;
+
                 if !self.got_permissions {
                     tracing::info!("no permissions");
                     return false;
                 }
 
-                self.state.cache_mask = UpdateEventMask::Tab as u8;
-                self.state.tabs = tab_info;
                 should_render = true;
             }
             _ => (),
@@ -254,6 +257,7 @@ impl ZellijPlugin for State {
         should_render
     }
 
+    #[tracing::instrument(skip_all)]
     fn render(&mut self, _rows: usize, cols: usize) {
         if !self.got_permissions {
             return;
@@ -261,6 +265,7 @@ impl ZellijPlugin for State {
 
         self.state.cols = cols;
 
+        tracing::debug!("{:?}", self.state.mode.session_name);
         print!(
             "{}",
             self.module_config

@@ -122,6 +122,7 @@ impl ZellijPlugin for State {
             self.got_permissions = true;
 
             while !self.pending_events.is_empty() {
+                tracing::debug!("processing cached event");
                 let ev = self.pending_events.pop();
 
                 self.handle_event(ev.unwrap());
@@ -129,6 +130,7 @@ impl ZellijPlugin for State {
         }
 
         if !self.got_permissions {
+            tracing::debug!("caching event");
             self.pending_events.push(event);
 
             return false;

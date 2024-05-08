@@ -1,5 +1,5 @@
 on: push
-name: Clippy check
+name: Test & Lint
 
 # Make sure CI fails on all warnings, including Clippy lints
 env:
@@ -25,3 +25,24 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features --all-targets
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: jcbhmr/setup-wasmtime@v2
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: '1.76.0'
+          profile: minimal
+          override: true
+          target: wasm32-wasi
+          components: clippy
+
+      - name: Install cargo wasi
+        run: cargo install cargo-wasi
+
+      - name: Run tests
+        run: cargo wasi test --lib -- --nocapture

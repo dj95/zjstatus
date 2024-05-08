@@ -79,7 +79,7 @@ impl FormattedPart {
         let mut format_content_split = format.split(']').collect::<Vec<&str>>();
 
         if format_content_split.len() == 1 {
-            result.content = format.to_owned();
+            format.clone_into(&mut result.content);
 
             return result;
         }
@@ -225,7 +225,7 @@ impl FormattedPart {
         }
 
         let res = self.format_string(&output);
-        self.cached_content = res.clone();
+        self.cached_content.clone_from(&res);
 
         res
     }

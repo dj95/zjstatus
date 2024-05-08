@@ -1,15 +1,16 @@
+use kdl::{KdlDocument, KdlError};
 use lazy_static::lazy_static;
 use std::{
     collections::BTreeMap,
     fs::{remove_file, File},
     ops::Sub,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use chrono::{DateTime, Duration, Local};
 use regex::Regex;
 #[cfg(not(feature = "bench"))]
-use zellij_tile::shim::run_command;
+use zellij_tile::shim::{run_command, run_command_with_env_variables_and_cwd};
 
 use crate::render::{formatted_parts_from_string_cached, FormattedPart};
 
@@ -32,6 +33,8 @@ enum RenderMode {
 struct CommandConfig {
     command: String,
     format: FormattedPart,
+    env: Option<BTreeMap<String, String>>,
+    cwd: Option<PathBuf>,
     interval: i64,
     render_mode: RenderMode,
 }
@@ -137,6 +140,19 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &Zell
         #[allow(unused_variables)]
         let command = commandline_parser(&command_config.command);
         tracing::debug!("Running command: {:?}", command);
+
+        #[cfg(not(feature = "bench"))]
+        if command_config.env.is_some() || command_config.cwd.is_some() {
+            run_command_with_env_variables_and_cwd(
+                &command.iter().map(|x| x.as_str()).collect::<Vec<&str>>(),
+                command_config.env.unwrap(),
+                command_config.cwd.unwrap(),
+                context,
+            );
+
+            return;
+        }
+
         #[cfg(not(feature = "bench"))]
         run_command(
             &command.iter().map(|x| x.as_str()).collect::<Vec<&str>>(),
@@ -161,6 +177,8 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandC
         let mut command_conf = CommandConfig {
             command: "".to_owned(),
             format: FormattedPart::default(),
+            cwd: None,
+            env: None,
             interval: 1,
             render_mode: RenderMode::Static,
         };
@@ -170,7 +188,22 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandC
         }
 
         if key.ends_with("command") {
-            command_conf.command = zj_conf.get(&key).unwrap().to_owned().clone();
+            command_conf.command.clone_from(&zj_conf.get(&key).unwrap().to_owned())
+        }
+
+        if key.ends_with("env") {
+            let doc: Result<KdlDocument, KdlError> = zj_conf.get(&key).unwrap().parse();
+
+            if let Ok(doc) = doc {
+                command_conf.env = Some(get_env_vars(doc));
+            }
+        }
+
+        if key.ends_with("cwd") {
+            let mut cwd = PathBuf::new();
+            cwd.push(zj_conf.get(&key).unwrap().to_owned().clone());
+
+            command_conf.cwd = Some(cwd);
         }
 
         if key.ends_with("format") {
@@ -197,6 +230,26 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandC
     }
 
     config
+}
+
+fn get_env_vars(doc: KdlDocument) -> BTreeMap<String, String> {
+    let mut output = BTreeMap::new();
+
+    for n in doc.nodes() {
+        let children = n.entries();
+        if children.len() != 1 {
+            continue;
+        }
+
+        let value = match children.first().unwrap().value().as_string() {
+            Some(value) => value,
+            None => continue,
+        };
+
+        output.insert(n.name().value().to_string(), value.to_string());
+    }
+
+    output
 }
 
 fn get_timestamp_from_event_or_default(
@@ -276,7 +329,7 @@ fn commandline_parser(input: &str) -> Vec<String> {
             is_in_group = false;
             found_special_char = '\0';
             output.push(buffer.clone());
-            buffer = "".to_owned();
+            "".clone_into(&mut buffer);
             continue;
         }
 
@@ -288,7 +341,7 @@ fn commandline_parser(input: &str) -> Vec<String> {
 
         if character == ' ' && !is_in_group {
             output.push(buffer.clone());
-            buffer = "".to_owned();
+            "".clone_into(&mut buffer);
             continue;
         }
 

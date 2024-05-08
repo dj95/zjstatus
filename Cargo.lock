@@ -4239,6 +4239,7 @@ dependencies = [
  "chrono-tz",
  "console",
  "criterion",
+ "kdl",
  "lazy_static",
  "regex",
  "tracing",

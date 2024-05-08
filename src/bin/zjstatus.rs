@@ -7,14 +7,16 @@ use uuid::Uuid;
 use zjstatus::{
     config::{self, ModuleConfig, UpdateEventMask, ZellijState},
     frames, pipe,
-    widgets::command::{CommandResult, CommandWidget},
-    widgets::datetime::DateTimeWidget,
-    widgets::mode::ModeWidget,
-    widgets::notification::NotificationWidget,
-    widgets::session::SessionWidget,
-    widgets::swap_layout::SwapLayoutWidget,
-    widgets::tabs::TabsWidget,
-    widgets::widget::Widget,
+    widgets::{
+        command::{CommandResult, CommandWidget},
+        datetime::DateTimeWidget,
+        mode::ModeWidget,
+        notification::NotificationWidget,
+        session::SessionWidget,
+        swap_layout::SwapLayoutWidget,
+        tabs::TabsWidget,
+        widget::Widget,
+    },
 };
 
 #[derive(Default)]

@@ -45,7 +45,12 @@ layout {
             command_1_format    "#[fg=blue,reverse,bg=default,us=red,blink,dim,strikethrough] {exit_code} {stdout} "
             command_1_interval  "1"
 
-            command_git_branch_command   "git rev-parse --abbrev-ref HEAD"
+            command_git_branch_command   "bash -c \"echo $FOO\""
+            command_git_branch_cwd       "/Users/daniel"
+            command_git_branch_env       {
+                FOO "1"
+                BAR "foo"
+            }
             command_git_branch_format    "#[fg=red] {stdout} "
             command_git_branch_interval  "2"
 

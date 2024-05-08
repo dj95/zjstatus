@@ -9,7 +9,7 @@ use std::{
 
 use chrono::{DateTime, Duration, Local};
 use regex::Regex;
-#[cfg(not(feature = "bench"))]
+#[cfg(all(not(feature = "bench"), not(test)))]
 use zellij_tile::shim::{run_command, run_command_with_env_variables_and_cwd};
 
 use crate::render::{formatted_parts_from_string_cached, FormattedPart};
@@ -39,7 +39,7 @@ struct CommandConfig {
     render_mode: RenderMode,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct CommandResult {
     pub exit_code: Option<i32>,
     pub stdout: String,
@@ -125,10 +125,10 @@ fn render_dynamic_formatted_content(content: &str) -> String {
 }
 
 #[tracing::instrument(skip(command_config, state))]
-fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &ZellijState) {
+fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &ZellijState) -> bool {
     let got_result = state.command_results.contains_key(name);
     if got_result && command_config.interval == 0 {
-        return;
+        return false;
     }
 
     let ts = Local::now();
@@ -146,8 +146,8 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &Zell
         let command = commandline_parser(&command_config.command);
         tracing::debug!("Running command: {:?}", command);
 
-        #[cfg(not(feature = "bench"))]
         if command_config.env.is_some() || command_config.cwd.is_some() {
+            #[cfg(all(not(feature = "bench"), not(test)))]
             run_command_with_env_variables_and_cwd(
                 &command.iter().map(|x| x.as_str()).collect::<Vec<&str>>(),
                 command_config.env.unwrap(),
@@ -155,15 +155,19 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &Zell
                 context,
             );
 
-            return;
+            return true;
         }
 
-        #[cfg(not(feature = "bench"))]
+        #[cfg(all(not(feature = "bench"), not(test)))]
         run_command(
             &command.iter().map(|x| x.as_str()).collect::<Vec<&str>>(),
             context,
         );
+
+        return true;
     }
+
+    false
 }
 
 fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandConfig> {
@@ -365,6 +369,7 @@ fn commandline_parser(input: &str) -> Vec<String> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use rstest::rstest;
 
     #[test]
     pub fn test_commandline_parser() {
@@ -382,5 +387,60 @@ mod test {
         let result = commandline_parser(input);
         let expected = Vec::from(["bash", "-c", "pwd | base64 -c 'bla' | xxd"]);
         assert_eq!(result, expected);
+    }
+
+    #[rstest]
+    // no result, interval 1 second
+    #[case(1, &ZellijState::default(), true)]
+    // only run once without a result
+    #[case(0, &ZellijState::default(), true)]
+    // do not run with run once and result
+    #[case(0, &ZellijState {
+        command_results: BTreeMap::from([(
+            "test".to_owned(),
+            CommandResult::default(),
+        )]),
+        ..ZellijState::default()
+    }, false)]
+    // run if interval is exceeded
+    #[case(1, &ZellijState {
+        command_results: BTreeMap::from([(
+            "test".to_owned(),
+            CommandResult{
+                context: BTreeMap::from([("timestamp".to_owned(), "0".to_owned())]),
+                ..CommandResult::default()
+            }
+        )]),
+        ..ZellijState::default()
+    }, true)]
+    // do not run if interval is not exceeded
+    #[case(1, &ZellijState {
+        command_results: BTreeMap::from([(
+            "test".to_owned(),
+            CommandResult{
+                context: BTreeMap::from([("timestamp".to_owned(), Local::now().format(TIMESTAMP_FORMAT).to_string())]),
+                ..CommandResult::default()
+            }
+        )]),
+        ..ZellijState::default()
+    }, false)]
+    pub fn test_run_command_if_needed(
+        #[case] interval: i64,
+        #[case] state: &ZellijState,
+        #[case] expected: bool,
+    ) {
+        let res = run_command_if_needed(
+            CommandConfig {
+                command: "echo test".to_owned(),
+                format: FormattedPart::default(),
+                env: None,
+                cwd: None,
+                interval,
+                render_mode: RenderMode::Static,
+            },
+            "test",
+            state,
+        );
+        assert_eq!(res, expected);
     }
 }

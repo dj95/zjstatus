@@ -126,6 +126,11 @@ fn render_dynamic_formatted_content(content: &str) -> String {
 
 #[tracing::instrument(skip(command_config, state))]
 fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &ZellijState) {
+    let got_result = state.command_results.contains_key(name);
+    if got_result && command_config.interval == 0 {
+        return;
+    }
+
     let ts = Local::now();
     let last_run = get_timestamp_from_event_or_default(name, state, command_config.interval);
 
@@ -188,7 +193,9 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandC
         }
 
         if key.ends_with("command") {
-            command_conf.command.clone_from(&zj_conf.get(&key).unwrap().to_owned())
+            command_conf
+                .command
+                .clone_from(&zj_conf.get(&key).unwrap().to_owned())
         }
 
         if key.ends_with("env") {

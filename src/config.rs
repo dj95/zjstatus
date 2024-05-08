@@ -383,7 +383,7 @@ fn parts_from_config(format: Option<&String>) -> Vec<FormattedPart> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use anstyle::RgbColor;
+    use anstyle::{Effects, RgbColor};
 
     #[test]
     fn test_formatted_part_from_string() {
@@ -396,8 +396,7 @@ mod test {
             FormattedPart {
                 fg: Some(RgbColor(255, 0, 0).into()),
                 bg: Some(RgbColor(0, 255, 0).into()),
-                bold: true,
-                italic: true,
+                effects: Effects::BOLD | Effects::ITALIC,
                 content: "foo".to_owned(),
                 ..Default::default()
             },

@@ -12,7 +12,7 @@ run: build
   zellij -l ./plugin-dev-workspace.kdl -s zjstatus-dev
 
 test:
-  cargo component test -- --nocapture
+  cargo wasi test -- --nocapture
 
 lint:
   cargo clippy --all-targets --all-features

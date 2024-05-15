@@ -37,7 +37,7 @@ fn init_tracing() {
     use std::fs::File;
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-    let file = File::create(".zjstatus.log");
+    let file = File::create("/host/.zjstatus.log");
     let file = match file {
         Ok(file) => file,
         Err(error) => panic!("Error: {:?}", error),

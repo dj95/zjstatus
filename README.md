@@ -98,7 +98,7 @@ For configuring zjstatus, please follow the [documentation](https://github.com/d
 
 ## 🏎️ Quick Start
 
-Place this configuration in your default layout file, e.g. `~/.config/zellij/layouts/default.kdl`:
+Place the following configuration in your default layout file, e.g. `~/.config/zellij/layouts/default.kdl`. Right after starting zellij, it will prompt for permissions, that needs to be granted in order for zjstatus to work. Simply navigate to the pane or click on it and press `y`. This must be repeated on updates. For more details on permissions, please visit the [wiki](https://github.com/dj95/zjstatus/wiki/2-%E2%80%90-Permissions).
 
 > [!IMPORTANT]
 > Using zjstatus involves creating new layouts and overriding the default one. This will lead to swap layouts not working, when they are not configured correctly. Please follow [this documentation](https://github.com/dj95/zjstatus/wiki/2-%E2%80%90-Configuration#swap-layouts) for getting swap layouts back to work, if you need them.

@@ -94,14 +94,14 @@ config file, you can use `${pkgs.zjstatus}/bin/zjstatus.wasm` as the path.
 
 ## ⚙️ Configuration
 
-For configuring zjstatus, please follow the [documentation](https://github.com/dj95/zjstatus/wiki/2-%E2%80%90-Configuration).
+For configuring zjstatus, please follow the [documentation](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration).
 
 ## 🏎️ Quick Start
 
 Place the following configuration in your default layout file, e.g. `~/.config/zellij/layouts/default.kdl`. Right after starting zellij, it will prompt for permissions, that needs to be granted in order for zjstatus to work. Simply navigate to the pane or click on it and press `y`. This must be repeated on updates. For more details on permissions, please visit the [wiki](https://github.com/dj95/zjstatus/wiki/2-%E2%80%90-Permissions).
 
 > [!IMPORTANT]
-> Using zjstatus involves creating new layouts and overriding the default one. This will lead to swap layouts not working, when they are not configured correctly. Please follow [this documentation](https://github.com/dj95/zjstatus/wiki/2-%E2%80%90-Configuration#swap-layouts) for getting swap layouts back to work, if you need them.
+> Using zjstatus involves creating new layouts and overriding the default one. This will lead to swap layouts not working, when they are not configured correctly. Please follow [this documentation](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration#swap-layouts) for getting swap layouts back to work, if you need them.
 
 > [!IMPORTANT]
 > If you want to hide borders, please remove the `hide_frame_for_single_pane` option or set it to `false`. Otherwise zjstatus will toggle frame borders even if the are hidden in zellijs config!
@@ -146,17 +146,17 @@ layout {
 
 ## 🧱 Widgets
 
-The documentation for the widgets can be found in the [wiki](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets).
+The documentation for the widgets can be found in the [wiki](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets).
 
 The following widgets are available:
 
-- [command](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#command)
-- [datetime](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#datetime)
-- [mode](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#mode)
-- [notifications](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#notifications)
-- [session](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#session)
-- [swap layout](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#swap-layout)
-- [tabs](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Widgets#tabs)
+- [command](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#command)
+- [datetime](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#datetime)
+- [mode](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#mode)
+- [notifications](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#notifications)
+- [session](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#session)
+- [swap layout](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#swap-layout)
+- [tabs](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#tabs)
 
 ## 🚧 Development
 

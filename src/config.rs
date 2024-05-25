@@ -167,14 +167,6 @@ impl ModuleConfig {
             )
         });
 
-        let mut offset = console::measure_text_width(&output_left);
-
-        self.process_widget_click(click_pos, &self.left_parts, &widget_map, &state, 0);
-
-        if click_pos <= offset {
-            return;
-        }
-
         let output_center = self
             .center_parts
             .iter_mut()
@@ -196,6 +188,17 @@ impl ModuleConfig {
                     part.format_string_with_widgets(&widget_map, &state)
                 )
             });
+
+        let (output_left, output_center, output_right) =
+            self.trim_output(&output_left, &output_center, &output_right, state.cols);
+
+        let mut offset = console::measure_text_width(&output_left);
+
+        self.process_widget_click(click_pos, &self.left_parts, &widget_map, &state, 0);
+
+        if click_pos <= offset {
+            return;
+        }
 
         if !output_center.is_empty() {
             offset += console::measure_text_width(&self.get_spacer_left(

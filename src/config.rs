@@ -82,7 +82,7 @@ pub struct ModuleConfig {
 }
 
 impl ModuleConfig {
-    pub fn new(config: &BTreeMap<String, String>) -> Self {
+    pub fn new(config: &BTreeMap<String, String>) -> anyhow::Result<Self> {
         let format_space_config = match config.get("format_space") {
             Some(space_config) => space_config,
             None => "",
@@ -109,10 +109,19 @@ impl ModuleConfig {
         };
 
         let format_precedence = match config.get("format_precedence") {
-            Some(conf) => conf
-                .chars()
-                .map(|c| Part::from_str(&c.to_string()).expect("Invalid part"))
-                .collect(),
+            Some(conf) => {
+                let prec = conf
+                    .chars()
+                    .map(|c| Part::from_str(&c.to_string()))
+                    .collect();
+
+                match prec {
+                    Ok(prec) => prec,
+                    Err(e) => {
+                        anyhow::bail!("Invalid format_precedence: {}", e);
+                    }
+                }
+            }
             None => vec![Part::Left, Part::Center, Part::Right],
         };
 
@@ -121,7 +130,7 @@ impl ModuleConfig {
             None => BorderConfig::default(),
         };
 
-        Self {
+        Ok(Self {
             left_parts_config: left_parts_config.to_owned(),
             left_parts: parts_from_config(Some(&left_parts_config.to_owned())),
             center_parts_config: center_parts_config.to_owned(),
@@ -132,7 +141,7 @@ impl ModuleConfig {
             hide_frame_for_single_pane,
             border: border_config,
             format_precedence,
-        }
+        })
     }
 
     pub fn handle_mouse_action(

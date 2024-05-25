@@ -27,6 +27,7 @@ struct State {
     userspace_configuration: BTreeMap<String, String>,
     module_config: config::ModuleConfig,
     widget_map: BTreeMap<String, Arc<dyn Widget>>,
+    err: Option<anyhow::Error>,
 }
 
 #[cfg(not(test))]
@@ -73,7 +74,13 @@ impl ZellijPlugin for State {
             EventType::RunCommandResult,
         ]);
 
-        self.module_config = ModuleConfig::new(&configuration);
+        self.module_config = match ModuleConfig::new(&configuration) {
+            Ok(mc) => mc,
+            Err(e) => {
+                self.err = Some(e);
+                return;
+            }
+        };
         self.widget_map = register_widgets(&configuration);
         self.userspace_configuration = configuration;
         self.pending_events = Vec::new();
@@ -144,6 +151,12 @@ impl ZellijPlugin for State {
     #[tracing::instrument(skip_all)]
     fn render(&mut self, _rows: usize, cols: usize) {
         if !self.got_permissions {
+            return;
+        }
+
+        if let Some(err) = &self.err {
+            println!("Error: {:?}", err);
+
             return;
         }
 

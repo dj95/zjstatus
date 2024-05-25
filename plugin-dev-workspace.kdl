@@ -9,7 +9,7 @@ layout {
             format_center     "{command_0} {command_1} {command_git_branch} {command_3}"
             format_right      "{notifications}{swap_layout}{datetime}"
             format_space      "#[bg=#181825]"
-            format_precedence "lcq"
+            format_precedence "lcr"
 
             notification_format_unread "#[fg=#89B4FA,bg=#181825,blink]  #[fg=#89B4FA,bg=#181825] {message} "
             notification_format_no_notifications "#[fg=#89B4FA,bg=#181825,dim]   "

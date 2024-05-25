@@ -17,7 +17,7 @@ fn bench_moduleconfig_render_bar(c: &mut Criterion) {
         ("format_space".to_owned(), "#[bg=#181825]".to_owned()),
     ]);
 
-    let mut module_config = ModuleConfig::new(&config);
+    let mut module_config = ModuleConfig::new(&config).unwrap();
 
     let mut widgets: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::new();
 

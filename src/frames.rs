@@ -4,6 +4,7 @@ use zellij_tile::prelude::*;
 pub fn hide_frames_on_single_pane(
     tabs: Vec<TabInfo>,
     pane_info: &PaneManifest,
+    mode_info: &ModeInfo,
     plugin_pane_id: PluginIds,
 ) {
     let panes = match get_current_panes(&tabs, pane_info) {
@@ -20,11 +21,26 @@ pub fn hide_frames_on_single_pane(
 
     tracing::debug!("panes {:?}", panes);
 
-    let panes: Vec<&PaneInfo> = panes.iter().filter(|p| !p.is_plugin && !p.is_floating).collect();
+    let panes: Vec<&PaneInfo> = panes
+        .iter()
+        .filter(|p| !p.is_plugin && !p.is_floating)
+        .collect();
 
     // frame is enabled, when content does no start at [0, 0]. With default frames
     // it's [1, 1]
     let frame_enabled = panes.iter().any(|p| p.pane_content_x - p.pane_x > 0);
+
+    tracing::debug!("mode: {:?}", mode_info.mode);
+    if mode_info.mode == InputMode::RenamePane
+        || mode_info.mode == InputMode::Search
+        || mode_info.mode == InputMode::EnterSearch
+    {
+        if !frame_enabled {
+            toggle_pane_frames();
+        }
+
+        return;
+    }
 
     if panes.len() == 1 && frame_enabled {
         toggle_pane_frames();

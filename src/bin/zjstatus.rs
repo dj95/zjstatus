@@ -190,6 +190,7 @@ impl State {
                     frames::hide_frames_on_single_pane(
                         self.state.tabs.clone(),
                         &pane_info,
+                        &self.state.mode,
                         get_plugin_ids(),
                     );
                 }
@@ -247,6 +248,7 @@ impl State {
                         frames::hide_frames_on_single_pane(
                             current_session.clone().tabs,
                             &current_session.panes,
+                            &self.state.mode,
                             get_plugin_ids(),
                         );
                     }

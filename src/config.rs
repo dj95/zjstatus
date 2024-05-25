@@ -27,7 +27,7 @@ pub struct ZellijState {
 pub enum UpdateEventMask {
     Always = 0b10000000,
     Mode = 0b00000001,
-    Tab = 0b00000010,
+    Tab = 0b00000011,
     Command = 0b00000100,
     Session = 0b00001000,
     None = 0b00000000,

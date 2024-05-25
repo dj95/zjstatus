@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use zellij_tile::{
-    prelude::{PaneInfo, PaneManifest, TabInfo},
+    prelude::{InputMode, ModeInfo, PaneInfo, PaneManifest, TabInfo},
     shim::switch_tab_to,
 };
 
@@ -16,6 +16,7 @@ pub struct TabsWidget {
     normal_tab_format: Vec<FormattedPart>,
     normal_tab_fullscreen_format: Vec<FormattedPart>,
     normal_tab_sync_format: Vec<FormattedPart>,
+    rename_tab_format: Vec<FormattedPart>,
     separator: Option<FormattedPart>,
     fullscreen_indicator: Option<String>,
     floating_indicator: Option<String>,
@@ -54,6 +55,11 @@ impl TabsWidget {
             None => active_tab_format.clone(),
         };
 
+        let rename_tab_format = match config.get("tab_rename") {
+            Some(form) => FormattedPart::multiple_from_format_string(form),
+            None => active_tab_format.clone(),
+        };
+
         let separator = config
             .get("tab_separator")
             .map(|s| FormattedPart::from_format_string(s));
@@ -65,6 +71,7 @@ impl TabsWidget {
             active_tab_format,
             active_tab_fullscreen_format,
             active_tab_sync_format,
+            rename_tab_format,
             separator,
             floating_indicator: config.get("tab_floating_indicator").cloned(),
             sync_indicator: config.get("tab_sync_indicator").cloned(),
@@ -79,7 +86,7 @@ impl Widget for TabsWidget {
         let mut counter = 0;
 
         for tab in &state.tabs {
-            let content = self.render_tab(tab, &state.panes);
+            let content = self.render_tab(tab, &state.panes, &state.mode);
             counter += 1;
 
             output = format!("{}{}", output, content);
@@ -101,7 +108,7 @@ impl Widget for TabsWidget {
         for tab in &state.tabs {
             counter += 1;
 
-            let mut rendered_content = self.render_tab(tab, &state.panes);
+            let mut rendered_content = self.render_tab(tab, &state.panes, &state.mode);
 
             if counter < state.tabs.len() {
                 if let Some(sep) = &self.separator {
@@ -125,7 +132,11 @@ impl Widget for TabsWidget {
 }
 
 impl TabsWidget {
-    fn select_format(&self, info: &TabInfo) -> &Vec<FormattedPart> {
+    fn select_format(&self, info: &TabInfo, mode: &ModeInfo) -> &Vec<FormattedPart> {
+        if info.active && mode.mode == InputMode::RenameTab {
+            return &self.rename_tab_format;
+        }
+
         if info.active && info.is_fullscreen_active {
             return &self.active_tab_fullscreen_format;
         }
@@ -149,15 +160,23 @@ impl TabsWidget {
         &self.normal_tab_format
     }
 
-    fn render_tab(&self, tab: &TabInfo, panes: &PaneManifest) -> String {
-        let formatters = self.select_format(tab);
+    fn render_tab(&self, tab: &TabInfo, panes: &PaneManifest, mode: &ModeInfo) -> String {
+        let formatters = self.select_format(tab, mode);
         let mut output = "".to_owned();
 
         for f in formatters.iter() {
             let mut content = f.content.clone();
 
+            let tab_name = match mode.mode {
+                InputMode::RenameTab => match tab.name.is_empty() {
+                    true => "Enter name...",
+                    false => tab.name.as_str(),
+                },
+                _name => tab.name.as_str(),
+            };
+
             if content.contains("{name}") {
-                content = content.replace("{name}", tab.name.as_str());
+                content = content.replace("{name}", tab_name);
             }
 
             if content.contains("{index}") {

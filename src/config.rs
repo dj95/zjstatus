@@ -1,5 +1,6 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, str::FromStr, sync::Arc};
 
+use itertools::Itertools;
 use regex::Regex;
 use zellij_tile::prelude::*;
 
@@ -22,6 +23,26 @@ pub struct ZellijState {
     pub start_time: DateTime<Local>,
     pub incoming_notification: Option<notification::Message>,
     pub cache_mask: u8,
+}
+
+#[derive(Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Copy)]
+pub enum Part {
+    Left,
+    Center,
+    Right,
+}
+
+impl FromStr for Part {
+    fn from_str(part: &str) -> Result<Self> {
+        match part {
+            "l" => Ok(Part::Left),
+            "c" => Ok(Part::Center),
+            "r" => Ok(Part::Right),
+            _ => anyhow::bail!("Invalid part: {}", part),
+        }
+    }
+
+    type Err = anyhow::Error;
 }
 
 pub enum UpdateEventMask {
@@ -57,6 +78,7 @@ pub struct ModuleConfig {
     pub format_space: FormattedPart,
     pub hide_frame_for_single_pane: bool,
     pub border: BorderConfig,
+    pub format_precedence: Vec<Part>,
 }
 
 impl ModuleConfig {
@@ -86,6 +108,14 @@ impl ModuleConfig {
             None => "",
         };
 
+        let format_precedence = match config.get("format_precedence") {
+            Some(conf) => conf
+                .chars()
+                .map(|c| Part::from_str(&c.to_string()).expect("Invalid part"))
+                .collect(),
+            None => vec![Part::Left, Part::Center, Part::Right],
+        };
+
         let border_config = match parse_border_config(config.clone()) {
             Some(bc) => bc,
             None => BorderConfig::default(),
@@ -101,6 +131,7 @@ impl ModuleConfig {
             format_space: FormattedPart::from_format_string(format_space_config),
             hide_frame_for_single_pane,
             border: border_config,
+            format_precedence,
         }
     }
 
@@ -275,6 +306,9 @@ impl ModuleConfig {
                 )
             });
 
+        let (output_left, output_center, output_right) =
+            self.trim_output(&output_left, &output_center, &output_right, state.cols);
+
         if self.border.enabled {
             let mut border_top = "".to_owned();
             if self.border.enabled && self.border.position == BorderPosition::Top {
@@ -326,6 +360,54 @@ impl ModuleConfig {
             self.get_spacer(&output_left, &output_right, state.cols),
             output_right,
         )
+    }
+
+    fn trim_output(
+        &self,
+        output_left: &str,
+        output_center: &str,
+        output_right: &str,
+        cols: usize,
+    ) -> (String, String, String) {
+        let center_pos = (cols as f32 / 2.0).floor() as usize;
+
+        let mut output = BTreeMap::from([
+            (Part::Left, output_left.to_owned()),
+            (Part::Center, output_center.to_owned()),
+            (Part::Right, output_right.to_owned()),
+        ]);
+
+        let combinations = [
+            (self.format_precedence[2], self.format_precedence[1]),
+            (self.format_precedence[1], self.format_precedence[0]),
+            (self.format_precedence[2], self.format_precedence[0]),
+        ];
+
+        for win in combinations.iter() {
+            let (a, b) = win;
+
+            let part_a = output.get(a).unwrap();
+            let part_b = output.get(b).unwrap();
+
+            let a_count = console::measure_text_width(part_a);
+            let b_count = console::measure_text_width(part_b);
+
+            let overlap = match (a, b) {
+                (Part::Left, Part::Right) => a_count + b_count > cols,
+                (Part::Right, Part::Left) => a_count + b_count > cols,
+                (Part::Left, Part::Center) => a_count > center_pos - (b_count / 2),
+                (Part::Center, Part::Left) => b_count > center_pos - (a_count / 2),
+                (Part::Right, Part::Center) => a_count > center_pos - (b_count / 2),
+                (Part::Center, Part::Right) => b_count > center_pos - (a_count / 2),
+                _ => false,
+            };
+
+            if overlap {
+                output.insert(*a, "".to_owned());
+            }
+        }
+
+        output.values().cloned().collect_tuple().unwrap()
     }
 
     #[tracing::instrument(skip_all)]

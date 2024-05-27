@@ -47,6 +47,7 @@
           # Tests currently need to be run via `cargo wasi` which
           # isn't packaged in nixpkgs yet...
           doCheck = false;
+          doNotSign = true;
 
           buildInputs = [
             # Add additional build inputs here

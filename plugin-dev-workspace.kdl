@@ -5,11 +5,12 @@ layout {
 
     pane size=2 borderless=true {
         plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
-            format_left       "{mode}#[fg=#89B4FA,bg=#181825,bold] {session} {tabs}"
-            format_center     "{command_0} {command_1} {command_git_branch} {command_3}"
-            format_right      "{tabs}{notifications}{swap_layout}{datetime}"
-            format_space      "#[bg=#181825]"
-            format_precedence "lrc"
+            format_left               "{mode}#[fg=#89B4FA,bg=#181825,bold] {session} {tabs}"
+            format_center             "{command_0} {command_1} {command_git_branch} {command_3}"
+            format_right              "{tabs}{notifications}{swap_layout}{datetime}"
+            format_space              "#[bg=#181825]"
+            format_precedence         "lrc"
+            format_hide_on_overlength "false"
 
             notification_format_unread "#[fg=#89B4FA,bg=#181825,blink]  #[fg=#89B4FA,bg=#181825] {message} "
             notification_format_no_notifications "#[fg=#89B4FA,bg=#181825,dim]   "

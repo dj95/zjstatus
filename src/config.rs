@@ -79,6 +79,7 @@ pub struct ModuleConfig {
     pub hide_frame_for_single_pane: bool,
     pub border: BorderConfig,
     pub format_precedence: Vec<Part>,
+    pub hide_on_overlength: bool,
 }
 
 impl ModuleConfig {
@@ -125,6 +126,11 @@ impl ModuleConfig {
             None => vec![Part::Left, Part::Center, Part::Right],
         };
 
+        let hide_on_overlength = match config.get("format_hide_on_overlength") {
+            Some(opt) => opt == "true",
+            None => false,
+        };
+
         let border_config = match parse_border_config(config.clone()) {
             Some(bc) => bc,
             None => BorderConfig::default(),
@@ -141,6 +147,7 @@ impl ModuleConfig {
             hide_frame_for_single_pane,
             border: border_config,
             format_precedence,
+            hide_on_overlength,
         })
     }
 
@@ -189,8 +196,10 @@ impl ModuleConfig {
                 )
             });
 
-        let (output_left, output_center, output_right) =
-            self.trim_output(&output_left, &output_center, &output_right, state.cols);
+        let (output_left, output_center, output_right) = match self.hide_on_overlength {
+            true => self.trim_output(&output_left, &output_center, &output_right, state.cols),
+            false => (output_left, output_center, output_right),
+        };
 
         let mut offset = console::measure_text_width(&output_left);
 
@@ -318,8 +327,10 @@ impl ModuleConfig {
                 )
             });
 
-        let (output_left, output_center, output_right) =
-            self.trim_output(&output_left, &output_center, &output_right, state.cols);
+        let (output_left, output_center, output_right) = match self.hide_on_overlength {
+            true => self.trim_output(&output_left, &output_center, &output_right, state.cols),
+            false => (output_left, output_center, output_right),
+        };
 
         if self.border.enabled {
             let mut border_top = "".to_owned();

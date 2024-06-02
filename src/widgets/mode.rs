@@ -139,7 +139,7 @@ impl Widget for ModeWidget {
             })
     }
 
-    fn process_click(&self, _state: &ZellijState, _pos: usize) {}
+    fn process_click(&self, _name: &str, _state: &ZellijState, _pos: usize) {}
 }
 
 impl ModeWidget {

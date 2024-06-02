@@ -37,6 +37,7 @@ struct CommandConfig {
     cwd: Option<PathBuf>,
     interval: i64,
     render_mode: RenderMode,
+    click_action: String,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -113,7 +114,29 @@ impl Widget for CommandWidget {
         }
     }
 
-    fn process_click(&self, _state: &ZellijState, _pos: usize) {}
+    fn process_click(&self, name: &str, _state: &ZellijState, _pos: usize) {
+        let command_config = match self.config.get(name) {
+            Some(cc) => cc,
+            None => {
+                return;
+            }
+        };
+
+        if command_config.click_action.is_empty() {
+            return;
+        }
+
+        let command = commandline_parser(&command_config.click_action);
+        let context: BTreeMap<String, String> = BTreeMap::new();
+
+        tracing::debug!("Running command {:?} {:?}", command, context);
+
+        #[cfg(all(not(feature = "bench"), not(test)))]
+        run_command(
+            &command.iter().map(|x| x.as_str()).collect::<Vec<&str>>(),
+            context,
+        );
+    }
 }
 
 fn render_dynamic_formatted_content(content: &str) -> String {
@@ -190,6 +213,7 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandC
             env: None,
             interval: 1,
             render_mode: RenderMode::Static,
+            click_action: "".to_owned(),
         };
 
         if let Some(existing_conf) = config.get(command_name.as_str()) {
@@ -199,7 +223,13 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandC
         if key.ends_with("command") {
             command_conf
                 .command
-                .clone_from(&zj_conf.get(&key).unwrap().to_owned())
+                .clone_from(&zj_conf.get(&key).unwrap().to_owned());
+        }
+
+        if key.ends_with("clickaction") {
+            command_conf
+                .click_action
+                .clone_from(&zj_conf.get(&key).unwrap().to_owned());
         }
 
         if key.ends_with("env") {
@@ -437,6 +467,7 @@ mod test {
                 cwd: None,
                 interval,
                 render_mode: RenderMode::Static,
+                click_action: "".to_owned(),
             },
             "test",
             state,

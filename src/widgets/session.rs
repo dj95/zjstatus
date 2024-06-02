@@ -18,5 +18,5 @@ impl Widget for SessionWidget {
         }
     }
 
-    fn process_click(&self, _state: &ZellijState, _pos: usize) {}
+    fn process_click(&self, _name: &str, _state: &ZellijState, _pos: usize) {}
 }

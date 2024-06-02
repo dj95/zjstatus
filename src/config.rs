@@ -210,6 +210,7 @@ impl ModuleConfig {
         }
 
         if !output_center.is_empty() {
+            tracing::debug!("widgetclick center");
             offset += console::measure_text_width(&self.get_spacer_left(
                 &output_left,
                 &output_center,
@@ -256,18 +257,23 @@ impl ModuleConfig {
 
         let mut rendered_output = widget_string.clone();
 
-        let tokens: Vec<String> = widget_map.keys().map(|k| format!("{{{k}}}")).collect();
+        let tokens: Vec<String> = widget_map.keys().map(|k| k.to_owned()).collect();
 
-        let widgets_regex = Regex::new("(\\{[a-z_]+\\})").unwrap();
+        let widgets_regex = Regex::new("(\\{[a-z_0-9]+\\})").unwrap();
         for widget in widgets_regex.captures_iter(widget_string.as_str()) {
             let match_name = widget.get(0).unwrap().as_str();
-            if !tokens.contains(&match_name.to_owned()) {
+            let widget_key = match_name.trim_matches(|c| c == '{' || c == '}');
+            let mut widget_key_name = widget_key;
+
+            if widget_key.starts_with("command_") {
+                widget_key_name = "command";
+            }
+
+            if !tokens.contains(&widget_key_name.to_owned()) {
                 continue;
             }
 
-            let wid_name = match_name.trim_matches(|c| c == '{' || c == '}');
-
-            let wid = match widget_map.get(wid_name) {
+            let wid = match widget_map.get(widget_key_name) {
                 Some(wid) => wid,
                 None => continue,
             };
@@ -280,7 +286,7 @@ impl ModuleConfig {
                 None => continue,
             };
 
-            let wid_res = wid.process(wid_name, state);
+            let wid_res = wid.process(widget_key, state);
             rendered_output = rendered_output.replace(match_name, &wid_res);
 
             if click_pos < pos + offset
@@ -289,7 +295,7 @@ impl ModuleConfig {
                 continue;
             }
 
-            wid.process_click(state, click_pos - (pos + offset));
+            wid.process_click(widget_key, state, click_pos - (pos + offset));
         }
 
         console::measure_text_width(&rendered_output)

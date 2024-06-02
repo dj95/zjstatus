@@ -63,5 +63,5 @@ impl Widget for DateTimeWidget {
         self.color_format.format_string(&output)
     }
 
-    fn process_click(&self, _state: &ZellijState, _pos: usize) {}
+    fn process_click(&self, _name: &str, _state: &ZellijState, _pos: usize) {}
 }

@@ -101,7 +101,7 @@ impl Widget for TabsWidget {
         output
     }
 
-    fn process_click(&self, state: &ZellijState, pos: usize) {
+    fn process_click(&self, _name: &str, state: &ZellijState, pos: usize) {
         let mut offset = 0;
         let mut index = 1;
         let mut counter = 0;

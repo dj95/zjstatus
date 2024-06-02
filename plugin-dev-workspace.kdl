@@ -40,9 +40,10 @@ layout {
             tab_sync_indicator      "S"
             tab_fullscreen_indicator "FS"
 
-            command_0_command  "echo \"平仮名, ひらがな 📦\""
-            command_0_format    "#[fg=colour80] {exit_code} {stdout} "
-            command_0_interval  "1"
+            command_0_command      "echo \"平仮名, ひらがな 📦\""
+            command_0_clickaction "bash -c \"zellij --session zjstatus-dev pipe 'zjstatus::notify::hello world!' -n zjstatus\""
+            command_0_format       "#[fg=colour80] {exit_code} {stdout} "
+            command_0_interval     "1"
 
             command_1_command   "date"
             command_1_format    "#[fg=blue,reverse,bg=default,us=red,blink,dim,strikethrough] {exit_code} {stdout} "

@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: '1.76.0'
           profile: minimal
@@ -21,7 +21,7 @@ jobs:
           components: clippy
 
       - name: Run Clippy
-        uses: actions-rs/clippy-check@v1
+        uses: clechasseur/rs-clippy-check@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features --all-targets
@@ -33,13 +33,12 @@ jobs:
       - uses: jcbhmr/setup-wasmtime@v2
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: '1.76.0'
           profile: minimal
           override: true
           target: wasm32-wasi
-          components: clippy
 
       - name: Install cargo wasi
         run: cargo install cargo-wasi

@@ -40,7 +40,7 @@ pub struct FormattedPart {
 }
 
 #[cached(
-    type = "SizedCache<String, FormattedPart>",
+    ty = "SizedCache<String, FormattedPart>",
     create = "{ SizedCache::with_size(100) }",
     convert = r#"{ (format.to_owned()) }"#
 )]
@@ -49,7 +49,7 @@ pub fn formatted_part_from_string_cached(format: &str) -> FormattedPart {
 }
 
 #[cached(
-    type = "SizedCache<String, Vec<FormattedPart>>",
+    ty = "SizedCache<String, Vec<FormattedPart>>",
     create = "{ SizedCache::with_size(100) }",
     convert = r#"{ (config.to_owned()) }"#
 )]
@@ -286,7 +286,7 @@ fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {
 }
 
 #[cached(
-    type = "SizedCache<String, Option<Color>>",
+    ty = "SizedCache<String, Option<Color>>",
     create = "{ SizedCache::with_size(100) }",
     convert = r#"{ (color.to_owned()) }"#
 )]

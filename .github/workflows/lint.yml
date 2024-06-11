@@ -1,3 +1,4 @@
+---
 on: push
 name: Test & Lint
 
@@ -9,28 +10,28 @@ jobs:
   clippy_check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29  # v4
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@d388a4836fcdbde0e50e395dc79a2670ccdef13f  # stable
         with:
           toolchain: '1.76.0'
           target: wasm32-wasi
           components: clippy
 
       - name: Run Clippy
-        uses: clechasseur/rs-clippy-check@v3
+        uses: clechasseur/rs-clippy-check@6489db34e7d7a162364f8ee3d7ad2cd1060dc1d7  # v3
         with:
           args: --all-features --all-targets
 
   tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: jcbhmr/setup-wasmtime@v2
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29  # v4
+      - uses: jcbhmr/setup-wasmtime@960c367a99921eb0b02f5778fce9ae8f110bf0f0  # v2
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@d388a4836fcdbde0e50e395dc79a2670ccdef13f  # stable
         with:
           toolchain: '1.76.0'
           target: wasm32-wasi

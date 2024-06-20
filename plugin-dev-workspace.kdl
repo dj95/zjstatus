@@ -42,7 +42,7 @@ layout {
 
             command_0_command      "echo \"平仮名, ひらがな 📦\""
             command_0_clickaction "bash -c \"zellij --session zjstatus-dev pipe 'zjstatus::notify::hello world!' -n zjstatus\""
-            command_0_format       "#[fg=colour80] {exit_code} {stdout} "
+            command_0_format       "#[fg=colour80] {exit_code} #[fg=colour90] {stdout} "
             command_0_interval     "1"
 
             command_1_command   "date"

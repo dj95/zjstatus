@@ -22,7 +22,7 @@ lazy_static! {
     static ref COMMAND_REGEX: Regex = Regex::new("_[a-zA-Z0-9]+$").unwrap();
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum RenderMode {
     Static,
     Dynamic,
@@ -32,7 +32,7 @@ enum RenderMode {
 #[derive(Clone, Debug)]
 struct CommandConfig {
     command: String,
-    format: FormattedPart,
+    format: Vec<FormattedPart>,
     env: Option<BTreeMap<String, String>>,
     cwd: Option<PathBuf>,
     interval: i64,
@@ -78,37 +78,51 @@ impl Widget for CommandWidget {
             }
         };
 
-        let mut content = command_config.format.content.clone();
+        let content = command_config
+            .format
+            .iter()
+            .map(|f| {
+                let mut content = f.content.clone();
 
-        if content.contains("{exit_code}") {
-            content = content.replace(
-                "{exit_code}",
-                format!("{}", command_result.exit_code.unwrap_or(-1)).as_str(),
-            );
-        }
+                if content.contains("{exit_code}") {
+                    content = content.replace(
+                        "{exit_code}",
+                        format!("{}", command_result.exit_code.unwrap_or(-1)).as_str(),
+                    );
+                }
 
-        if content.contains("{stdout}") {
-            content = content.replace(
-                "{stdout}",
-                command_result
-                    .stdout
-                    .strip_suffix('\n')
-                    .unwrap_or(&command_result.stdout),
-            );
-        }
+                if content.contains("{stdout}") {
+                    content = content.replace(
+                        "{stdout}",
+                        command_result
+                            .stdout
+                            .strip_suffix('\n')
+                            .unwrap_or(&command_result.stdout),
+                    );
+                }
 
-        if content.contains("{stderr}") {
-            content = content.replace(
-                "{stderr}",
-                command_result
-                    .stderr
-                    .strip_suffix('\n')
-                    .unwrap_or(&command_result.stderr),
-            );
-        }
+                if content.contains("{stderr}") {
+                    content = content.replace(
+                        "{stderr}",
+                        command_result
+                            .stderr
+                            .strip_suffix('\n')
+                            .unwrap_or(&command_result.stderr),
+                    );
+                }
+
+                (f, content)
+            })
+            .fold("".to_owned(), |acc, (f, content)| {
+                if command_config.render_mode == RenderMode::Static {
+                    return format!("{acc}{}", f.format_string(&content));
+                }
+
+                format!("{acc}{}", content)
+            });
 
         match command_config.render_mode {
-            RenderMode::Static => command_config.format.format_string(&content),
+            RenderMode::Static => content,
             RenderMode::Dynamic => render_dynamic_formatted_content(&content),
             RenderMode::Raw => content,
         }
@@ -208,7 +222,7 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandC
 
         let mut command_conf = CommandConfig {
             command: "".to_owned(),
-            format: FormattedPart::default(),
+            format: Vec::new(),
             cwd: None,
             env: None,
             interval: 1,
@@ -248,7 +262,8 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandC
         }
 
         if key.ends_with("format") {
-            command_conf.format = FormattedPart::from_format_string(zj_conf.get(&key).unwrap());
+            command_conf.format =
+                FormattedPart::multiple_from_format_string(zj_conf.get(&key).unwrap());
         }
 
         if key.ends_with("interval") {
@@ -462,7 +477,7 @@ mod test {
         let res = run_command_if_needed(
             CommandConfig {
                 command: "echo test".to_owned(),
-                format: FormattedPart::default(),
+                format: Vec::new(),
                 env: None,
                 cwd: None,
                 interval,

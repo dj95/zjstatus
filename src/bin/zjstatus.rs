@@ -1,7 +1,7 @@
 use zellij_tile::prelude::*;
 
 use chrono::Local;
-use std::{collections::BTreeMap, sync::Arc, usize};
+use std::{collections::BTreeMap, sync::Arc};
 use uuid::Uuid;
 
 use zjstatus::{

@@ -131,10 +131,7 @@ impl ModuleConfig {
             None => false,
         };
 
-        let border_config = match parse_border_config(config.clone()) {
-            Some(bc) => bc,
-            None => BorderConfig::default(),
-        };
+        let border_config = parse_border_config(config.clone()).unwrap_or_default();
 
         Ok(Self {
             left_parts_config: left_parts_config.to_owned(),

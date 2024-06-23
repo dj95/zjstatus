@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{cmp, collections::BTreeMap};
 
 use zellij_tile::{
     prelude::{InputMode, ModeInfo, PaneInfo, PaneManifest, TabInfo},
@@ -21,6 +21,9 @@ pub struct TabsWidget {
     fullscreen_indicator: Option<String>,
     floating_indicator: Option<String>,
     sync_indicator: Option<String>,
+    tab_display_count: Option<usize>,
+    tab_truncate_start_format: Option<FormattedPart>,
+    tab_truncate_end_format: Option<FormattedPart>,
 }
 
 impl TabsWidget {
@@ -60,6 +63,22 @@ impl TabsWidget {
             None => active_tab_format.clone(),
         };
 
+        let tab_display_count = match config.get("tab_display_count") {
+            Some(count) => match count.parse::<usize>() {
+                Ok(val) => Some(val),
+                Err(_) => None,
+            },
+            None => None,
+        };
+
+        let tab_truncate_start_format = config
+            .get("tab_truncate_start_format")
+            .map(|form| FormattedPart::from_format_string(form));
+
+        let tab_truncate_end_format = config
+            .get("tab_truncate_end_format")
+            .map(|form| FormattedPart::from_format_string(form));
+
         let separator = config
             .get("tab_separator")
             .map(|s| FormattedPart::from_format_string(s));
@@ -76,6 +95,9 @@ impl TabsWidget {
             floating_indicator: config.get("tab_floating_indicator").cloned(),
             sync_indicator: config.get("tab_sync_indicator").cloned(),
             fullscreen_indicator: config.get("tab_fullscreen_indicator").cloned(),
+            tab_display_count,
+            tab_truncate_start_format,
+            tab_truncate_end_format,
         }
     }
 }
@@ -85,7 +107,16 @@ impl Widget for TabsWidget {
         let mut output = "".to_owned();
         let mut counter = 0;
 
-        for tab in &state.tabs {
+        let (truncated_start, truncated_end, tabs) =
+            get_tab_window(&state.tabs, self.tab_display_count);
+
+        if truncated_start {
+            if let Some(f) = &self.tab_truncate_start_format {
+                output = format!("{}{output}", f.format_string(&f.content));
+            }
+        }
+
+        for tab in &tabs {
             let content = self.render_tab(tab, &state.panes, &state.mode);
             counter += 1;
 
@@ -98,14 +129,41 @@ impl Widget for TabsWidget {
             }
         }
 
+        if truncated_end {
+            if let Some(f) = &self.tab_truncate_end_format {
+                output = format!("{output}{}", f.format_string(&f.content));
+            }
+        }
+
         output
     }
 
     fn process_click(&self, _name: &str, state: &ZellijState, pos: usize) {
         let mut offset = 0;
-        let mut index = 1;
         let mut counter = 0;
-        for tab in &state.tabs {
+
+        let (truncated_start, truncated_end, tabs) =
+            get_tab_window(&state.tabs, self.tab_display_count);
+
+        let active_pos = &state
+            .tabs
+            .iter()
+            .find(|t| t.active)
+            .expect("no active tab")
+            .position
+            + 1;
+
+        if truncated_start {
+            if let Some(f) = &self.tab_truncate_start_format {
+                offset = console::measure_text_width(&f.format_string(&f.content));
+
+                if pos <= offset {
+                    switch_tab_to(active_pos.saturating_sub(1) as u32);
+                }
+            }
+        }
+
+        for tab in &tabs {
             counter += 1;
 
             let mut rendered_content = self.render_tab(tab, &state.panes, &state.mode);
@@ -120,13 +178,22 @@ impl Widget for TabsWidget {
             let content_len = console::measure_text_width(&rendered_content);
 
             if pos > offset && pos < offset + content_len {
-                switch_tab_to(index);
+                switch_tab_to(tab.position as u32 + 1);
 
                 break;
             }
 
-            index += 1;
             offset += content_len;
+        }
+
+        if truncated_end {
+            if let Some(f) = &self.tab_truncate_end_format {
+                offset += console::measure_text_width(&f.format_string(&f.content));
+
+                if pos <= offset {
+                    switch_tab_to(cmp::min(active_pos + 1, state.tabs.len()) as u32);
+                }
+            }
         }
     }
 }
@@ -242,5 +309,428 @@ impl TabsWidget {
         }
 
         content
+    }
+}
+
+pub fn get_tab_window(tabs: &Vec<TabInfo>, max_count: Option<usize>) -> (bool, bool, Vec<TabInfo>) {
+    let max_count = match max_count {
+        Some(count) => count,
+        None => return (false, false, tabs.to_vec()),
+    };
+
+    if tabs.len() <= max_count {
+        return (false, false, tabs.to_vec());
+    }
+
+    let active_index = tabs.iter().position(|t| t.active).expect("no active tab");
+
+    // active tab is in the last #max_count tabs, so return the last #max_count
+    if active_index > tabs.len().saturating_sub(max_count) {
+        return (
+            true,
+            false,
+            tabs.iter()
+                .cloned()
+                .rev()
+                .take(max_count)
+                .rev()
+                .collect::<Vec<TabInfo>>(),
+        );
+    }
+
+    // tabs must be truncated
+    let first_index = active_index.saturating_sub(1);
+    let last_index = cmp::min(first_index + max_count, tabs.len());
+
+    let truncated_start = first_index > 0;
+    let truncated_end = last_index < tabs.len();
+
+    return (
+        truncated_start,
+        truncated_end,
+        tabs.as_slice()[first_index..last_index].to_vec(),
+    );
+}
+
+#[cfg(test)]
+mod test {
+    use zellij_tile::prelude::TabInfo;
+
+    use super::get_tab_window;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(
+        vec![
+            TabInfo {
+                active: false,
+                name: "1".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "2".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: true,
+                name: "3".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "4".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "5".to_owned(),
+                ..TabInfo::default()
+            },
+        ],
+        Some(3),
+        (true, true, vec![
+                TabInfo {
+                    active: false,
+                    name: "2".to_owned(),
+                    ..TabInfo::default()
+                },
+                TabInfo {
+                    active: true,
+                    name: "3".to_owned(),
+                    ..TabInfo::default()
+                },
+                TabInfo {
+                    active: false,
+                    name: "4".to_owned(),
+                    ..TabInfo::default()
+                },
+            ]
+        )
+    )]
+    #[case(
+        vec![
+            TabInfo {
+                active: true,
+                name: "1".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "2".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "3".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "4".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "5".to_owned(),
+                ..TabInfo::default()
+            },
+        ],
+        Some(3),
+        (false, true, vec![
+                TabInfo {
+                    active: true,
+                    name: "1".to_owned(),
+                    ..TabInfo::default()
+                },
+                TabInfo {
+                    active: false,
+                    name: "2".to_owned(),
+                    ..TabInfo::default()
+                },
+                TabInfo {
+                    active: false,
+                    name: "3".to_owned(),
+                    ..TabInfo::default()
+                },
+            ]
+        )
+    )]
+    #[case(
+        vec![
+            TabInfo {
+                active: false,
+                name: "1".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: true,
+                name: "2".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "3".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "4".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "5".to_owned(),
+                ..TabInfo::default()
+            },
+        ],
+        Some(3),
+        (false, true, vec![
+                TabInfo {
+                    active: false,
+                    name: "1".to_owned(),
+                    ..TabInfo::default()
+                },
+                TabInfo {
+                    active: true,
+                    name: "2".to_owned(),
+                    ..TabInfo::default()
+                },
+                TabInfo {
+                    active: false,
+                    name: "3".to_owned(),
+                    ..TabInfo::default()
+                },
+            ]
+        )
+    )]
+    #[case(
+        vec![
+            TabInfo {
+                active: false,
+                name: "1".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "2".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "3".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "4".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: true,
+                name: "5".to_owned(),
+                ..TabInfo::default()
+            },
+        ],
+        Some(3),
+        (true, false, vec![
+                TabInfo {
+                    active: false,
+                    name: "3".to_owned(),
+                    ..TabInfo::default()
+                },
+                TabInfo {
+                    active: false,
+                    name: "4".to_owned(),
+                    ..TabInfo::default()
+                },
+                TabInfo {
+                    active: true,
+                    name: "5".to_owned(),
+                    ..TabInfo::default()
+                },
+            ]
+        )
+    )]
+    #[case(
+        vec![
+            TabInfo {
+                active: false,
+                name: "1".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "2".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "3".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: true,
+                name: "4".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "5".to_owned(),
+                ..TabInfo::default()
+            },
+        ],
+        Some(3),
+        (true, false, vec![
+                TabInfo {
+                    active: false,
+                    name: "3".to_owned(),
+                    ..TabInfo::default()
+                },
+                TabInfo {
+                    active: true,
+                    name: "4".to_owned(),
+                    ..TabInfo::default()
+                },
+                TabInfo {
+                    active: false,
+                    name: "5".to_owned(),
+                    ..TabInfo::default()
+                },
+            ]
+        )
+    )]
+    #[case(
+        vec![
+            TabInfo {
+                active: false,
+                name: "1".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "2".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: true,
+                name: "3".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "4".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "5".to_owned(),
+                ..TabInfo::default()
+            },
+        ],
+        None,
+        (false, false, vec![
+            TabInfo {
+                active: false,
+                name: "1".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "2".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: true,
+                name: "3".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "4".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "5".to_owned(),
+                ..TabInfo::default()
+            },
+            ]
+        )
+    )]
+    #[case(
+        vec![
+            TabInfo {
+                active: false,
+                name: "1".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: true,
+                name: "2".to_owned(),
+                ..TabInfo::default()
+            },
+        ],
+        Some(3),
+        (false, false, vec![
+            TabInfo {
+                active: false,
+                name: "1".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: true,
+                name: "2".to_owned(),
+                ..TabInfo::default()
+            },
+            ]
+        )
+    )]
+    #[case(
+        vec![
+            TabInfo {
+                active: false,
+                name: "1".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: true,
+                name: "2".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "3".to_owned(),
+                ..TabInfo::default()
+            },
+        ],
+        Some(3),
+        (false, false, vec![
+            TabInfo {
+                active: false,
+                name: "1".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: true,
+                name: "2".to_owned(),
+                ..TabInfo::default()
+            },
+            TabInfo {
+                active: false,
+                name: "3".to_owned(),
+                ..TabInfo::default()
+            },
+            ]
+        )
+    )]
+    pub fn test_get_tab_window(
+        #[case] tabs: Vec<TabInfo>,
+        #[case] max_count: Option<usize>,
+        #[case] expected: (bool, bool, Vec<TabInfo>),
+    ) {
+        let res = get_tab_window(&tabs, max_count);
+
+        assert_eq!(res, expected);
     }
 }

@@ -1,9 +1,5 @@
 bench:
-  #!/usr/bin/env bash
-  benchmarks="$(cargo bench --target wasm32-wasi --features=bench --no-run --color=always 2>&1 | tee /dev/tty | grep -oP 'target/.*.wasm')"
-
-  echo "$benchmarks" \
-    | xargs -I{} wasmtime --dir $PWD/target::target {} --bench --color=always
+  cargo bench --features=bench
 
 build:
   cargo build --features tracing

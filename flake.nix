@@ -75,6 +75,7 @@
             cargo-audit
             cargo-component
             cargo-edit
+            cargo-nextest
             cargo-watch
             clippy
             libiconv

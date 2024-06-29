@@ -16,7 +16,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29  # v4
         with:
-          fetch-tags: true
+          fetch-tags: false  # https://github.com/actions/checkout/issues/1467
+
+      - run: git fetch --tags
+        name: Fetch tags manually as a workaround. See https://github.com/actions/checkout/issues/1467
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@d388a4836fcdbde0e50e395dc79a2670ccdef13f  # stable

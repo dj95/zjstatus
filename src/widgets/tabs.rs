@@ -128,7 +128,7 @@ impl Widget for TabsWidget {
 
             output = format!("{}{}", output, content);
 
-            if counter < state.tabs.len() {
+            if counter < tabs.len() {
                 if let Some(sep) = &self.separator {
                     output = format!("{}{}", output, sep.format_string(&sep.content));
                 }
@@ -186,7 +186,7 @@ impl Widget for TabsWidget {
 
             let mut rendered_content = self.render_tab(tab, &state.panes, &state.mode);
 
-            if counter < state.tabs.len() {
+            if counter < tabs.len() {
                 if let Some(sep) = &self.separator {
                     rendered_content =
                         format!("{}{}", rendered_content, sep.format_string(&sep.content));

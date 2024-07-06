@@ -20,6 +20,8 @@
 
 ![Screenshot of the statusbar](./assets/demo.png)
 
+### [👉 Check out and share your awesome configs in the community showcase!](https://github.com/dj95/zjstatus/discussions/44)
+
 <details>
 <summary><h3>Examples</h3></summary>
 <b><a href="./examples/tmux.kdl">tmux style</a></b>

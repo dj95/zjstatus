@@ -4311,7 +4311,7 @@ dependencies = [
 
 [[package]]
 name = "zjstatus"
-version = "0.16.1-rc1"
+version = "0.17.0"
 dependencies = [
  "anstyle",
  "anyhow",

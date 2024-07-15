@@ -30,36 +30,36 @@ impl TabsWidget {
     pub fn new(config: &BTreeMap<String, String>) -> Self {
         let mut normal_tab_format: Vec<FormattedPart> = Vec::new();
         if let Some(form) = config.get("tab_normal") {
-            normal_tab_format = FormattedPart::multiple_from_format_string(form);
+            normal_tab_format = FormattedPart::multiple_from_format_string(form, config);
         }
 
         let normal_tab_fullscreen_format = match config.get("tab_normal_fullscreen") {
-            Some(form) => FormattedPart::multiple_from_format_string(form),
+            Some(form) => FormattedPart::multiple_from_format_string(form, config),
             None => normal_tab_format.clone(),
         };
 
         let normal_tab_sync_format = match config.get("tab_normal_sync") {
-            Some(form) => FormattedPart::multiple_from_format_string(form),
+            Some(form) => FormattedPart::multiple_from_format_string(form, config),
             None => normal_tab_format.clone(),
         };
 
         let mut active_tab_format = normal_tab_format.clone();
         if let Some(form) = config.get("tab_active") {
-            active_tab_format = FormattedPart::multiple_from_format_string(form);
+            active_tab_format = FormattedPart::multiple_from_format_string(form, config);
         }
 
         let active_tab_fullscreen_format = match config.get("tab_active_fullscreen") {
-            Some(form) => FormattedPart::multiple_from_format_string(form),
+            Some(form) => FormattedPart::multiple_from_format_string(form, config),
             None => active_tab_format.clone(),
         };
 
         let active_tab_sync_format = match config.get("tab_active_sync") {
-            Some(form) => FormattedPart::multiple_from_format_string(form),
+            Some(form) => FormattedPart::multiple_from_format_string(form, config),
             None => active_tab_format.clone(),
         };
 
         let rename_tab_format = match config.get("tab_rename") {
-            Some(form) => FormattedPart::multiple_from_format_string(form),
+            Some(form) => FormattedPart::multiple_from_format_string(form, config),
             None => active_tab_format.clone(),
         };
 
@@ -73,15 +73,15 @@ impl TabsWidget {
 
         let tab_truncate_start_format = config
             .get("tab_truncate_start_format")
-            .map(|form| FormattedPart::from_format_string(form));
+            .map(|form| FormattedPart::from_format_string(form, config));
 
         let tab_truncate_end_format = config
             .get("tab_truncate_end_format")
-            .map(|form| FormattedPart::from_format_string(form));
+            .map(|form| FormattedPart::from_format_string(form, config));
 
         let separator = config
             .get("tab_separator")
-            .map(|s| FormattedPart::from_format_string(s));
+            .map(|s| FormattedPart::from_format_string(s, config));
 
         Self {
             normal_tab_format,

@@ -44,28 +44,37 @@ pub struct FormattedPart {
     create = "{ SizedCache::with_size(100) }",
     convert = r#"{ (format.to_owned()) }"#
 )]
-pub fn formatted_part_from_string_cached(format: &str) -> FormattedPart {
-    FormattedPart::from_format_string(format)
+pub fn formatted_part_from_string_cached(
+    format: &str,
+    config: &BTreeMap<String, String>,
+) -> FormattedPart {
+    FormattedPart::from_format_string(format, config)
 }
 
 #[cached(
     ty = "SizedCache<String, Vec<FormattedPart>>",
     create = "{ SizedCache::with_size(100) }",
-    convert = r#"{ (config.to_owned()) }"#
+    convert = r#"{ (config_string.to_owned()) }"#
 )]
-pub fn formatted_parts_from_string_cached(config: &str) -> Vec<FormattedPart> {
-    FormattedPart::multiple_from_format_string(config)
+pub fn formatted_parts_from_string_cached(
+    config_string: &str,
+    config: &BTreeMap<String, String>,
+) -> Vec<FormattedPart> {
+    FormattedPart::multiple_from_format_string(config_string, config)
 }
 
 impl FormattedPart {
-    pub fn multiple_from_format_string(config: &str) -> Vec<Self> {
-        config
+    pub fn multiple_from_format_string(
+        config_string: &str,
+        config: &BTreeMap<String, String>,
+    ) -> Vec<Self> {
+        config_string
             .split("#[")
-            .map(FormattedPart::from_format_string)
+            .map(|s| FormattedPart::from_format_string(s, config))
             .collect()
     }
 
-    pub fn from_format_string(format: &str) -> Self {
+    pub fn from_format_string(format: &str, config: &BTreeMap<String, String>) -> Self {
         let format = match format.starts_with("#[") {
             true => format.strip_prefix("#[").unwrap(),
             false => format,
@@ -91,15 +100,15 @@ impl FormattedPart {
 
         for part in parts {
             if part.starts_with("fg=") {
-                result.fg = parse_color(part.strip_prefix("fg=").unwrap());
+                result.fg = parse_color(part.strip_prefix("fg=").unwrap(), config);
             }
 
             if part.starts_with("bg=") {
-                result.bg = parse_color(part.strip_prefix("bg=").unwrap());
+                result.bg = parse_color(part.strip_prefix("bg=").unwrap(), config);
             }
 
             if part.starts_with("us=") {
-                result.us = parse_color(part.strip_prefix("us=").unwrap());
+                result.us = parse_color(part.strip_prefix("us=").unwrap(), config);
             }
 
             if part.eq("reverse") {
@@ -290,8 +299,17 @@ fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {
     create = "{ SizedCache::with_size(100) }",
     convert = r#"{ (color.to_owned()) }"#
 )]
-fn parse_color(color: &str) -> Option<Color> {
+fn parse_color(color: &str, config: &BTreeMap<String, String>) -> Option<Color> {
     let mut color = color;
+    if color.starts_with('{') {
+        let alias_name = &color[1..color.len() - 1];
+
+        color = match config.get(&format!("color_{alias_name}")) {
+            Some(color_str) => color_str,
+            None => return None,
+        };
+    }
+
     if color.starts_with('#') {
         let rgb = match hex_to_rgb(color.strip_prefix('#').unwrap()) {
             Ok(rgb) => rgb,
@@ -376,18 +394,28 @@ mod test {
 
     #[test]
     fn test_parse_color() {
-        let result = parse_color("#010203");
+        let mut config: BTreeMap<String, String> = BTreeMap::new();
+        config.insert("color_green".to_owned(), "#00ff00".to_owned());
+
+        let result = parse_color("#010203", &config);
         let expected = RgbColor(1, 2, 3);
         assert_eq!(result, Some(expected.into()));
 
-        let result = parse_color("255");
+        let result = parse_color("255", &config);
         let expected = Ansi256Color(255);
         assert_eq!(result, Some(expected.into()));
 
-        let result = parse_color("365");
+        let result = parse_color("365", &config);
         assert_eq!(result, None);
 
-        let result = parse_color("#365");
+        let result = parse_color("#365", &config);
+        assert_eq!(result, None);
+
+        let result = parse_color("{green}", &config);
+        let expected = RgbColor(0, 255, 0);
+        assert_eq!(result, Some(expected.into()));
+
+        let result = parse_color("{blue}", &config);
         assert_eq!(result, None);
     }
 }

@@ -36,7 +36,7 @@ impl BorderConfig {
     }
 }
 
-pub fn parse_border_config(config: BTreeMap<String, String>) -> Option<BorderConfig> {
+pub fn parse_border_config(config: &BTreeMap<String, String>) -> Option<BorderConfig> {
     let enabled = match config.get("border_enabled") {
         Some(e) => matches!(e.as_str(), "true"),
         None => {
@@ -65,7 +65,7 @@ pub fn parse_border_config(config: BTreeMap<String, String>) -> Option<BorderCon
     Some(BorderConfig {
         enabled,
         char: char.to_owned(),
-        format: FormattedPart::from_format_string(format),
+        format: FormattedPart::from_format_string(format, config),
         position,
     })
 }

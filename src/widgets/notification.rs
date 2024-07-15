@@ -20,13 +20,13 @@ pub struct NotificationWidget {
 impl NotificationWidget {
     pub fn new(config: &BTreeMap<String, String>) -> Self {
         let format_unread = match config.get("notification_format_unread") {
-            Some(f) => FormattedPart::multiple_from_format_string(f),
-            None => FormattedPart::multiple_from_format_string(""),
+            Some(f) => FormattedPart::multiple_from_format_string(f, config),
+            None => FormattedPart::multiple_from_format_string("", config),
         };
 
         let format_no_notifications = match config.get("notification_format_no_notifications") {
-            Some(f) => FormattedPart::multiple_from_format_string(f),
-            None => FormattedPart::multiple_from_format_string(""),
+            Some(f) => FormattedPart::multiple_from_format_string(f, config),
+            None => FormattedPart::multiple_from_format_string("", config),
         };
 
         let show_interval = match config.get("notification_show_interval") {

@@ -50,12 +50,14 @@ pub struct CommandResult {
 
 pub struct CommandWidget {
     config: BTreeMap<String, CommandConfig>,
+    zj_conf: BTreeMap<String, String>,
 }
 
 impl CommandWidget {
     pub fn new(config: &BTreeMap<String, String>) -> Self {
         Self {
             config: parse_config(config),
+            zj_conf: config.clone(),
         }
     }
 }
@@ -123,7 +125,7 @@ impl Widget for CommandWidget {
 
         match command_config.render_mode {
             RenderMode::Static => content,
-            RenderMode::Dynamic => render_dynamic_formatted_content(&content),
+            RenderMode::Dynamic => render_dynamic_formatted_content(&content, &self.zj_conf),
             RenderMode::Raw => content,
         }
     }
@@ -153,8 +155,8 @@ impl Widget for CommandWidget {
     }
 }
 
-fn render_dynamic_formatted_content(content: &str) -> String {
-    formatted_parts_from_string_cached(content)
+fn render_dynamic_formatted_content(content: &str, config: &BTreeMap<String, String>) -> String {
+    formatted_parts_from_string_cached(content, config)
         .iter()
         .map(|fp| fp.format_string(&fp.content))
         .collect::<Vec<String>>()
@@ -263,7 +265,7 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandC
 
         if key.ends_with("format") {
             command_conf.format =
-                FormattedPart::multiple_from_format_string(zj_conf.get(&key).unwrap());
+                FormattedPart::multiple_from_format_string(zj_conf.get(&key).unwrap(), zj_conf);
         }
 
         if key.ends_with("interval") {

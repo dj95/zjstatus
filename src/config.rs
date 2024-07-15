@@ -131,16 +131,16 @@ impl ModuleConfig {
             None => false,
         };
 
-        let border_config = parse_border_config(config.clone()).unwrap_or_default();
+        let border_config = parse_border_config(config).unwrap_or_default();
 
         Ok(Self {
             left_parts_config: left_parts_config.to_owned(),
-            left_parts: parts_from_config(Some(&left_parts_config.to_owned())),
+            left_parts: parts_from_config(Some(&left_parts_config.to_owned()), config),
             center_parts_config: center_parts_config.to_owned(),
-            center_parts: parts_from_config(Some(&center_parts_config.to_owned())),
+            center_parts: parts_from_config(Some(&center_parts_config.to_owned()), config),
             right_parts_config: right_parts_config.to_owned(),
-            right_parts: parts_from_config(Some(&right_parts_config.to_owned())),
-            format_space: FormattedPart::from_format_string(format_space_config),
+            right_parts: parts_from_config(Some(&right_parts_config.to_owned()), config),
+            format_space: FormattedPart::from_format_string(format_space_config, config),
             hide_frame_for_single_pane,
             border: border_config,
             format_precedence,
@@ -478,11 +478,14 @@ impl ModuleConfig {
     }
 }
 
-fn parts_from_config(format: Option<&String>) -> Vec<FormattedPart> {
+fn parts_from_config(
+    format: Option<&String>,
+    config: &BTreeMap<String, String>,
+) -> Vec<FormattedPart> {
     match format {
         Some(format) => format
             .split("#[")
-            .map(FormattedPart::from_format_string)
+            .map(|s| FormattedPart::from_format_string(s, config))
             .collect(),
         None => vec![],
     }
@@ -497,7 +500,7 @@ mod test {
     fn test_formatted_part_from_string() {
         let input = "#[fg=#ff0000,bg=#00ff00,bold,italic]foo";
 
-        let part = FormattedPart::from_format_string(input);
+        let part = FormattedPart::from_format_string(input, &BTreeMap::new());
 
         assert_eq!(
             part,

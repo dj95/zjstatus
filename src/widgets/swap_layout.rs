@@ -13,7 +13,7 @@ impl SwapLayoutWidget {
     pub fn new(config: &BTreeMap<String, String>) -> Self {
         let mut format: Vec<FormattedPart> = Vec::new();
         if let Some(form) = config.get("swap_layout_format") {
-            format = FormattedPart::multiple_from_format_string(form);
+            format = FormattedPart::multiple_from_format_string(form, config);
         }
 
         let hide_if_empty = match config.get("swap_layout_hide_if_empty") {

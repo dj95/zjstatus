@@ -60,6 +60,7 @@ fn bench_moduleconfig_render_bar(c: &mut Criterion) {
 fn bench_formattedpart_format_string_with_widgets(c: &mut Criterion) {
     let mut format = FormattedPart::from_format_string(
         "#[fg=#9399B2,bg=#181825,bold,italic] {mode} {datetime} {session} [] ",
+        &BTreeMap::new(),
     );
 
     let mut widgets: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::new();
@@ -106,6 +107,7 @@ fn bench_formattedpart_from_format_string(c: &mut Criterion) {
         b.iter(|| {
             FormattedPart::from_format_string(
                 "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] ",
+                &BTreeMap::new(),
             )
         })
     });
@@ -116,6 +118,7 @@ fn bench_formattedpart_from_format_string_cached(c: &mut Criterion) {
         b.iter(|| {
             formatted_part_from_string_cached(
                 "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] ",
+                &BTreeMap::new(),
             )
         })
     });
@@ -126,6 +129,7 @@ fn bench_formattedpart_multiple_from_format_string(c: &mut Criterion) {
         b.iter(|| {
             FormattedPart::multiple_from_format_string(
                 "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] #[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] ",
+                &BTreeMap::new(),
             )
         })
     });
@@ -136,6 +140,7 @@ fn bench_formattedparts_from_format_string_cached(c: &mut Criterion) {
         b.iter(|| {
             formatted_parts_from_string_cached(
                 "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] #[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] ",
+                &BTreeMap::new(),
             )
         })
     });

@@ -301,8 +301,8 @@ fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {
 )]
 fn parse_color(color: &str, config: &BTreeMap<String, String>) -> Option<Color> {
     let mut color = color;
-    if color.starts_with('{') {
-        let alias_name = &color[1..color.len() - 1];
+    if color.starts_with('$') {
+        let alias_name = color.strip_prefix('$').unwrap();
 
         color = match config.get(&format!("color_{alias_name}")) {
             Some(color_str) => color_str,
@@ -411,11 +411,11 @@ mod test {
         let result = parse_color("#365", &config);
         assert_eq!(result, None);
 
-        let result = parse_color("{green}", &config);
+        let result = parse_color("$green", &config);
         let expected = RgbColor(0, 255, 0);
         assert_eq!(result, Some(expected.into()));
 
-        let result = parse_color("{blue}", &config);
+        let result = parse_color("$blue", &config);
         assert_eq!(result, None);
     }
 }

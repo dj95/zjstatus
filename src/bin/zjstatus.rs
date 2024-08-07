@@ -98,6 +98,7 @@ impl ZellijPlugin for State {
             start_time: Local::now(),
             cache_mask: 0,
             incoming_notification: None,
+            hidden: false,
         };
     }
 
@@ -275,6 +276,23 @@ impl State {
             Event::TabUpdate(tab_info) => {
                 tracing::Span::current().record("event_type", "Event::TabUpdate");
                 tracing::debug!(tab_count = ?tab_info.len());
+
+                let active_tab_pos = tab_info.iter().find(|t| t.active).unwrap().position;
+                let panes = self.state.panes.panes.get(&active_tab_pos);
+
+                if let Some(panes) = panes {
+                    panes.iter().for_each(|p| {
+                        if p.is_focused && !p.is_selectable {
+                            let new_pane_id = panes
+                                .iter()
+                                .find(|p| p.is_selectable && !p.is_suppressed)
+                                .unwrap()
+                                .id;
+
+                            focus_terminal_pane(new_pane_id, false);
+                        }
+                    });
+                }
 
                 self.state.cache_mask = UpdateEventMask::Tab as u8;
                 self.state.tabs = tab_info;

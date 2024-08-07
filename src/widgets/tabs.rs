@@ -22,8 +22,8 @@ pub struct TabsWidget {
     floating_indicator: Option<String>,
     sync_indicator: Option<String>,
     tab_display_count: Option<usize>,
-    tab_truncate_start_format: Option<FormattedPart>,
-    tab_truncate_end_format: Option<FormattedPart>,
+    tab_truncate_start_format: Vec<FormattedPart>,
+    tab_truncate_end_format: Vec<FormattedPart>,
 }
 
 impl TabsWidget {
@@ -73,11 +73,13 @@ impl TabsWidget {
 
         let tab_truncate_start_format = config
             .get("tab_truncate_start_format")
-            .map(|form| FormattedPart::from_format_string(form, config));
+            .map(|form| FormattedPart::multiple_from_format_string(form, config))
+            .unwrap_or_default();
 
         let tab_truncate_end_format = config
             .get("tab_truncate_end_format")
-            .map(|form| FormattedPart::from_format_string(form, config));
+            .map(|form| FormattedPart::multiple_from_format_string(form, config))
+            .unwrap_or_default();
 
         let separator = config
             .get("tab_separator")
@@ -111,14 +113,14 @@ impl Widget for TabsWidget {
             get_tab_window(&state.tabs, self.tab_display_count);
 
         if truncated_start > 0 {
-            if let Some(f) = &self.tab_truncate_start_format {
+            for f in &self.tab_truncate_start_format {
                 let mut content = f.content.clone();
 
                 if content.contains("{count}") {
                     content = content.replace("{count}", (truncated_start).to_string().as_str());
                 }
 
-                output = format!("{}{output}", f.format_string(&content));
+                output = format!("{output}{}", f.format_string(&content));
             }
         }
 
@@ -136,7 +138,7 @@ impl Widget for TabsWidget {
         }
 
         if truncated_end > 0 {
-            if let Some(f) = &self.tab_truncate_end_format {
+            for f in &self.tab_truncate_end_format {
                 let mut content = f.content.clone();
 
                 if content.contains("{count}") {
@@ -166,14 +168,14 @@ impl Widget for TabsWidget {
             + 1;
 
         if truncated_start > 0 {
-            if let Some(f) = &self.tab_truncate_start_format {
+            for f in &self.tab_truncate_start_format {
                 let mut content = f.content.clone();
 
                 if content.contains("{count}") {
                     content = content.replace("{count}", (truncated_end).to_string().as_str());
                 }
 
-                offset = console::measure_text_width(&f.format_string(&content));
+                offset += console::measure_text_width(&f.format_string(&content));
 
                 if pos <= offset {
                     switch_tab_to(active_pos.saturating_sub(1) as u32);
@@ -205,7 +207,7 @@ impl Widget for TabsWidget {
         }
 
         if truncated_end > 0 {
-            if let Some(f) = &self.tab_truncate_end_format {
+            for f in &self.tab_truncate_end_format {
                 let mut content = f.content.clone();
 
                 if content.contains("{count}") {
@@ -276,7 +278,7 @@ impl TabsWidget {
 
             if content.contains("{floating_total_count}") {
                 let panes_for_tab: Vec<PaneInfo> =
-                    panes.panes.get(&tab.position).cloned().unwrap_or(vec![]);
+                    panes.panes.get(&tab.position).cloned().unwrap_or_default();
 
                 content = content.replace(
                     "{floating_total_count}",
@@ -318,7 +320,7 @@ impl TabsWidget {
 
         if content.contains("{floating_indicator}") && self.floating_indicator.is_some() {
             let panes_for_tab: Vec<PaneInfo> =
-                panes.panes.get(&tab.position).cloned().unwrap_or(vec![]);
+                panes.panes.get(&tab.position).cloned().unwrap_or_default();
 
             let is_floating = panes_for_tab.iter().any(|p| p.is_floating);
 

@@ -72,7 +72,7 @@
           # from the toolchain that was specified earlier.
           packages = with pkgs; [
             rustWithWasiTarget
-            cargo-audit
+            # cargo-audit
             cargo-component
             cargo-edit
             cargo-nextest

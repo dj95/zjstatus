@@ -18,18 +18,18 @@ tracing = []
 [dependencies]
 zellij-tile = "0.40.1"
 chrono = { version = "0.4.38", default-features = false }
-regex = "1.10.5"
-chrono-tz = "0.9.0"
-anyhow = "1.0.86"
-anstyle = "1.0.7"
+regex = "1.10.6"
+chrono-tz = "0.10.0"
+anyhow = "1.0.89"
+anstyle = "1.0.8"
 uuid = { version = "1.10.0", features = ["v4"] }
 lazy_static = "1.5.0"
-cached = { version = "0.52.0", features = ["wasm"] }
+cached = { version = "0.53.1", features = ["wasm"] }
 console = "0.15.8"
 tracing-subscriber = "0.3.18"
 tracing = "0.1.40"
 kdl = "4.6.0"
-rstest = "0.21.0"
+rstest = "0.22.0"
 itertools = "0.13.0"
 
 [dev-dependencies]

@@ -24,10 +24,10 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@d388a4836fcdbde0e50e395dc79a2670ccdef13f  # stable
         with:
-          toolchain: '1.76.0'
           profile: minimal
           override: true
-          target: wasm32-wasi
+          toolchain: '1.81.0'
+          target: wasm32-wasip1
 
       - name: Build release binary
         run: cargo build --release

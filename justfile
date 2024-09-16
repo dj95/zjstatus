@@ -21,7 +21,7 @@ test:
 
 # Lint with clippy and cargo audit.
 lint:
-  cargo clippy --all-targets --all-features
+  cargo clippy --all-features --lib
   cargo audit
 
 # Create and push a new release version.

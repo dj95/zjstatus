@@ -27,7 +27,7 @@
 
         rustWithWasiTarget = pkgs.rust-bin.stable.latest.default.override {
           extensions = [ "rust-src" "rust-std" "rust-analyzer" ];
-          targets = [ "wasm32-wasi" ];
+          targets = [ "wasm32-wasip1" ];
         };
 
         # NB: we don't need to overlay our custom toolchain for the *entire*
@@ -68,6 +68,7 @@
           # Extra inputs can be added here; cargo and rustc are provided by default
           # from the toolchain that was specified earlier.
           packages = with pkgs; [
+            just
             rustWithWasiTarget
             cargo-audit
             cargo-component

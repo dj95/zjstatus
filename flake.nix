@@ -39,7 +39,7 @@
         zjstatus = craneLib.buildPackage {
           src = craneLib.cleanCargoSource (craneLib.path ./.);
 
-          cargoExtraArgs = "--target wasm32-wasi";
+          cargoExtraArgs = "--target wasm32-wasip1";
 
           # Tests currently need to be run via `cargo wasi` which
           # isn't packaged in nixpkgs yet...

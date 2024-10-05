@@ -77,6 +77,7 @@ pub struct ModuleConfig {
     pub right_parts: Vec<FormattedPart>,
     pub format_space: FormattedPart,
     pub hide_frame_for_single_pane: bool,
+    pub hide_frame_except_for_search: bool,
     pub border: BorderConfig,
     pub format_precedence: Vec<Part>,
     pub hide_on_overlength: bool,
@@ -90,6 +91,10 @@ impl ModuleConfig {
         };
 
         let hide_frame_for_single_pane = match config.get("hide_frame_for_single_pane") {
+            Some(toggle) => toggle == "true",
+            None => false,
+        };
+        let hide_frame_except_for_search = match config.get("hide_frame_except_for_search") {
             Some(toggle) => toggle == "true",
             None => false,
         };
@@ -142,6 +147,7 @@ impl ModuleConfig {
             right_parts: parts_from_config(Some(&right_parts_config.to_owned()), config),
             format_space: FormattedPart::from_format_string(format_space_config, config),
             hide_frame_for_single_pane,
+            hide_frame_except_for_search,
             border: border_config,
             format_precedence,
             hide_on_overlength,

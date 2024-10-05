@@ -4,7 +4,7 @@ layout {
     }
 
     pane size=2 borderless=true {
-        plugin location="file:target/wasm32-wasi/debug/zjstatus.wasm" {
+        plugin location="file:target/wasm32-wasip1/debug/zjstatus.wasm" {
             color_blue   "#89B4FA"
             color_yellow "yellow"
             color_bg     "#181825"
@@ -28,7 +28,8 @@ layout {
             swap_layout_format        "#[bg=blue,fg=#000000] {name} #[bg=red,fg=black] foo "
             swap_layout_hide_if_empty "false"
 
-            hide_frame_for_single_pane "true"
+            hide_frame_for_single_pane   "true"
+            hide_frame_except_for_search "false"
 
             mode_normal          "#[bg=$blue] #[bg=yellow] "
             mode_tmux            "#[bg=$yellow] "

@@ -311,7 +311,7 @@ impl ModuleConfig {
     ) -> String {
         if self.left_parts.is_empty() && self.center_parts.is_empty() && self.right_parts.is_empty()
         {
-            return format!("No configuration found. See https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration for more info");
+            return "No configuration found. See https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration for more info".to_string();
         }
 
         let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {

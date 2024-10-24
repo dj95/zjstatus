@@ -309,6 +309,11 @@ impl ModuleConfig {
         state: ZellijState,
         widget_map: BTreeMap<String, Arc<dyn Widget>>,
     ) -> String {
+        if self.left_parts.is_empty() && self.center_parts.is_empty() && self.right_parts.is_empty()
+        {
+            return format!("No configuration found. See https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration for more info");
+        }
+
         let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
             format!(
                 "{acc}{}",
@@ -489,10 +494,13 @@ fn parts_from_config(
     config: &BTreeMap<String, String>,
 ) -> Vec<FormattedPart> {
     match format {
-        Some(format) => format
-            .split("#[")
-            .map(|s| FormattedPart::from_format_string(s, config))
-            .collect(),
+        Some(format) => match format.is_empty() {
+            true => vec![],
+            false => format
+                .split("#[")
+                .map(|s| FormattedPart::from_format_string(s, config))
+                .collect(),
+        },
         None => vec![],
     }
 }

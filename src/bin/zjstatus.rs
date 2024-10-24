@@ -163,11 +163,12 @@ impl ZellijPlugin for State {
         self.state.cols = cols;
 
         tracing::debug!("{:?}", self.state.mode.session_name);
-        print!(
-            "{}",
-            self.module_config
-                .render_bar(self.state.clone(), self.widget_map.clone())
-        );
+
+        let output = self
+            .module_config
+            .render_bar(self.state.clone(), self.widget_map.clone());
+
+        print!("{}", output);
     }
 }
 

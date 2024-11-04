@@ -13,7 +13,7 @@ build:
 
 # Build zjstatus with tracing and start a zellij session with the dev layout.
 run: build
-  zellij -l ./plugin-dev-workspace.kdl -s zjstatus-dev
+  zellij -n ./plugin-dev-workspace.kdl -s zjstatus-dev
 
 # Watch and run tests with nextest.
 test:

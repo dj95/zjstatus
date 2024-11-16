@@ -1,4 +1,4 @@
-<h1 align="center">zjstatus 📈🎨</h1>
+<h1 align="center">zjstatus & zjframes</h1>
 
 <p align="center">
   A configurable and themable statusbar for zellij.
@@ -16,6 +16,9 @@
   <br><br>
   The goal of this statusbar is to provide a highly customizable and extensible statusbar for zellij. Single
   modules can be formatted separately. Due to the widget structure new modules can be created with ease.
+
+  As an addition, this repsitory contains *zjframes* which can be used to toggle pane frames based on different
+  conditions even without loading *zjstatus*, e.g. when using the default status bars.
 </p>
 
 ![Screenshot of the statusbar](./assets/demo.png)
@@ -53,7 +56,10 @@
 > For more detailed instructions, check out the [wiki](https://github.com/dj95/zjstatus/wiki/1-%E2%80%90-Installation)!
 
 Download the latest binary in the github releases. Place it somewhere, zellij is able to access it. Then the
-plugin can be included by referencing it in a layout file, e.g. the default layout one.
+plugin can be included by referencing it in a layout file, e.g. the default layout one, or the config file.
+
+In contrast to *zjstatus*, *zjframes* should only be used in the `load_plugins` option of the *config.kdl*
+from zellij, as it should only be loaded in the background. For more details, please follow the [documentation](https://github.com/dj95/zjstatus/wiki/6---zjframes)
 
 You could also refer to the plugin guide from zellij, after downloading the binary: [https://zellij.dev/documentation/plugin-loading](https://zellij.dev/documentation/plugin-loading)
 
@@ -62,14 +68,15 @@ Please ensure, that the configuration is correct.
 > [!IMPORTANT]
 > In case you experience any crashes or issues, please in the first step try to clear the cache! (`$HOME/.cache/zellij/` for Linux, `$HOME/Library/Caches/org.Zellij-Contributors.Zellij/` on macOS)
 
-Sometimes, especially when updating zjstatus, it might come to caching issues, which can be resolved by clearing it. Please keep in
+Sometimes, especially when updating plugins, it might come to caching issues, which can be resolved by clearing it. Please keep in
 mind, that it will also clear the cache for running sessions and revokes granted permissions for plugins.
 
 ## ❄️ Installation with nix flake
 
 Add this repository to your inputs and then with the following overlay to your packages.
 Then you are able to install and refer to it with `pkgs.zjstatus`. When templating the
-config file, you can use `${pkgs.zjstatus}/bin/zjstatus.wasm` as the path.
+config file, you can use `${pkgs.zjstatus}/bin/zjstatus.wasm` as the path. `${pkgs.zjstatus}/bin/zjframes.wasm`
+is also available in case you only want to use *zjframes*.
 
 ```nix
   inputs = {
@@ -96,14 +103,14 @@ config file, you can use `${pkgs.zjstatus}/bin/zjstatus.wasm` as the path.
 
 ## ⚙️ Configuration
 
-For configuring zjstatus, please follow the [documentation](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration).
+For configuring, please follow the [documentation](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration).
 
-## 🏎️ Quick Start
+## 🏎️ Quick Start for zjstatus
 
 Place the following configuration in your default layout file, e.g. `~/.config/zellij/layouts/default.kdl`. Right after starting zellij, it will prompt for permissions, that needs to be granted in order for zjstatus to work. Simply navigate to the pane or click on it and press `y`. This must be repeated on updates. For more details on permissions, please visit the [wiki](https://github.com/dj95/zjstatus/wiki/2-%E2%80%90-Permissions).
 
 > [!IMPORTANT]
-> Downloading zjstatus as file and using `file:~/path/to/zjstatus.wasm` is highly recommend, even if the quickstart includes the https location. Zellij currently has a bug that corrupts the download, if multiple tabs download the plugin at the same time. For further information check out the issue: [zellij-org/zellij#3479](https://github.com/zellij-org/zellij/issues/3479)
+> Downloading zjstatus as file and using `file:~/path/to/zjstatus.wasm` is recommend, even if the quickstart includes the https location.
 
 > [!IMPORTANT]
 > Using zjstatus involves creating new layouts and overriding the default one. This will lead to swap layouts not working, when they are not configured correctly. Please follow [this documentation](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration#swap-layouts) for getting swap layouts back to work, if you need them.
@@ -145,6 +152,25 @@ layout {
                 datetime_timezone "Europe/Berlin"
             }
         }
+    }
+}
+```
+
+## 🏎️ Quickstart for zjframes
+
+Add the following to the *config.kdl* or add the plugin to `load_plugins`, if you already load other plugins in the background.
+Double check if the configuration matches your expectations. Then restart zellij.
+
+> [!IMPORTANT]
+> Downloading zjstatus as file and using `file:~/path/to/zjframes.wasm` is recommend, even if the quickstart includes the https location.
+
+```javascript
+// Plugins to load in the background when a new session starts
+load_plugins {
+    "https://github.com/dj95/zjstatus/releases/latest/download/zjframes.wasm" {
+        hide_frame_for_single_pane       "true"
+        hide_frame_except_for_search     "true"
+        hide_frame_except_for_fullscreen "true"
     }
 }
 ```

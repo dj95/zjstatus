@@ -203,6 +203,7 @@ impl State {
                 frames::hide_frames_conditionally(
                     self.module_config.hide_frame_for_single_pane,
                     self.module_config.hide_frame_except_for_search,
+                    self.module_config.hide_frame_except_for_fullscreen,
                     &self.state.tabs,
                     &pane_info,
                     &self.state.mode,
@@ -261,6 +262,7 @@ impl State {
                     frames::hide_frames_conditionally(
                         self.module_config.hide_frame_for_single_pane,
                         self.module_config.hide_frame_except_for_search,
+                        self.module_config.hide_frame_except_for_fullscreen,
                         &current_session.tabs,
                         &current_session.panes,
                         &self.state.mode,

@@ -53,7 +53,7 @@ jobs:
           body: ${{ steps.git-cliff.outputs.content }}
           prerelease: false
 
-      - name: Upload wasm file to release
+      - name: Upload zjstatus wasm file to release
         uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1.0.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -61,4 +61,14 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./target/wasm32-wasip1/release/zjstatus.wasm
           asset_name: zjstatus.wasm
+          asset_content_type: application/octet-stream
+
+      - name: Upload zjframes wasm file to release
+        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1.0.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./target/wasm32-wasip1/release/zjframes.wasm
+          asset_name: zjframes.wasm
           asset_content_type: application/octet-stream

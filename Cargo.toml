@@ -8,6 +8,10 @@ edition = "2018"
 name = "zjstatus"
 bench = false
 
+[[bin]]
+name = "zjframes"
+bench = false
+
 [lib]
 bench = false
 

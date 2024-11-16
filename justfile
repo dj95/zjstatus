@@ -12,8 +12,16 @@ build:
   cargo build --features tracing
 
 # Build zjstatus with tracing and start a zellij session with the dev layout.
-run: build
-  zellij -n ./plugin-dev-workspace.kdl -s zjstatus-dev
+run target="zjstatus": build
+  #!/usr/bin/env bash
+  case "{{target}}" in
+  "zjframes")
+    zellij -s zjframes-dev --config ./tests/zjframes/config.kdl -n ./tests/zjframes/layout.kdl
+    ;;
+  *)
+    zellij -s zjstatus-dev -n ./tests/zjstatus/layout.kdl
+    ;;
+  esac
 
 # Watch and run tests with nextest.
 test:

@@ -10,6 +10,13 @@ pub fn hide_frames_conditionally(
     mode_info: &ModeInfo,
     plugin_pane_id: PluginIds,
 ) {
+    if !cfg_hide_frames_for_single_pane
+        && !cfg_hide_frames_except_for_search
+        && !cfg_hide_frames_except_for_fullscreen
+    {
+        return;
+    }
+
     let panes = match get_current_panes(tabs, pane_info) {
         Some(panes) => panes,
         None => return,

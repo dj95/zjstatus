@@ -19,7 +19,7 @@ run target="zjstatus": build
     zellij -s zjframes-dev --config ./tests/zjframes/config.kdl -n ./tests/zjframes/layout.kdl
     ;;
   *)
-    zellij -s zjstatus-dev -n ./tests/zjstatus/layout.kdl
+    zellij -s zjstatus-dev --config ./tests/zjstatus/config.kdl -n ./tests/zjstatus/layout.kdl
     ;;
   esac
 

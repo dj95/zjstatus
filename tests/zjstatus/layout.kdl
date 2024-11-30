@@ -28,9 +28,9 @@ layout {
             swap_layout_format        "#[bg=blue,fg=#000000] {name} #[bg=red,fg=black] foo "
             swap_layout_hide_if_empty "false"
 
-            hide_frame_for_single_pane       "false"
+            hide_frame_for_single_pane       "true"
             hide_frame_except_for_search     "false"
-            hide_frame_except_for_fullscreen "true"
+            hide_frame_except_for_fullscreen "false"
 
             mode_normal          "#[bg=$blue] #[bg=yellow] "
             mode_tmux            "#[bg=$yellow] "

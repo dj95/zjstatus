@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-tags: false  # https://github.com/actions/checkout/issues/1467
 
-      - run: git fetch --all --force
+      - run: git fetch --tags --all --force
         name: Fetch tags manually as a workaround. See https://github.com/actions/checkout/issues/1467
 
       - name: Install Rust

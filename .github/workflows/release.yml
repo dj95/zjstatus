@@ -22,11 +22,11 @@ jobs:
         name: Fetch tags manually as a workaround. See https://github.com/actions/checkout/issues/1467
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@d388a4836fcdbde0e50e395dc79a2670ccdef13f  # stable
+        uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96  # stable
         with:
           profile: minimal
           override: true
-          toolchain: '1.81.0'
+          toolchain: '1.83.0'
           target: wasm32-wasip1
 
       - name: Build release binary

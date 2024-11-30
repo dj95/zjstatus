@@ -33,10 +33,12 @@ lint:
   cargo audit
 
 # Create and push a new release version.
-release version:
-  cargo set-version {{version}}
+release:
+  #!/usr/bin/env bash
+  export VERSION="$( git cliff --bumped-version )"
+  cargo set-version "$VERSION"
   direnv exec . cargo build --release
-  git commit -am "chore: bump version to v{{version}}"
-  git tag -m "v{{version}}" v{{version}}
+  git commit -am "chore: bump version to v$VERSION"
+  git tag -m "v$VERSION" v$VERSION
   git push origin main
-  git push origin "v{{version}}"
+  git push origin "v$VERSION"

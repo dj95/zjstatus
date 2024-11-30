@@ -371,11 +371,11 @@ pub fn get_tab_window(
     let first_index = active_index.saturating_sub(1);
     let last_index = cmp::min(first_index + max_count, tabs.len());
 
-    return (
+    (
         first_index,
         tabs.len().saturating_sub(last_index),
         tabs.as_slice()[first_index..last_index].to_vec(),
-    );
+    )
 }
 
 #[cfg(test)]

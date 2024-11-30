@@ -36,9 +36,9 @@ lint:
 release:
   #!/usr/bin/env bash
   export VERSION="$( git cliff --bumped-version )"
-  cargo set-version "$VERSION"
+  cargo set-version "${VERSION:1}"
   direnv exec . cargo build --release
-  git commit -am "chore: bump version to v$VERSION"
-  git tag -m "v$VERSION" v$VERSION
+  git commit -am "chore: bump version to $VERSION"
+  git tag -m "$VERSION" "$VERSION"
   git push origin main
-  git push origin "v$VERSION"
+  git push origin "$VERSION"

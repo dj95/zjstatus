@@ -1687,11 +1687,11 @@ dependencies = [
 
 [[package]]
 name = "kdl"
-version = "4.6.0"
+version = "4.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "062c875482ccb676fd40c804a40e3824d4464c18c364547456d1c8e8e951ae47"
+checksum = "3a18038fbecda667e7ea2101bdd02af754da5e17ca2887a7649b8f3fa809d8b8"
 dependencies = [
- "miette",
+ "miette 7.4.0",
  "nom",
  "thiserror",
 ]
@@ -1900,7 +1900,7 @@ dependencies = [
  "backtrace",
  "backtrace-ext",
  "is-terminal",
- "miette-derive",
+ "miette-derive 5.10.0",
  "once_cell",
  "owo-colors",
  "supports-color",
@@ -1913,10 +1913,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "miette"
+version = "7.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "317f146e2eb7021892722af37cf1b971f0a70c8406f487e24952667616192c64"
+dependencies = [
+ "cfg-if",
+ "miette-derive 7.4.0",
+ "thiserror",
+ "unicode-width",
+]
+
+[[package]]
 name = "miette-derive"
 version = "5.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49e7bc1560b95a3c4a25d03de42fe76ca718ab92d1a22a55b9b4cf67b3ae635c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.90",
+]
+
+[[package]]
+name = "miette-derive"
+version = "7.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23c9b935fbe1d6cbd1dac857b54a688145e2d93f48db36010514d0f612d0ad67"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3905,7 +3928,7 @@ dependencies = [
  "libc",
  "log",
  "log4rs",
- "miette",
+ "miette 5.10.0",
  "nix 0.23.2",
  "notify-debouncer-full",
  "once_cell",

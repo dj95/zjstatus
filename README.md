@@ -162,7 +162,7 @@ Add the following to the *config.kdl* or add the plugin to `load_plugins`, if yo
 Double check if the configuration matches your expectations. Then restart zellij.
 
 > [!IMPORTANT]
-> Downloading zjstatus as file and using `file:~/path/to/zjframes.wasm` is recommend, even if the quickstart includes the https location.
+> Downloading zjframes as file and using `file:~/path/to/zjframes.wasm` is recommend, even if the quickstart includes the https location.
 
 ```javascript
 // Plugins to load in the background when a new session starts

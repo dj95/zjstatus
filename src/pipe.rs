@@ -1,6 +1,7 @@
 use std::ops::Sub;
 
 use chrono::{Duration, Local};
+use zellij_tile::shim::{focus_terminal_pane, hide_self, show_self};
 
 use crate::{
     config::ZellijState,
@@ -57,6 +58,9 @@ fn process_line(state: &mut ZellijState, line: &str) -> bool {
     let mut should_render = false;
     #[allow(clippy::single_match)]
     match parts[1] {
+        "hide" => {
+            process_hide(state, parts[2]);
+        }
         "rerun" => {
             rerun_command(state, parts[2]);
 
@@ -71,6 +75,44 @@ fn process_line(state: &mut ZellijState, line: &str) -> bool {
     }
 
     should_render
+}
+
+fn process_hide(state: &mut ZellijState, message: &str) {
+    match message {
+        "toggle" => {
+            if state.hidden {
+                show(state);
+            } else {
+                hide(state);
+            }
+        }
+        "hide" => {
+            hide(state);
+        }
+        "show" => {
+            show(state);
+        }
+        _ => {}
+    }
+}
+
+fn hide(state: &mut ZellijState) {
+    hide_self();
+    state.hidden = true;
+}
+
+fn show(state: &mut ZellijState) {
+    let focused_pane_id = state
+        .panes
+        .panes
+        .iter()
+        .find_map(|(_id, t)| t.iter().find(|a| a.is_focused))
+        .unwrap()
+        .id;
+
+    show_self(false);
+    focus_terminal_pane(focused_pane_id, false);
+    state.hidden = false;
 }
 
 fn notify(state: &mut ZellijState, message: &str) {

@@ -5,7 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
     crane = {
-      url = "github:ipetkov/crane/af1556ecda8bcf305820f68ec2f9d77b41d9cc80";
+      url = "github:ipetkov/crane";
     };
 
     flake-utils.url = "github:numtide/flake-utils";

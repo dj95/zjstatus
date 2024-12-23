@@ -32,7 +32,7 @@ cached = { version = "0.54.0", features = ["wasm"] }
 console = "0.15.10"
 tracing-subscriber = "0.3.19"
 tracing = "0.1.41"
-kdl = "4.7.1"
+kdl = { version = "6.1.0", features = ["v1", "v1-fallback"] }
 rstest = "0.23.0"
 itertools = "0.13.0"
 

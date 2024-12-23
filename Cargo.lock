@@ -1702,6 +1702,7 @@ version = "6.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a927c788db5413fbaced8fc5ac08a4a341c50766cba1d363ba3e25f3db343af0"
 dependencies = [
+ "kdl 4.7.1",
  "miette 7.4.0",
  "num",
  "thiserror 1.0.69",

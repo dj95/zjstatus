@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-tags: false  # https://github.com/actions/checkout/issues/1467
 
-      - run: git fetch --tags --all --force
+      - run: git fetch --tags --all --force && git pull origin ${{ github.ref }}  --unshallow --force
         name: Fetch tags manually as a workaround. See https://github.com/actions/checkout/issues/1467
 
       - name: Install Rust
@@ -42,33 +42,13 @@ jobs:
           OUTPUT: CHANGES.md
 
       - name: Create release
-        id: create_release
-        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e  # v1
+        uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974 # v2.1.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && '' || github.ref }}
-          release_name: Release ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
           draft: true
           body: ${{ steps.git-cliff.outputs.content }}
           prerelease: false
-
-      - name: Upload zjstatus wasm file to release
-        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/wasm32-wasip1/release/zjstatus.wasm
-          asset_name: zjstatus.wasm
-          asset_content_type: application/octet-stream
-
-      - name: Upload zjframes wasm file to release
-        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/wasm32-wasip1/release/zjframes.wasm
-          asset_name: zjframes.wasm
-          asset_content_type: application/octet-stream
+          files: |
+            ./target/wasm32-wasip1/release/zjstatus.wasm
+            ./target/wasm32-wasip1/release/zjframes.wasm

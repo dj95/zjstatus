@@ -1,20 +1,41 @@
 use zellij_tile::prelude::*;
 
+pub struct FrameConfig {
+    pub hide_frames_for_single_pane: bool,
+    pub hide_frames_except_for_search: bool,
+    pub hide_frames_except_for_fullscreen: bool,
+}
+
+impl FrameConfig {
+    pub fn new(
+        hide_frames_for_single_pane: bool,
+        hide_frames_except_for_search: bool,
+        hide_frames_except_for_fullscreen: bool,
+    ) -> Self {
+        Self {
+            hide_frames_for_single_pane,
+            hide_frames_except_for_search,
+            hide_frames_except_for_fullscreen,
+        }
+    }
+
+    pub fn is_disabled(&self) -> bool {
+        !self.hide_frames_for_single_pane
+            && !self.hide_frames_except_for_search
+            && !self.hide_frames_except_for_fullscreen
+    }
+}
+
 #[tracing::instrument(skip_all)]
 pub fn hide_frames_conditionally(
-    cfg_hide_frames_for_single_pane: bool,
-    cfg_hide_frames_except_for_search: bool,
-    cfg_hide_frames_except_for_fullscreen: bool,
+    config: &FrameConfig,
     tabs: &[TabInfo],
     pane_info: &PaneManifest,
     mode_info: &ModeInfo,
     plugin_pane_id: PluginIds,
     is_zjframes: bool,
 ) {
-    if !cfg_hide_frames_for_single_pane
-        && !cfg_hide_frames_except_for_search
-        && !cfg_hide_frames_except_for_fullscreen
-    {
+    if config.is_disabled() {
         return;
     }
 
@@ -41,11 +62,11 @@ pub fn hide_frames_conditionally(
     let frame_enabled = panes.iter().any(|p| p.pane_content_x - p.pane_x > 0);
 
     let frames_for_search =
-        cfg_hide_frames_except_for_search && should_show_frames_for_search(mode_info);
+        config.hide_frames_except_for_search && should_show_frames_for_search(mode_info);
     let frames_for_fullscreen =
-        cfg_hide_frames_except_for_fullscreen && should_show_frames_for_fullscreen(&panes);
+        config.hide_frames_except_for_fullscreen && should_show_frames_for_fullscreen(&panes);
     let frames_for_single_pane =
-        cfg_hide_frames_for_single_pane && should_show_frames_for_multiple_panes(mode_info, &panes);
+        config.hide_frames_for_single_pane && should_show_frames_for_multiple_panes(mode_info, &panes);
 
     if (frames_for_search || frames_for_fullscreen || frames_for_single_pane) && !frame_enabled {
         toggle_pane_frames();

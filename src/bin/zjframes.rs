@@ -136,9 +136,11 @@ impl State {
                 self.state.mode = mode_info;
 
                 frames::hide_frames_conditionally(
-                    self.hide_frame_for_single_pane,
-                    self.hide_frame_except_for_search,
-                    self.hide_frame_except_for_fullscreen,
+                    &frames::FrameConfig::new(
+                        self.hide_frame_for_single_pane,
+                        self.hide_frame_except_for_search,
+                        self.hide_frame_except_for_fullscreen,
+                    ),
                     &self.state.tabs,
                     &self.state.panes,
                     &self.state.mode,
@@ -153,9 +155,11 @@ impl State {
                 self.state.panes = pane_info;
 
                 frames::hide_frames_conditionally(
-                    self.hide_frame_for_single_pane,
-                    self.hide_frame_except_for_search,
-                    self.hide_frame_except_for_fullscreen,
+                    &frames::FrameConfig::new(
+                        self.hide_frame_for_single_pane,
+                        self.hide_frame_except_for_search,
+                        self.hide_frame_except_for_fullscreen,
+                    ),
                     &self.state.tabs,
                     &self.state.panes,
                     &self.state.mode,
@@ -176,9 +180,11 @@ impl State {
 
                 if let Some(current_session) = current_session {
                     frames::hide_frames_conditionally(
-                        self.hide_frame_for_single_pane,
-                        self.hide_frame_except_for_search,
-                        self.hide_frame_except_for_fullscreen,
+                        &frames::FrameConfig::new(
+                            self.hide_frame_for_single_pane,
+                            self.hide_frame_except_for_search,
+                            self.hide_frame_except_for_fullscreen,
+                        ),
                         &current_session.tabs,
                         &current_session.panes,
                         &self.state.mode,

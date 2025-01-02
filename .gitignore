@@ -1,3 +1,4 @@
 /target
 .direnv/
 .zjstatus.log
+.zjframes.log

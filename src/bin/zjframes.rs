@@ -32,7 +32,7 @@ fn init_tracing() {
     use std::fs::File;
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-    let file = File::create("/host/.zjstatus.log");
+    let file = File::create("/host/.zjframes.log");
     let file = match file {
         Ok(file) => file,
         Err(error) => panic!("Error: {:?}", error),
@@ -143,6 +143,7 @@ impl State {
                     &self.state.panes,
                     &self.state.mode,
                     get_plugin_ids(),
+                    true,
                 );
             }
             Event::PaneUpdate(pane_info) => {
@@ -159,6 +160,7 @@ impl State {
                     &self.state.panes,
                     &self.state.mode,
                     get_plugin_ids(),
+                    true,
                 );
             }
             Event::PermissionRequestResult(result) => {
@@ -181,6 +183,7 @@ impl State {
                         &current_session.panes,
                         &self.state.mode,
                         get_plugin_ids(),
+                        true,
                     );
                 }
             }

@@ -208,6 +208,7 @@ impl State {
                     &pane_info,
                     &self.state.mode,
                     get_plugin_ids(),
+                    false,
                 );
 
                 self.state.panes = pane_info;
@@ -267,6 +268,7 @@ impl State {
                         &current_session.panes,
                         &self.state.mode,
                         get_plugin_ids(),
+                        false,
                     );
                 }
 

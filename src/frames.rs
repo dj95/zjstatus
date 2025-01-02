@@ -9,6 +9,7 @@ pub fn hide_frames_conditionally(
     pane_info: &PaneManifest,
     mode_info: &ModeInfo,
     plugin_pane_id: PluginIds,
+    is_zjframes: bool,
 ) {
     if !cfg_hide_frames_for_single_pane
         && !cfg_hide_frames_except_for_search
@@ -24,8 +25,11 @@ pub fn hide_frames_conditionally(
 
     // check if we are running for the current tab since one plugin will run for
     // each tab. If we do not prevent execution, the screen will start to flicker
-    // 'cause every plugin will try to toggle the frames
-    if !is_plugin_for_current_tab(&panes, plugin_pane_id) {
+    // 'cause every plugin will try to toggle the frames.
+    //
+    // This is only relevant for zjstatus, not zjframes; as zjframes only
+    // runs once per session.
+    if !is_plugin_for_current_tab(&panes, plugin_pane_id) && !is_zjframes {
         return;
     }
 

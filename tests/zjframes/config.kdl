@@ -221,7 +221,7 @@ plugins {
 // Plugins to load in the background when a new session starts
 load_plugins {
     "file:./target/wasm32-wasip1/debug/zjframes.wasm" {
-        hide_frame_for_single_pane       "false"
+        hide_frame_for_single_pane       "true"
         hide_frame_except_for_search     "true"
         hide_frame_except_for_fullscreen "true"
     }
@@ -259,7 +259,15 @@ load_plugins {
 //   - true (default)
 //   - false
 //
-// pane_frames true
+pane_frames true
+
+
+ui {
+  pane_frames {
+    hide_session_name true
+    rounded_corners true
+  }
+}
 
 // Toggle between having Zellij lay out panes according to a predefined set of layouts whenever possible
 // Options:
@@ -274,7 +282,7 @@ load_plugins {
 //   - true (default)
 //   - false
 //
-// session_serialization false
+session_serialization false
 
 // Whether pane viewports are serialized along with the session, default is false
 // (Requires restart)

@@ -4,6 +4,7 @@ pub struct FrameConfig {
     pub hide_frames_for_single_pane: bool,
     pub hide_frames_except_for_search: bool,
     pub hide_frames_except_for_fullscreen: bool,
+    pub hide_frames_except_for_scroll: bool,
 }
 
 impl FrameConfig {
@@ -11,11 +12,13 @@ impl FrameConfig {
         hide_frames_for_single_pane: bool,
         hide_frames_except_for_search: bool,
         hide_frames_except_for_fullscreen: bool,
+        hide_frames_except_for_scroll: bool,
     ) -> Self {
         Self {
             hide_frames_for_single_pane,
             hide_frames_except_for_search,
             hide_frames_except_for_fullscreen,
+            hide_frames_except_for_scroll,
         }
     }
 
@@ -23,6 +26,7 @@ impl FrameConfig {
         !self.hide_frames_for_single_pane
             && !self.hide_frames_except_for_search
             && !self.hide_frames_except_for_fullscreen
+            && !self.hide_frames_except_for_scroll
     }
 }
 
@@ -67,14 +71,27 @@ pub fn hide_frames_conditionally(
         config.hide_frames_except_for_fullscreen && should_show_frames_for_fullscreen(&panes);
     let frames_for_single_pane = config.hide_frames_for_single_pane
         && should_show_frames_for_multiple_panes(mode_info, &panes);
+    let frames_for_scroll =
+        config.hide_frames_except_for_scroll && should_show_frames_for_scroll(mode_info);
 
-    if (frames_for_search || frames_for_fullscreen || frames_for_single_pane) && !frame_enabled {
+    if (frames_for_search || frames_for_fullscreen || frames_for_single_pane || frames_for_scroll)
+        && !frame_enabled
+    {
         toggle_pane_frames();
     }
 
-    if (!frames_for_search && !frames_for_fullscreen && !frames_for_single_pane) && frame_enabled {
+    if (!frames_for_search
+        && !frames_for_fullscreen
+        && !frames_for_single_pane
+        && !frames_for_scroll)
+        && frame_enabled
+    {
         toggle_pane_frames();
     }
+}
+
+pub fn should_show_frames_for_scroll(mode_info: &ModeInfo) -> bool {
+    mode_info.mode == InputMode::Scroll
 }
 
 pub fn should_show_frames_for_search(mode_info: &ModeInfo) -> bool {

@@ -1,7 +1,6 @@
 layout {
     pane split_direction="vertical" {
-        pane borderless=true
-        pane command="nvim"
+        pane
     }
 
     pane size=2 borderless=true {
@@ -31,9 +30,10 @@ layout {
             swap_layout_format        "#[bg=blue,fg=#000000] {name} #[bg=red,fg=black] foo "
             swap_layout_hide_if_empty "false"
 
-            hide_frame_for_single_pane       "true"
+            hide_frame_for_single_pane       "false"
             hide_frame_except_for_search     "false"
             hide_frame_except_for_fullscreen "false"
+            hide_frame_except_for_scroll     "true"
 
             mode_normal          "#[bg=$blue] #[bg=yellow] "
             mode_tmux            "#[bg=$yellow] "

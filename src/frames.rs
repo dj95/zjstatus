@@ -65,8 +65,8 @@ pub fn hide_frames_conditionally(
         config.hide_frames_except_for_search && should_show_frames_for_search(mode_info);
     let frames_for_fullscreen =
         config.hide_frames_except_for_fullscreen && should_show_frames_for_fullscreen(&panes);
-    let frames_for_single_pane =
-        config.hide_frames_for_single_pane && should_show_frames_for_multiple_panes(mode_info, &panes);
+    let frames_for_single_pane = config.hide_frames_for_single_pane
+        && should_show_frames_for_multiple_panes(mode_info, &panes);
 
     if (frames_for_search || frames_for_fullscreen || frames_for_single_pane) && !frame_enabled {
         toggle_pane_frames();
@@ -78,7 +78,7 @@ pub fn hide_frames_conditionally(
 }
 
 pub fn should_show_frames_for_search(mode_info: &ModeInfo) -> bool {
-    mode_info.mode == InputMode::EnterSearch
+    mode_info.mode == InputMode::EnterSearch || mode_info.mode == InputMode::Search
 }
 
 pub fn should_show_frames_for_fullscreen(panes: &[&PaneInfo]) -> bool {

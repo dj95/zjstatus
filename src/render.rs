@@ -205,6 +205,10 @@ impl FormattedPart {
                 widget_key_name = "command";
             }
 
+            if widget_key.starts_with("pipe_") {
+                widget_key_name = "pipe";
+            }
+
             let widget_mask = event_mask_from_widget_name(widget_key_name);
             let skip_widget_cache = widget_mask & UpdateEventMask::Always as u8 != 0;
             if !skip_widget_cache && widget_mask & state.cache_mask == 0 {
@@ -278,6 +282,10 @@ fn cache_mask_from_content(content: &str) -> u8 {
             widget_key_name = "command";
         }
 
+        if widget_key.starts_with("pipe_") {
+            widget_key_name = "pipe";
+        }
+
         output |= event_mask_from_widget_name(widget_key_name);
     }
     output
@@ -304,10 +312,7 @@ fn parse_color(color: &str, config: &BTreeMap<String, String>) -> Option<Color> 
     if color.starts_with('$') {
         let alias_name = color.strip_prefix('$').unwrap();
 
-        color = match config.get(&format!("color_{alias_name}")) {
-            Some(color_str) => color_str,
-            None => return None,
-        };
+        color = config.get(&format!("color_{alias_name}"))?;
     }
 
     if color.starts_with('#') {

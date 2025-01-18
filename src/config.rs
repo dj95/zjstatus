@@ -15,6 +15,7 @@ use chrono::{DateTime, Local};
 pub struct ZellijState {
     pub cols: usize,
     pub command_results: BTreeMap<String, CommandResult>,
+    pub pipe_results: BTreeMap<String, String>,
     pub mode: ModeInfo,
     pub panes: PaneManifest,
     pub plugin_uuid: String,
@@ -63,6 +64,7 @@ pub fn event_mask_from_widget_name(name: &str) -> u8 {
         "session" => UpdateEventMask::Mode as u8,
         "swap_layout" => UpdateEventMask::Tab as u8,
         "tabs" => UpdateEventMask::Tab as u8,
+        "pipe" => UpdateEventMask::Always as u8,
         _ => UpdateEventMask::None as u8,
     }
 }
@@ -276,6 +278,10 @@ impl ModuleConfig {
 
             if widget_key.starts_with("command_") {
                 widget_key_name = "command";
+            }
+
+            if widget_key.starts_with("pipe_") {
+                widget_key_name = "pipe";
             }
 
             if !tokens.contains(&widget_key_name.to_owned()) {

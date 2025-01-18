@@ -1,6 +1,7 @@
 layout {
     pane split_direction="vertical" {
         pane borderless=true
+        pane command="nvim"
     }
 
     pane size=2 borderless=true {
@@ -10,7 +11,7 @@ layout {
             color_bg     "#181825"
 
             format_left               "{mode}#[fg=$blue,bg=$bg,bold] {session}"
-            format_center             "{tabs} {command_3}"
+            format_center             "{tabs} {command_3} {pipe_1}"
             format_right              "{notifications}{datetime}"
             format_space              "#[bg=$bg]"
             format_precedence         "lrc"
@@ -19,6 +20,8 @@ layout {
             notification_format_unread "#[fg=$blue,bg=$bg,blink]  #[fg=$blue,bg=$bg] {message} "
             notification_format_no_notifications "#[fg=$blue,bg=$bg,dim]   "
             notification_show_interval "10"
+
+            pipe_1_format "#[fg=red] {output}"
 
             border_enabled  "true"
             border_char     "─"

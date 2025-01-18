@@ -67,10 +67,26 @@ fn process_line(state: &mut ZellijState, line: &str) -> bool {
 
             should_render = true;
         }
+        "pipe" => {
+            if parts.len() < 4 {
+                return false;
+            }
+
+            pipe(state, parts[2], parts[3]);
+
+            should_render = true;
+        }
         _ => {}
     }
 
     should_render
+}
+
+fn pipe(state: &mut ZellijState, name: &str, content: &str) {
+    tracing::debug!("saving pipe result {name} {content}");
+    state
+        .pipe_results
+        .insert(name.to_owned(), content.to_owned());
 }
 
 fn notify(state: &mut ZellijState, message: &str) {

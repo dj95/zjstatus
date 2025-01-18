@@ -8,8 +8,8 @@ layout {
 
   tab name="edit" focus=true {
     pane {
-      command "fish"
-      args "-c" "TERM=wezterm direnv exec . nvim"
+      command "direnv"
+      args "exec" "." "hx"
     }
   }
 

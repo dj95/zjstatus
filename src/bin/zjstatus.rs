@@ -12,6 +12,7 @@ use zjstatus::{
         datetime::DateTimeWidget,
         mode::ModeWidget,
         notification::NotificationWidget,
+        pipe::PipeWidget,
         session::SessionWidget,
         swap_layout::SwapLayoutWidget,
         tabs::TabsWidget,
@@ -90,6 +91,7 @@ impl ZellijPlugin for State {
         self.state = ZellijState {
             cols: 0,
             command_results: BTreeMap::new(),
+            pipe_results: BTreeMap::new(),
             mode: ModeInfo::default(),
             panes: PaneManifest::default(),
             plugin_uuid: uid.to_string(),
@@ -307,6 +309,7 @@ fn register_widgets(configuration: &BTreeMap<String, String>) -> BTreeMap<String
         "datetime".to_owned(),
         Arc::new(DateTimeWidget::new(configuration)),
     );
+    widget_map.insert("pipe".to_owned(), Arc::new(PipeWidget::new(configuration)));
     widget_map.insert(
         "swap_layout".to_owned(),
         Arc::new(SwapLayoutWidget::new(configuration)),

@@ -170,6 +170,7 @@ load_plugins {
     "https://github.com/dj95/zjstatus/releases/latest/download/zjframes.wasm" {
         hide_frame_for_single_pane       "true"
         hide_frame_except_for_search     "true"
+        hide_frame_except_for_scroll     "true"
         hide_frame_except_for_fullscreen "true"
     }
 }
@@ -185,6 +186,7 @@ The following widgets are available:
 - [datetime](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#datetime)
 - [mode](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#mode)
 - [notifications](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#notifications)
+- [pipe](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#pipe)
 - [session](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#session)
 - [swap layout](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#swap-layout)
 - [tabs](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#tabs)

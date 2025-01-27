@@ -1698,9 +1698,9 @@ dependencies = [
 
 [[package]]
 name = "kdl"
-version = "6.3.2"
+version = "6.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a029b7a3f0cb86b0fcfd09718eeba23399d285f1827527ab88e88e6f44f6456"
+checksum = "412e2cf22cb560469db5b211c594ff9dcd490c6964e284ea64eddffe41c2249c"
 dependencies = [
  "kdl 4.7.1",
  "miette 7.4.0",
@@ -4148,7 +4148,7 @@ dependencies = [
  "console",
  "criterion",
  "itertools 0.14.0",
- "kdl 6.3.2",
+ "kdl 6.3.3",
  "lazy_static",
  "regex",
  "rstest",

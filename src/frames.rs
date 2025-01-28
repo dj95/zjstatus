@@ -63,7 +63,8 @@ pub fn hide_frames_conditionally(
         .filter(|p| !p.is_plugin && !p.is_floating)
         .collect();
 
-    let frame_enabled = panes.iter().any(|p| p.pane_content_x - p.pane_x > 0);
+    tracing::debug!("panes: {:?}", panes);
+    let frame_enabled = panes.iter().all(|p| p.pane_content_x - p.pane_x > 0);
 
     let frames_for_search =
         config.hide_frames_except_for_search && should_show_frames_for_search(mode_info);
@@ -74,9 +75,19 @@ pub fn hide_frames_conditionally(
     let frames_for_scroll =
         config.hide_frames_except_for_scroll && should_show_frames_for_scroll(mode_info);
 
+    tracing::debug!(
+        "search {:?} fullscreen {:?} single {:?} scroll {:?} actual {:?}",
+        frames_for_search,
+        frames_for_fullscreen,
+        frames_for_single_pane,
+        frames_for_scroll,
+        frame_enabled,
+    );
+
     if (frames_for_search || frames_for_fullscreen || frames_for_single_pane || frames_for_scroll)
         && !frame_enabled
     {
+        tracing::debug!("activate");
         toggle_pane_frames();
     }
 
@@ -86,6 +97,7 @@ pub fn hide_frames_conditionally(
         && !frames_for_scroll)
         && frame_enabled
     {
+        tracing::debug!("deactivate");
         toggle_pane_frames();
     }
 }

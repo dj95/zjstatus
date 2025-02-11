@@ -64,7 +64,10 @@ pub fn hide_frames_conditionally(
         .collect();
 
     tracing::debug!("panes: {:?}", panes);
-    let frame_enabled = panes.iter().all(|p| p.pane_content_x - p.pane_x > 0);
+    let frame_enabled = panes
+        .iter()
+        .filter(|&&p| !p.is_suppressed)
+        .any(|p| p.pane_content_x - p.pane_x > 0);
 
     let frames_for_search =
         config.hide_frames_except_for_search && should_show_frames_for_search(mode_info);

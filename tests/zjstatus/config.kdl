@@ -254,7 +254,7 @@ load_plugins {
 //   - true (default)
 //   - false
 //
-pane_frames true
+pane_frames false
 
 // Toggle between having Zellij lay out panes according to a predefined set of layouts whenever possible
 // Options:

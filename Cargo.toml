@@ -20,7 +20,7 @@ bench = []
 tracing = []
 
 [dependencies]
-zellij-tile = "0.41.2"
+zellij-tile = "0.42.0"
 chrono = { version = "0.4.40", default-features = false }
 regex = "1.11.1"
 chrono-tz = "0.10.1"

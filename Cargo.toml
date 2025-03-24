@@ -23,7 +23,7 @@ tracing = []
 zellij-tile = "0.41.2"
 chrono = { version = "0.4.40", default-features = false }
 regex = "1.11.1"
-chrono-tz = "0.10.1"
+chrono-tz = "0.10.2"
 anyhow = "1.0.97"
 anstyle = "1.0.10"
 uuid = { version = "1.14.0", features = ["v4"] }

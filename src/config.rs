@@ -102,7 +102,8 @@ impl ModuleConfig {
             Some(toggle) => toggle == "true",
             None => false,
         };
-        let hide_frame_except_for_fullscreen = match config.get("hide_frame_except_for_fullscreen") {
+        let hide_frame_except_for_fullscreen = match config.get("hide_frame_except_for_fullscreen")
+        {
             Some(toggle) => toggle == "true",
             None => false,
         };
@@ -181,6 +182,7 @@ impl ModuleConfig {
             Mouse::RightClick(_, y) => y,
             Mouse::Hold(_, y) => y,
             Mouse::Release(_, y) => y,
+            Mouse::Hover(_, _) => return,
         };
 
         let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {

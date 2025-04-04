@@ -22,8 +22,7 @@ run target="zjstatus": build
     ../zellij/target/release/zellij \
       -s zjstatus-dev \
       --config ./tests/zjstatus/config.kdl \
-      -n ~/Downloads/pomoTask.kdl
-      # -n ./tests/zjstatus/layout.kdl
+      -n ./tests/zjstatus/layout.kdl
     ;;
   esac
 

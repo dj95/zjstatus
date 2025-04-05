@@ -38,7 +38,7 @@ jobs:
           target: wasm32-wasip1
 
       - name: Install cargo wasi
-        run: cargo install cargo-wasi
+        run: cargo install cargo-nextest
 
       - name: Run tests
-        run: cargo wasi test --lib -- --nocapture
+        run: cargo nextest run --lib

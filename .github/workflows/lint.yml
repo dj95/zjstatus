@@ -15,7 +15,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96  # stable
         with:
-          toolchain: '1.83.0'
+          toolchain: '1.86.0'
           target: wasm32-wasip1
           components: clippy
 
@@ -23,7 +23,7 @@ jobs:
         uses: clechasseur/rs-clippy-check@23f6dcf86d7e4e0d98b000bba0bb81ac587c44aa  # v3
         with:
           args: --all-features --lib
-          toolchain: '1.83.0'
+          toolchain: '1.86.0'
 
   tests:
     runs-on: ubuntu-latest
@@ -34,7 +34,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96  # stable
         with:
-          toolchain: '1.83.0'
+          toolchain: '1.86.0'
           target: wasm32-wasip1
 
       - name: Install cargo wasi

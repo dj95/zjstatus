@@ -64,10 +64,7 @@ impl TabsWidget {
         };
 
         let tab_display_count = match config.get("tab_display_count") {
-            Some(count) => match count.parse::<usize>() {
-                Ok(val) => Some(val),
-                Err(_) => None,
-            },
+            Some(count) => count.parse::<usize>().ok(),
             None => None,
         };
 

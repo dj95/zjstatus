@@ -37,10 +37,7 @@ impl DateTimeWidget {
             time_zone_string = tz_string;
         }
 
-        let time_zone = match Tz::from_str(time_zone_string) {
-            Ok(tz) => Some(tz),
-            Err(_) => None,
-        };
+        let time_zone = Tz::from_str(time_zone_string).ok();
 
         let mut color_format = "";
         if let Some(form) = config.get("datetime") {

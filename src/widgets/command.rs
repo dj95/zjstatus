@@ -64,6 +64,20 @@ impl CommandWidget {
 
 impl Widget for CommandWidget {
     fn process(&self, name: &str, state: &ZellijState) -> String {
+        let active_tab = state.tabs.iter().find(|t| t.active);
+        let active_tab = active_tab.as_ref().unwrap();
+        let active_pane = state
+            .panes
+            .panes
+            .get(&active_tab.position)
+            .cloned()
+            .unwrap()
+            .into_iter()
+            .find(|p| p.is_focused)
+            .unwrap();
+
+        tracing::debug!("{:?}", active_pane.encode_to_kdl());
+
         let command_config = match self.config.get(name) {
             Some(cc) => cc,
             None => {

@@ -2,7 +2,7 @@
 name = "zjstatus"
 version = "0.20.2"
 authors = ["Daniel Jankowski"]
-edition = "2018"
+edition = "2024"
 
 [[bin]]
 name = "zjstatus"
@@ -21,7 +21,7 @@ tracing = []
 
 [dependencies]
 zellij-tile = "0.42.2"
-chrono = { version = "0.4.41", default-features = false }
+chrono = { version = "0.4.41", default-features = false, features = ["clock"] }
 regex = "1.11.1"
 chrono-tz = "0.10.3"
 anyhow = "1.0.98"

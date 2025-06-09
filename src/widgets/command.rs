@@ -2,7 +2,7 @@ use kdl::{KdlDocument, KdlError};
 use lazy_static::lazy_static;
 use std::{
     collections::BTreeMap,
-    fs::{remove_file, File},
+    fs::{File, remove_file},
     ops::Sub,
     path::{Path, PathBuf},
 };
@@ -12,7 +12,7 @@ use regex::Regex;
 #[cfg(all(not(feature = "bench"), not(test)))]
 use zellij_tile::shim::{run_command, run_command_with_env_variables_and_cwd};
 
-use crate::render::{formatted_parts_from_string_cached, FormattedPart};
+use crate::render::{FormattedPart, formatted_parts_from_string_cached};
 
 use crate::{config::ZellijState, widgets::widget::Widget};
 
@@ -126,7 +126,11 @@ impl Widget for CommandWidget {
         match command_config.render_mode {
             RenderMode::Static => content,
             RenderMode::Dynamic => render_dynamic_formatted_content(&content, &self.zj_conf),
-            RenderMode::Raw => content,
+            RenderMode::Raw => command_result
+                .stdout
+                .strip_suffix('\n')
+                .unwrap_or(&command_result.stdout)
+                .to_owned(),
         }
     }
 

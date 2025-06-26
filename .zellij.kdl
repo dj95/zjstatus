@@ -9,7 +9,7 @@ layout {
   tab name="edit" focus=true {
     pane {
       command "direnv"
-      args "exec" "." "hx"
+      args "exec" "." "nvim"
     }
   }
 
@@ -20,9 +20,5 @@ layout {
         cwd "/var/folders/tt/kygkt3t13gqd68q5rz6ly7pw0000gn/T/zellij-501"
       }
     }
-  }
-
-  tab name="git" {
-    pane
   }
 }

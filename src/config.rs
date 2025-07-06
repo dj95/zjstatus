@@ -21,6 +21,8 @@ pub struct ZellijState {
     pub plugin_uuid: String,
     pub tabs: Vec<TabInfo>,
     pub sessions: Vec<SessionInfo>,
+    pub current_session: SessionInfo,
+    pub current_client: Option<ClientInfo>,
     pub start_time: DateTime<Local>,
     pub incoming_notification: Option<notification::Message>,
     pub cache_mask: u8,

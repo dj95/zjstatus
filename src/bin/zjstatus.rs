@@ -66,6 +66,7 @@ impl ZellijPlugin for State {
         ]);
 
         subscribe(&[
+            EventType::ListClients,
             EventType::Mouse,
             EventType::ModeUpdate,
             EventType::PaneUpdate,
@@ -100,6 +101,8 @@ impl ZellijPlugin for State {
             start_time: Local::now(),
             cache_mask: 0,
             incoming_notification: None,
+            current_session: SessionInfo::default(),
+            current_client: None,
         };
     }
 
@@ -259,8 +262,15 @@ impl State {
                     );
                 }
             }
+            Event::ListClients(clients) => {
+                tracing::debug!("clients: {:?}", clients);
+                if let Some(current_client) = clients.iter().find(|c| c.is_current_client) {
+                    self.state.current_client = Some(current_client.clone());
+                }
+            }
             Event::SessionUpdate(session_info, _) => {
                 tracing::Span::current().record("event_type", "Event::SessionUpdate");
+                list_clients();
 
                 let current_session = session_info.iter().find(|s| s.is_current_session);
 
@@ -278,6 +288,8 @@ impl State {
                         get_plugin_ids(),
                         false,
                     );
+
+                    self.state.current_session = current_session.clone();
                 }
 
                 self.state.sessions = session_info;

@@ -33,7 +33,7 @@ console = "0.16.0"
 tracing-subscriber = "0.3.19"
 tracing = "0.1.41"
 kdl = { version = "6.3.4", features = ["v1", "v1-fallback"] }
-rstest = "0.25.0"
+rstest = "0.26.1"
 itertools = "0.14.0"
 
 [dev-dependencies]

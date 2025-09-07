@@ -38,6 +38,7 @@ struct CommandConfig {
     interval: i64,
     render_mode: RenderMode,
     click_action: String,
+    hide_on_empty_stdout: bool,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -79,6 +80,10 @@ impl Widget for CommandWidget {
                 return "".to_owned();
             }
         };
+
+        if command_config.hide_on_empty_stdout && command_result.stdout.is_empty() {
+            return "".to_owned();
+        }
 
         let content = command_config
             .format
@@ -234,6 +239,7 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandC
             interval: 1,
             render_mode: RenderMode::Static,
             click_action: "".to_owned(),
+            hide_on_empty_stdout: false,
         };
 
         if let Some(existing_conf) = config.get(command_name.as_str()) {
@@ -285,6 +291,13 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandC
                     _ => RenderMode::Static,
                 },
                 None => RenderMode::Static,
+            };
+        }
+
+        if key.ends_with("hideonemptystdout") {
+            command_conf.hide_on_empty_stdout = match zj_conf.get(&key) {
+                Some(val) => val == "true",
+                None => false,
             };
         }
 
@@ -489,6 +502,7 @@ mod test {
                 interval,
                 render_mode: RenderMode::Static,
                 click_action: "".to_owned(),
+                hide_on_empty_stdout: false,
             },
             "test",
             state,

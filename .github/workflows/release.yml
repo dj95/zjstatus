@@ -35,7 +35,7 @@ jobs:
         run: cargo build --release
 
       - name: Generate a changelog
-        uses: orhun/git-cliff-action@d77b37db2e3f7398432d34b72a12aa3e2ba87e51  # v3
+        uses: orhun/git-cliff-action@e16f179f0be49ecdfe63753837f20b9531642772  # v3
         id: git-cliff
         with:
           config: cliff.toml

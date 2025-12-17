@@ -4,6 +4,11 @@ version = "0.21.1"
 authors = ["Daniel Jankowski"]
 edition = "2024"
 
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+
 [[bin]]
 name = "zjstatus"
 bench = false

@@ -12,31 +12,31 @@ jobs:
   clippy_check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96  # stable
+        uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96 # stable
         with:
-          toolchain: '1.87.0'
+          toolchain: "1.91.0"
           target: wasm32-wasip1
           components: clippy
 
       - name: Run Clippy
-        uses: clechasseur/rs-clippy-check@286fd9545eb133adad54b4af34bcb642e266ddd1  # v3
+        uses: clechasseur/rs-clippy-check@286fd9545eb133adad54b4af34bcb642e266ddd1 # v3
         with:
           args: --all-features --lib
-          toolchain: '1.87.0'
+          toolchain: "1.91.0"
 
   tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v4
-      - uses: jcbhmr/setup-wasmtime@960c367a99921eb0b02f5778fce9ae8f110bf0f0  # v2
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
+      - uses: jcbhmr/setup-wasmtime@960c367a99921eb0b02f5778fce9ae8f110bf0f0 # v2
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96  # stable
+        uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96 # stable
         with:
-          toolchain: '1.87.0'
+          toolchain: "1.91.0"
           target: wasm32-wasip1
 
       - name: Install cargo wasi

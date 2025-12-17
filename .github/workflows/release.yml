@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
   workflow_dispatch:
 permissions:
   contents: write
@@ -16,26 +16,26 @@ jobs:
       RUST_BACKTRACE: 1
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
         with:
-          fetch-tags: false  # https://github.com/actions/checkout/issues/1467
+          fetch-tags: false # https://github.com/actions/checkout/issues/1467
 
       - run: git fetch --tags --all --force && git pull origin ${{ github.ref }}  --unshallow --force
         name: Fetch tags manually as a workaround. See https://github.com/actions/checkout/issues/1467
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96  # stable
+        uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96 # stable
         with:
           profile: minimal
           override: true
-          toolchain: '1.87.0'
+          toolchain: "1.91.0"
           target: wasm32-wasip1
 
       - name: Build release binary
         run: cargo build --release
 
       - name: Generate a changelog
-        uses: orhun/git-cliff-action@e16f179f0be49ecdfe63753837f20b9531642772  # v3
+        uses: orhun/git-cliff-action@e16f179f0be49ecdfe63753837f20b9531642772 # v3
         id: git-cliff
         with:
           config: cliff.toml

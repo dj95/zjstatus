@@ -1,4 +1,4 @@
-use cached::{proc_macro::cached, SizedCache};
+use cached::{SizedCache, proc_macro::cached};
 use lazy_static::lazy_static;
 use std::{collections::BTreeMap, sync::Arc};
 
@@ -7,7 +7,7 @@ use regex::Regex;
 use zellij_tile::prelude::bail;
 
 use crate::{
-    config::{event_mask_from_widget_name, UpdateEventMask, ZellijState},
+    config::{UpdateEventMask, ZellijState, event_mask_from_widget_name},
     widgets::widget::Widget,
 };
 
@@ -211,12 +211,13 @@ impl FormattedPart {
 
             let widget_mask = event_mask_from_widget_name(widget_key_name);
             let skip_widget_cache = widget_mask & UpdateEventMask::Always as u8 != 0;
-            if !skip_widget_cache && widget_mask & state.cache_mask == 0 {
-                if let Some(res) = self.cache.get(widget_key) {
-                    tracing::debug!(msg = "hit", typ = "widget", widget = widget_key);
-                    output = output.replace(match_name, res);
-                    continue;
-                }
+            if !skip_widget_cache
+                && widget_mask & state.cache_mask == 0
+                && let Some(res) = self.cache.get(widget_key)
+            {
+                tracing::debug!(msg = "hit", typ = "widget", widget = widget_key);
+                output = output.replace(match_name, res);
+                continue;
             }
 
             tracing::debug!(

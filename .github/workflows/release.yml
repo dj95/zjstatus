@@ -20,6 +20,14 @@ jobs:
         with:
           fetch-tags: false # https://github.com/actions/checkout/issues/1467
 
+      - name: Install WASI SDK
+        run: |
+          wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/wasi-sdk-20.0-linux.tar.gz
+          tar -xzf wasi-sdk-20.0-linux.tar.gz
+          mv wasi-sdk-20.0 /opt/wasi-sdk
+        env:
+          WASI_SDK_PATH: /opt/wasi-sdk
+
       - run: git fetch --tags --all --force && git pull origin ${{ github.ref }}  --unshallow --force
         name: Fetch tags manually as a workaround. See https://github.com/actions/checkout/issues/1467
 
@@ -30,6 +38,8 @@ jobs:
           override: true
           toolchain: "1.91.0"
           target: wasm32-wasip1
+        env:
+          WASI_SDK_PATH: /opt/wasi-sdk
 
       - name: Build release binary
         run: cargo build --release

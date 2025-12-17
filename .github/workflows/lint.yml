@@ -14,6 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v4
 
+      - name: Install WASI SDK
+        run: |
+          wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/wasi-sdk-20.0-linux.tar.gz
+          tar -xzf wasi-sdk-20.0-linux.tar.gz
+          mv wasi-sdk-20.0 /opt/wasi-sdk
+        env:
+          WASI_SDK_PATH: /opt/wasi-sdk
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96 # stable
         with:
@@ -38,6 +46,8 @@ jobs:
         with:
           toolchain: "1.91.0"
           target: wasm32-wasip1
+        env:
+          WASI_SDK_PATH: /opt/wasi-sdk
 
       - name: Install cargo wasi
         run: cargo install cargo-nextest

@@ -1,7 +1,7 @@
 use std::{cmp, collections::BTreeMap};
 
 use zellij_tile::{
-    prelude::{InputMode, ModeInfo, PaneInfo, PaneManifest, TabInfo},
+    prelude::{ClientInfo, InputMode, ModeInfo, PaneInfo, PaneManifest, SessionInfo, TabInfo},
     shim::switch_tab_to,
 };
 
@@ -16,6 +16,7 @@ pub struct TabsWidget {
     normal_tab_format: Vec<FormattedPart>,
     normal_tab_fullscreen_format: Vec<FormattedPart>,
     normal_tab_sync_format: Vec<FormattedPart>,
+    prev_tab_format: Vec<FormattedPart>,
     rename_tab_format: Vec<FormattedPart>,
     separator: Option<FormattedPart>,
     fullscreen_indicator: Option<String>,
@@ -82,6 +83,11 @@ impl TabsWidget {
             .get("tab_separator")
             .map(|s| FormattedPart::from_format_string(s, config));
 
+        let prev_tab_format = match config.get("tab_prev_active") {
+            Some(form) => FormattedPart::multiple_from_format_string(form, config),
+            None => normal_tab_format.clone(),
+        };
+
         Self {
             normal_tab_format,
             normal_tab_fullscreen_format,
@@ -97,6 +103,7 @@ impl TabsWidget {
             tab_display_count,
             tab_truncate_start_format,
             tab_truncate_end_format,
+            prev_tab_format,
         }
     }
 }
@@ -122,7 +129,13 @@ impl Widget for TabsWidget {
         }
 
         for tab in &tabs {
-            let content = self.render_tab(tab, &state.panes, &state.mode);
+            let content = self.render_tab(
+                tab,
+                &state.panes,
+                &state.mode,
+                &state.current_session,
+                state.current_client.clone(),
+            );
             counter += 1;
 
             output = format!("{}{}", output, content);
@@ -183,7 +196,13 @@ impl Widget for TabsWidget {
         for tab in &tabs {
             counter += 1;
 
-            let mut rendered_content = self.render_tab(tab, &state.panes, &state.mode);
+            let mut rendered_content = self.render_tab(
+                tab,
+                &state.panes,
+                &state.mode,
+                &state.current_session,
+                state.current_client.clone(),
+            );
 
             if counter < tabs.len()
                 && let Some(sep) = &self.separator
@@ -222,20 +241,26 @@ impl Widget for TabsWidget {
 }
 
 impl TabsWidget {
-    fn select_format(&self, info: &TabInfo, mode: &ModeInfo) -> &Vec<FormattedPart> {
-        if info.active && mode.mode == InputMode::RenameTab {
-            return &self.rename_tab_format;
-        }
-
-        if info.active && info.is_fullscreen_active {
-            return &self.active_tab_fullscreen_format;
-        }
-
-        if info.active && info.is_sync_panes_active {
-            return &self.active_tab_sync_format;
-        }
-
+    fn select_format(
+        &self,
+        info: &TabInfo,
+        mode: &ModeInfo,
+        current_session: &SessionInfo,
+        current_client: Option<ClientInfo>,
+    ) -> &Vec<FormattedPart> {
         if info.active {
+            if mode.mode == InputMode::RenameTab {
+                return &self.rename_tab_format;
+            }
+
+            if info.is_fullscreen_active {
+                return &self.active_tab_fullscreen_format;
+            }
+
+            if info.is_sync_panes_active {
+                return &self.active_tab_sync_format;
+            }
+
             return &self.active_tab_format;
         }
 
@@ -247,11 +272,33 @@ impl TabsWidget {
             return &self.normal_tab_sync_format;
         }
 
+        tracing::debug!("tab client {:?}", current_client);
+        if let Some(current_client) = current_client {
+            tracing::debug!("tab history {:?}", current_session);
+            let tab_history = current_session.tab_history.get(&current_client.client_id);
+            tracing::debug!("tab history {:?}", tab_history);
+
+            if let Some(tab_history) = tab_history {
+                if tab_history.len() >= 2 {
+                    if tab_history[1] == info.position {
+                        return &self.prev_tab_format;
+                    }
+                }
+            }
+        }
+
         &self.normal_tab_format
     }
 
-    fn render_tab(&self, tab: &TabInfo, panes: &PaneManifest, mode: &ModeInfo) -> String {
-        let formatters = self.select_format(tab, mode);
+    fn render_tab(
+        &self,
+        tab: &TabInfo,
+        panes: &PaneManifest,
+        mode: &ModeInfo,
+        current_session: &SessionInfo,
+        current_client: Option<ClientInfo>,
+    ) -> String {
+        let formatters = self.select_format(tab, mode, current_session, current_client);
         let mut output = "".to_owned();
 
         for f in formatters.iter() {

@@ -139,7 +139,7 @@ impl Widget for CommandWidget {
         }
     }
 
-    fn process_click(&self, name: &str, _state: &ZellijState, _pos: usize) {
+    fn process_click(&self, name: &str, _state: &ZellijState, _pos: usize, _click_type: super::widget::ClickType) {
         let command_config = match self.config.get(name) {
             Some(cc) => cc,
             None => {

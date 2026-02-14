@@ -2,12 +2,12 @@ use std::{cmp, collections::BTreeMap};
 
 use zellij_tile::{
     prelude::{InputMode, ModeInfo, PaneInfo, PaneManifest, TabInfo},
-    shim::switch_tab_to,
+    shim::{close_tab_with_index, switch_tab_to},
 };
 
 use crate::{config::ZellijState, render::FormattedPart};
 
-use super::widget::Widget;
+use super::widget::{ClickType, Widget};
 
 pub struct TabsWidget {
     active_tab_format: Vec<FormattedPart>,
@@ -149,7 +149,7 @@ impl Widget for TabsWidget {
         output
     }
 
-    fn process_click(&self, _name: &str, state: &ZellijState, pos: usize) {
+    fn process_click(&self, _name: &str, state: &ZellijState, pos: usize, click_type: ClickType) {
         let mut offset = 0;
         let mut counter = 0;
 
@@ -195,7 +195,10 @@ impl Widget for TabsWidget {
             let content_len = console::measure_text_width(&rendered_content);
 
             if pos > offset && pos < offset + content_len {
-                switch_tab_to(tab.position as u32 + 1);
+                match click_type {
+                    ClickType::Right => close_tab_with_index(tab.position),
+                    ClickType::Left => switch_tab_to(tab.position as u32 + 1),
+                }
 
                 break;
             }

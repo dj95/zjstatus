@@ -175,13 +175,15 @@ impl ModuleConfig {
         mouse: Mouse,
         widget_map: BTreeMap<String, Arc<dyn Widget>>,
     ) {
-        let click_pos = match mouse {
+        use crate::widgets::widget::ClickType;
+
+        let (click_pos, click_type) = match mouse {
             Mouse::ScrollUp(_) => return,
             Mouse::ScrollDown(_) => return,
-            Mouse::LeftClick(_, y) => y,
-            Mouse::RightClick(_, y) => y,
-            Mouse::Hold(_, y) => y,
-            Mouse::Release(_, y) => y,
+            Mouse::LeftClick(_, y) => (y, ClickType::Left),
+            Mouse::RightClick(_, y) => (y, ClickType::Right),
+            Mouse::Hold(_, y) => (y, ClickType::Left),
+            Mouse::Release(_, y) => (y, ClickType::Left),
             Mouse::Hover(_, _) => return,
         };
 
@@ -222,7 +224,7 @@ impl ModuleConfig {
 
         let mut offset = console::measure_text_width(&output_left);
 
-        self.process_widget_click(click_pos, &self.left_parts, &widget_map, &state, 0);
+        self.process_widget_click(click_pos, &self.left_parts, &widget_map, &state, 0, click_type);
 
         if click_pos <= offset {
             return;
@@ -242,6 +244,7 @@ impl ModuleConfig {
                 &widget_map,
                 &state,
                 offset,
+                click_type,
             );
 
             if click_pos <= offset {
@@ -261,7 +264,7 @@ impl ModuleConfig {
             ));
         }
 
-        self.process_widget_click(click_pos, &self.right_parts, &widget_map, &state, offset);
+        self.process_widget_click(click_pos, &self.right_parts, &widget_map, &state, offset, click_type);
     }
 
     fn process_widget_click(
@@ -271,6 +274,7 @@ impl ModuleConfig {
         widget_map: &BTreeMap<String, Arc<dyn Widget>>,
         state: &ZellijState,
         offset: usize,
+        click_type: crate::widgets::widget::ClickType,
     ) -> usize {
         let widget_string = widgets.iter().fold(String::new(), |a, b| a + &b.content);
 
@@ -318,7 +322,7 @@ impl ModuleConfig {
                 continue;
             }
 
-            wid.process_click(widget_key, state, click_pos - (pos + offset));
+            wid.process_click(widget_key, state, click_pos - (pos + offset), click_type);
         }
 
         console::measure_text_width(&rendered_output)

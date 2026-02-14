@@ -85,7 +85,7 @@ impl Widget for PipeWidget {
         }
     }
 
-    fn process_click(&self, _name: &str, _state: &crate::config::ZellijState, _pos: usize) {}
+    fn process_click(&self, _name: &str, _state: &crate::config::ZellijState, _pos: usize, _click_type: super::widget::ClickType) {}
 }
 
 fn render_dynamic_formatted_content(content: &str, config: &BTreeMap<String, String>) -> String {

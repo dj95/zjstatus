@@ -66,7 +66,7 @@ impl Widget for SwapLayoutWidget {
         output
     }
 
-    fn process_click(&self, _name: &str, _state: &ZellijState, _pos: usize) {
+    fn process_click(&self, _name: &str, _state: &ZellijState, _pos: usize, _click_type: super::widget::ClickType) {
         next_swap_layout()
     }
 }

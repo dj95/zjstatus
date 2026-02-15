@@ -50,7 +50,7 @@ jobs:
           WASI_SDK_PATH: /opt/wasi-sdk
 
       - name: Install cargo wasi
-        run: cargo install cargo-nextest
+        run: cargo install --locked cargo-nextest
 
       - name: Run tests
         run: cargo nextest run --lib

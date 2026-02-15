@@ -29,7 +29,7 @@ zellij-tile = "0.43.1"
 chrono = { version = "0.4.43", default-features = false, features = ["clock"] }
 regex = "1.12.2"
 chrono-tz = "0.10.4"
-anyhow = "1.0.100"
+anyhow = "1.0.101"
 anstyle = "1.0.13"
 uuid = { version = "1.18.1", features = ["v4"] }
 lazy_static = "1.5.0"

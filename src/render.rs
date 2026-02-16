@@ -15,10 +15,20 @@ lazy_static! {
     static ref WIDGET_REGEX: Regex = Regex::new("(\\{[a-z_0-9]+\\})").unwrap();
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
+pub enum ColorSource {
+    #[default]
+    Static,
+    ModeFg,
+    ModeBg,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct FormattedPart {
     pub fg: Option<Color>,
     pub bg: Option<Color>,
+    pub fg_source: ColorSource,
+    pub bg_source: ColorSource,
     pub us: Option<Color>,
     pub effects: anstyle::Effects,
     pub bold: bool,
@@ -100,11 +110,21 @@ impl FormattedPart {
 
         for part in parts {
             if part.starts_with("fg=") {
-                result.fg = parse_color(part.strip_prefix("fg=").unwrap(), config);
+                let color_val = part.strip_prefix("fg=").unwrap();
+                match color_val {
+                    "{mode_fg}" => result.fg_source = ColorSource::ModeFg,
+                    "{mode_bg}" => result.fg_source = ColorSource::ModeBg,
+                    _ => result.fg = parse_color(color_val, config),
+                }
             }
 
             if part.starts_with("bg=") {
-                result.bg = parse_color(part.strip_prefix("bg=").unwrap(), config);
+                let color_val = part.strip_prefix("bg=").unwrap();
+                match color_val {
+                    "{mode_fg}" => result.bg_source = ColorSource::ModeFg,
+                    "{mode_bg}" => result.bg_source = ColorSource::ModeBg,
+                    _ => result.bg = parse_color(color_val, config),
+                }
             }
 
             if part.starts_with("us=") {
@@ -243,6 +263,19 @@ impl FormattedPart {
 
         res
     }
+
+    pub fn update_dynamic_colors(&mut self, mode_fg: Option<Color>, mode_bg: Option<Color>) {
+        match self.fg_source {
+            ColorSource::ModeFg => self.fg = mode_fg,
+            ColorSource::ModeBg => self.fg = mode_bg,
+            ColorSource::Static => {}
+        }
+        match self.bg_source {
+            ColorSource::ModeFg => self.bg = mode_fg,
+            ColorSource::ModeBg => self.bg = mode_bg,
+            ColorSource::Static => {}
+        }
+    }
 }
 
 impl Default for FormattedPart {
@@ -250,6 +283,8 @@ impl Default for FormattedPart {
         Self {
             fg: None,
             bg: None,
+            fg_source: ColorSource::Static,
+            bg_source: ColorSource::Static,
             us: None,
             effects: anstyle::Effects::new(),
             bold: false,
@@ -423,5 +458,82 @@ mod test {
 
         let result = parse_color("$blue", &config);
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_dynamic_color_source_parsing() {
+        let config = BTreeMap::new();
+
+        let part = FormattedPart::from_format_string(
+            "bg={mode_bg},fg={mode_fg},bold] {session} ",
+            &config,
+        );
+
+        assert_eq!(part.fg_source, ColorSource::ModeFg);
+        assert_eq!(part.bg_source, ColorSource::ModeBg);
+        assert_eq!(part.fg, None);
+        assert_eq!(part.bg, None);
+        assert!(part.content.contains("{session}"));
+    }
+
+    #[test]
+    fn test_static_color_source_unchanged() {
+        let config = BTreeMap::new();
+
+        let part = FormattedPart::from_format_string(
+            "bg=#31748f,fg=#191724] text",
+            &config,
+        );
+
+        assert_eq!(part.fg_source, ColorSource::Static);
+        assert_eq!(part.bg_source, ColorSource::Static);
+        assert_eq!(part.fg, Some(RgbColor(0x19, 0x17, 0x24).into()));
+        assert_eq!(part.bg, Some(RgbColor(0x31, 0x74, 0x8f).into()));
+    }
+
+    #[test]
+    fn test_update_dynamic_colors() {
+        let config = BTreeMap::new();
+
+        let mut part = FormattedPart::from_format_string(
+            "bg={mode_bg},fg={mode_fg}] text",
+            &config,
+        );
+
+        let mode_fg = Some(RgbColor(0x19, 0x17, 0x24).into());
+        let mode_bg = Some(RgbColor(0x31, 0x74, 0x8f).into());
+
+        part.update_dynamic_colors(mode_fg, mode_bg);
+        assert_eq!(part.fg, mode_fg);
+        assert_eq!(part.bg, mode_bg);
+
+        // Switch to different mode colors
+        let new_fg = Some(RgbColor(0x18, 0x18, 0x25).into());
+        let new_bg = Some(RgbColor(0xeb, 0x6f, 0x92).into());
+
+        part.update_dynamic_colors(new_fg, new_bg);
+        assert_eq!(part.fg, new_fg);
+        assert_eq!(part.bg, new_bg);
+    }
+
+    #[test]
+    fn test_update_dynamic_colors_noop_on_static() {
+        let config = BTreeMap::new();
+
+        let mut part = FormattedPart::from_format_string(
+            "bg=#31748f,fg=#191724] text",
+            &config,
+        );
+
+        let original_fg = part.fg;
+        let original_bg = part.bg;
+
+        part.update_dynamic_colors(
+            Some(RgbColor(0xff, 0x00, 0x00).into()),
+            Some(RgbColor(0x00, 0xff, 0x00).into()),
+        );
+
+        assert_eq!(part.fg, original_fg);
+        assert_eq!(part.bg, original_bg);
     }
 }

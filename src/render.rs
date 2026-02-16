@@ -351,6 +351,38 @@ fn parse_color(color: &str, config: &BTreeMap<String, String>) -> Option<Color> 
     None
 }
 
+pub fn color_to_format_string(color: Option<Color>) -> String {
+    match color {
+        None => "default".to_string(),
+        Some(color) => match color {
+            Color::Ansi(c) => ansi_color_to_name(c).to_string(),
+            Color::Ansi256(Ansi256Color(n)) => format!("{}", n),
+            Color::Rgb(RgbColor(r, g, b)) => format!("#{:02x}{:02x}{:02x}", r, g, b),
+        },
+    }
+}
+
+fn ansi_color_to_name(color: AnsiColor) -> &'static str {
+    match color {
+        AnsiColor::Black => "black",
+        AnsiColor::Red => "red",
+        AnsiColor::Green => "green",
+        AnsiColor::Yellow => "yellow",
+        AnsiColor::Blue => "blue",
+        AnsiColor::Magenta => "magenta",
+        AnsiColor::Cyan => "cyan",
+        AnsiColor::White => "white",
+        AnsiColor::BrightBlack => "bright_black",
+        AnsiColor::BrightRed => "bright_red",
+        AnsiColor::BrightGreen => "bright_green",
+        AnsiColor::BrightYellow => "bright_yellow",
+        AnsiColor::BrightBlue => "bright_blue",
+        AnsiColor::BrightMagenta => "bright_magenta",
+        AnsiColor::BrightCyan => "bright_cyan",
+        AnsiColor::BrightWhite => "bright_white",
+    }
+}
+
 fn color_by_name(color: &str) -> Option<AnsiColor> {
     match color {
         "black" => Some(AnsiColor::Black),
@@ -423,5 +455,30 @@ mod test {
 
         let result = parse_color("$blue", &config);
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_color_to_format_string() {
+        assert_eq!(color_to_format_string(None), "default");
+
+        assert_eq!(
+            color_to_format_string(Some(RgbColor(255, 0, 128).into())),
+            "#ff0080"
+        );
+
+        assert_eq!(
+            color_to_format_string(Some(AnsiColor::Red.into())),
+            "red"
+        );
+
+        assert_eq!(
+            color_to_format_string(Some(AnsiColor::BrightCyan.into())),
+            "bright_cyan"
+        );
+
+        assert_eq!(
+            color_to_format_string(Some(Ansi256Color(42).into())),
+            "42"
+        );
     }
 }

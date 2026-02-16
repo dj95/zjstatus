@@ -6,7 +6,7 @@ use zellij_tile::prelude::*;
 
 use crate::{
     border::{parse_border_config, BorderConfig, BorderPosition},
-    render::FormattedPart,
+    render::{FormattedPart, color_to_format_string},
     widgets::{command::CommandResult, notification, widget::Widget},
 };
 use chrono::{DateTime, Local};
@@ -85,6 +85,9 @@ pub struct ModuleConfig {
     pub border: BorderConfig,
     pub format_precedence: Vec<Part>,
     pub hide_on_overlength: bool,
+    uses_mode_colors: bool,
+    plugin_config: BTreeMap<String, String>,
+    last_mode: Option<InputMode>,
 }
 
 impl ModuleConfig {
@@ -151,6 +154,10 @@ impl ModuleConfig {
 
         let border_config = parse_border_config(config).unwrap_or_default();
 
+        let uses_mode_colors = [left_parts_config, center_parts_config, right_parts_config]
+            .iter()
+            .any(|s| s.contains("{mode_bg}") || s.contains("{mode_fg}"));
+
         Ok(Self {
             left_parts_config: left_parts_config.to_owned(),
             left_parts: parts_from_config(Some(&left_parts_config.to_owned()), config),
@@ -166,6 +173,9 @@ impl ModuleConfig {
             border: border_config,
             format_precedence,
             hide_on_overlength,
+            uses_mode_colors,
+            plugin_config: config.clone(),
+            last_mode: None,
         })
     }
 
@@ -184,6 +194,8 @@ impl ModuleConfig {
             Mouse::Release(_, y) => y,
             Mouse::Hover(_, _) => return,
         };
+
+        self.resolve_mode_colors(state.mode.mode);
 
         let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
             format!(
@@ -333,6 +345,8 @@ impl ModuleConfig {
         {
             return "No configuration found. See https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration for more info".to_string();
         }
+
+        self.resolve_mode_colors(state.mode.mode);
 
         let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
             format!(
@@ -507,6 +521,72 @@ impl ModuleConfig {
 
         self.format_space.format_string(&" ".repeat(space_count))
     }
+
+    fn resolve_mode_colors(&mut self, mode: InputMode) {
+        if !self.uses_mode_colors || self.last_mode == Some(mode) {
+            return;
+        }
+
+        let (fg, bg) = get_mode_colors(&self.plugin_config, mode);
+        let resolve =
+            |s: &str| s.replace("{mode_fg}", &fg).replace("{mode_bg}", &bg);
+
+        self.left_parts = parts_from_config(
+            Some(&resolve(&self.left_parts_config)),
+            &self.plugin_config,
+        );
+        self.center_parts = parts_from_config(
+            Some(&resolve(&self.center_parts_config)),
+            &self.plugin_config,
+        );
+        self.right_parts = parts_from_config(
+            Some(&resolve(&self.right_parts_config)),
+            &self.plugin_config,
+        );
+        self.last_mode = Some(mode);
+    }
+}
+
+fn get_mode_colors(config: &BTreeMap<String, String>, mode: InputMode) -> (String, String) {
+    let mode_key = match mode {
+        InputMode::Normal => "mode_normal",
+        InputMode::Locked => "mode_locked",
+        InputMode::Resize => "mode_resize",
+        InputMode::Pane => "mode_pane",
+        InputMode::Tab => "mode_tab",
+        InputMode::Scroll => "mode_scroll",
+        InputMode::EnterSearch => "mode_enter_search",
+        InputMode::Search => "mode_search",
+        InputMode::RenameTab => "mode_rename_tab",
+        InputMode::RenamePane => "mode_rename_pane",
+        InputMode::Session => "mode_session",
+        InputMode::Move => "mode_move",
+        InputMode::Prompt => "mode_prompt",
+        InputMode::Tmux => "mode_tmux",
+    };
+
+    let format_str = config
+        .get(mode_key)
+        .or_else(|| {
+            config
+                .get("mode_default_to_mode")
+                .and_then(|default| config.get(&format!("mode_{}", default)))
+        })
+        .or_else(|| config.get("mode_normal"));
+
+    match format_str {
+        Some(s) => {
+            let parts = FormattedPart::multiple_from_format_string(s, config);
+            match parts.last() {
+                Some(part) => (
+                    color_to_format_string(part.fg),
+                    color_to_format_string(part.bg),
+                ),
+                None => ("default".to_string(), "default".to_string()),
+            }
+        }
+        None => ("default".to_string(), "default".to_string()),
+    }
 }
 
 fn parts_from_config(
@@ -546,5 +626,125 @@ mod test {
                 ..Default::default()
             },
         )
+    }
+
+    #[test]
+    fn test_get_mode_colors() {
+        let mut config: BTreeMap<String, String> = BTreeMap::new();
+        config.insert(
+            "mode_locked".to_owned(),
+            "#[bg=#31748f,fg=#191724,bold]  LOCKED ".to_owned(),
+        );
+        config.insert(
+            "mode_tmux".to_owned(),
+            "#[bg=#eb6f92,fg=#191724,bold]  COMMAND ".to_owned(),
+        );
+
+        let (fg, bg) = get_mode_colors(&config, InputMode::Locked);
+        assert_eq!(fg, "#191724");
+        assert_eq!(bg, "#31748f");
+
+        let (fg, bg) = get_mode_colors(&config, InputMode::Tmux);
+        assert_eq!(fg, "#191724");
+        assert_eq!(bg, "#eb6f92");
+    }
+
+    #[test]
+    fn test_get_mode_colors_with_default_to_mode() {
+        let mut config: BTreeMap<String, String> = BTreeMap::new();
+        config.insert(
+            "mode_tmux".to_owned(),
+            "#[bg=#eb6f92,fg=#191724]  COMMAND ".to_owned(),
+        );
+        config.insert("mode_default_to_mode".to_owned(), "tmux".to_owned());
+
+        // Locked is not defined, should fall back to tmux via default_to_mode
+        let (fg, bg) = get_mode_colors(&config, InputMode::Locked);
+        assert_eq!(fg, "#191724");
+        assert_eq!(bg, "#eb6f92");
+    }
+
+    #[test]
+    fn test_get_mode_colors_fallback_to_normal() {
+        let mut config: BTreeMap<String, String> = BTreeMap::new();
+        config.insert(
+            "mode_normal".to_owned(),
+            "#[bg=#89b4fa,fg=#181825] ".to_owned(),
+        );
+
+        // Locked is not defined, no default_to_mode, should fall back to normal
+        let (fg, bg) = get_mode_colors(&config, InputMode::Locked);
+        assert_eq!(fg, "#181825");
+        assert_eq!(bg, "#89b4fa");
+    }
+
+    #[test]
+    fn test_get_mode_colors_none_defined() {
+        let config: BTreeMap<String, String> = BTreeMap::new();
+
+        let (fg, bg) = get_mode_colors(&config, InputMode::Normal);
+        assert_eq!(fg, "default");
+        assert_eq!(bg, "default");
+    }
+
+    #[test]
+    fn test_uses_mode_colors_detection() {
+        let mut config: BTreeMap<String, String> = BTreeMap::new();
+        config.insert(
+            "format_left".to_owned(),
+            "{mode}#[bg={mode_bg},fg={mode_fg}] {session}".to_owned(),
+        );
+        config.insert("format_right".to_owned(), "".to_owned());
+        config.insert("format_center".to_owned(), "".to_owned());
+
+        let module = ModuleConfig::new(&config).unwrap();
+        assert!(module.uses_mode_colors);
+    }
+
+    #[test]
+    fn test_does_not_use_mode_colors() {
+        let mut config: BTreeMap<String, String> = BTreeMap::new();
+        config.insert(
+            "format_left".to_owned(),
+            "{mode}#[fg=#89B4FA] {session}".to_owned(),
+        );
+
+        let module = ModuleConfig::new(&config).unwrap();
+        assert!(!module.uses_mode_colors);
+    }
+
+    #[test]
+    fn test_resolve_mode_colors() {
+        let mut config: BTreeMap<String, String> = BTreeMap::new();
+        config.insert(
+            "format_left".to_owned(),
+            "#[bg={mode_bg},fg={mode_fg}] {session}".to_owned(),
+        );
+        config.insert(
+            "mode_locked".to_owned(),
+            "#[bg=#31748f,fg=#191724,bold]  LOCKED ".to_owned(),
+        );
+        config.insert(
+            "mode_normal".to_owned(),
+            "#[bg=#89b4fa,fg=#181825] ".to_owned(),
+        );
+
+        let mut module = ModuleConfig::new(&config).unwrap();
+        assert!(module.uses_mode_colors);
+
+        // Resolve for locked mode
+        module.resolve_mode_colors(InputMode::Locked);
+        assert_eq!(module.last_mode, Some(InputMode::Locked));
+        // Format string "#[bg=...,fg=...] {session}" splits into 2 parts:
+        // empty prefix + styled content
+        assert_eq!(module.left_parts.len(), 2);
+        assert_eq!(module.left_parts[1].bg, Some(RgbColor(0x31, 0x74, 0x8f).into()));
+        assert_eq!(module.left_parts[1].fg, Some(RgbColor(0x19, 0x17, 0x24).into()));
+
+        // Resolve for normal mode
+        module.resolve_mode_colors(InputMode::Normal);
+        assert_eq!(module.last_mode, Some(InputMode::Normal));
+        assert_eq!(module.left_parts[1].bg, Some(RgbColor(0x89, 0xb4, 0xfa).into()));
+        assert_eq!(module.left_parts[1].fg, Some(RgbColor(0x18, 0x18, 0x25).into()));
     }
 }

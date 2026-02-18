@@ -40,6 +40,7 @@ layout {
             mode_default_to_mode "tmux"
 
             tab_normal              "#[fg=#6C7086,bg=$bg] {index} {name} {floating_indicator} "
+            tab_prev_active         "#[fg=#00ff00,bg=$bg] {index} {name} {floating_indicator} "
             tab_rename              "#[fg=#eba0ac,bg=$bg] {index} {name} {floating_indicator} "
             tab_normal_fullscreen   "#[fg=#6C7086,bg=$bg] {index} {name} [] "
             tab_normal_sync         "#[fg=#6C7086,bg=$bg] {index} {name} <> "

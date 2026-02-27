@@ -293,6 +293,12 @@ impl State {
                 self.state.cache_mask = UpdateEventMask::Tab as u8;
                 self.state.tabs = tab_info;
 
+                let valid_positions: std::collections::BTreeSet<usize> =
+                    self.state.tabs.iter().map(|t| t.position).collect();
+                self.state
+                    .tab_statuses
+                    .retain(|pos, _| valid_positions.contains(pos));
+
                 should_render = true;
             }
             _ => (),

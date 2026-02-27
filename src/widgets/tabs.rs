@@ -122,7 +122,7 @@ impl Widget for TabsWidget {
         }
 
         for tab in &tabs {
-            let content = self.render_tab(tab, &state.panes, &state.mode);
+            let content = self.render_tab(tab, &state.panes, &state.mode, &state.tab_statuses);
             counter += 1;
 
             output = format!("{}{}", output, content);
@@ -183,7 +183,7 @@ impl Widget for TabsWidget {
         for tab in &tabs {
             counter += 1;
 
-            let mut rendered_content = self.render_tab(tab, &state.panes, &state.mode);
+            let mut rendered_content = self.render_tab(tab, &state.panes, &state.mode, &state.tab_statuses);
 
             if counter < tabs.len()
                 && let Some(sep) = &self.separator
@@ -250,7 +250,7 @@ impl TabsWidget {
         &self.normal_tab_format
     }
 
-    fn render_tab(&self, tab: &TabInfo, panes: &PaneManifest, mode: &ModeInfo) -> String {
+    fn render_tab(&self, tab: &TabInfo, panes: &PaneManifest, mode: &ModeInfo, tab_statuses: &BTreeMap<usize, String>) -> String {
         let formatters = self.select_format(tab, mode);
         let mut output = "".to_owned();
 
@@ -267,6 +267,14 @@ impl TabsWidget {
 
             if content.contains("{name}") {
                 content = content.replace("{name}", tab_name);
+            }
+
+            if content.contains("{status}") {
+                let status = tab_statuses
+                    .get(&tab.position)
+                    .map(|s| s.as_str())
+                    .unwrap_or("");
+                content = content.replace("{status}", status);
             }
 
             if content.contains("{index}") {

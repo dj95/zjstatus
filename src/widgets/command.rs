@@ -198,8 +198,8 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &Zell
             #[cfg(all(not(feature = "bench"), not(test)))]
             run_command_with_env_variables_and_cwd(
                 &command.iter().map(|x| x.as_str()).collect::<Vec<&str>>(),
-                command_config.env.unwrap(),
-                command_config.cwd.unwrap(),
+                command_config.env.clone().unwrap_or_default(),
+                command_config.cwd.clone().unwrap_or_else(|| std::path::PathBuf::from(".")),
                 context,
             );
 

@@ -156,13 +156,10 @@ impl Widget for TabsWidget {
         let (truncated_start, truncated_end, tabs) =
             get_tab_window(&state.tabs, self.tab_display_count);
 
-        let active_pos = &state
-            .tabs
-            .iter()
-            .find(|t| t.active)
-            .expect("no active tab")
-            .position
-            + 1;
+        let Some(active_tab) = state.tabs.iter().find(|t| t.active) else {
+            return;
+        };
+        let active_pos = &active_tab.position + 1;
 
         if truncated_start > 0 {
             for f in &self.tab_truncate_start_format {
@@ -362,7 +359,9 @@ pub fn get_tab_window(
         return (0, 0, tabs.to_vec());
     }
 
-    let active_index = tabs.iter().position(|t| t.active).expect("no active tab");
+    let Some(active_index) = tabs.iter().position(|t| t.active) else {
+        return (0, 0, tabs.to_vec());
+    };
 
     // active tab is in the last #max_count tabs, so return the last #max_count
     if active_index > tabs.len().saturating_sub(max_count) {

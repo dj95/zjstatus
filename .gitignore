@@ -2,3 +2,6 @@
 .direnv/
 .zjstatus.log
 .zjframes.log
+
+# Claude Code ctags index
+.claude/tags

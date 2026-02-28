@@ -122,7 +122,7 @@ impl Widget for TabsWidget {
         }
 
         for tab in &tabs {
-            let content = self.render_tab(tab, &state.panes, &state.mode);
+            let content = self.render_tab(tab, &state.panes, &state.mode, &state.tab_statuses);
             counter += 1;
 
             output = format!("{}{}", output, content);
@@ -169,7 +169,7 @@ impl Widget for TabsWidget {
                 let mut content = f.content.clone();
 
                 if content.contains("{count}") {
-                    content = content.replace("{count}", (truncated_end).to_string().as_str());
+                    content = content.replace("{count}", (truncated_start).to_string().as_str());
                 }
 
                 offset += console::measure_text_width(&f.format_string(&content));
@@ -183,7 +183,7 @@ impl Widget for TabsWidget {
         for tab in &tabs {
             counter += 1;
 
-            let mut rendered_content = self.render_tab(tab, &state.panes, &state.mode);
+            let mut rendered_content = self.render_tab(tab, &state.panes, &state.mode, &state.tab_statuses);
 
             if counter < tabs.len()
                 && let Some(sep) = &self.separator
@@ -250,7 +250,13 @@ impl TabsWidget {
         &self.normal_tab_format
     }
 
-    fn render_tab(&self, tab: &TabInfo, panes: &PaneManifest, mode: &ModeInfo) -> String {
+    fn render_tab(
+        &self,
+        tab: &TabInfo,
+        panes: &PaneManifest,
+        mode: &ModeInfo,
+        tab_statuses: &BTreeMap<usize, String>,
+    ) -> String {
         let formatters = self.select_format(tab, mode);
         let mut output = "".to_owned();
 
@@ -267,6 +273,14 @@ impl TabsWidget {
 
             if content.contains("{name}") {
                 content = content.replace("{name}", tab_name);
+            }
+
+            if content.contains("{status}") {
+                let status = tab_statuses
+                    .get(&tab.position)
+                    .map(|s| s.as_str())
+                    .unwrap_or("");
+                content = content.replace("{status}", status);
             }
 
             if content.contains("{index}") {
@@ -755,5 +769,83 @@ mod test {
         let res = get_tab_window(&tabs, max_count);
 
         assert_eq!(res, expected);
+    }
+
+    mod render_tab_tests {
+        use std::collections::BTreeMap;
+
+        use zellij_tile::prelude::{ModeInfo, PaneManifest, TabInfo};
+
+        use super::super::TabsWidget;
+
+        fn make_widget(tab_normal: &str) -> TabsWidget {
+            let config = BTreeMap::from([("tab_normal".to_string(), tab_normal.to_string())]);
+            TabsWidget::new(&config)
+        }
+
+        #[test]
+        fn test_render_tab_status_placeholder_with_status() {
+            let widget = make_widget("{name} {status}");
+            let tab = TabInfo {
+                name: "test".to_owned(),
+                position: 0,
+                ..TabInfo::default()
+            };
+            let mut tab_statuses = BTreeMap::new();
+            tab_statuses.insert(0_usize, "🤖".to_string());
+
+            let result = widget.render_tab(
+                &tab,
+                &PaneManifest::default(),
+                &ModeInfo::default(),
+                &tab_statuses,
+            );
+
+            assert!(result.contains("test"));
+            assert!(result.contains("🤖"));
+        }
+
+        #[test]
+        fn test_render_tab_status_placeholder_without_status() {
+            let widget = make_widget("{name} {status}");
+            let tab = TabInfo {
+                name: "test".to_owned(),
+                position: 0,
+                ..TabInfo::default()
+            };
+            let tab_statuses = BTreeMap::new();
+
+            let result = widget.render_tab(
+                &tab,
+                &PaneManifest::default(),
+                &ModeInfo::default(),
+                &tab_statuses,
+            );
+
+            assert!(result.contains("test"));
+            assert!(!result.contains("{status}"));
+        }
+
+        #[test]
+        fn test_render_tab_no_status_placeholder() {
+            let widget = make_widget("{name}");
+            let tab = TabInfo {
+                name: "test".to_owned(),
+                position: 0,
+                ..TabInfo::default()
+            };
+            let mut tab_statuses = BTreeMap::new();
+            tab_statuses.insert(0_usize, "🤖".to_string());
+
+            let result = widget.render_tab(
+                &tab,
+                &PaneManifest::default(),
+                &ModeInfo::default(),
+                &tab_statuses,
+            );
+
+            assert!(result.contains("test"));
+            assert!(!result.contains("🤖"));
+        }
     }
 }

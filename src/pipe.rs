@@ -2,6 +2,8 @@ use std::ops::Sub;
 
 use chrono::{Duration, Local};
 
+use zellij_tile::prelude::PaneManifest;
+
 use crate::{
     config::ZellijState,
     widgets::{command::TIMESTAMP_FORMAT, notification},
@@ -40,6 +42,15 @@ pub fn parse_protocol(state: &mut ZellijState, input: &str) -> bool {
     should_render
 }
 
+fn resolve_tab_index(panes: &PaneManifest, pane_id: u32) -> Option<usize> {
+    for (tab_index, pane_list) in &panes.panes {
+        if pane_list.iter().any(|p| p.id == pane_id) {
+            return Some(*tab_index);
+        }
+    }
+    None
+}
+
 #[tracing::instrument(skip_all)]
 fn process_line(state: &mut ZellijState, line: &str) -> bool {
     let parts = line.split("::").collect::<Vec<&str>>();
@@ -76,7 +87,46 @@ fn process_line(state: &mut ZellijState, line: &str) -> bool {
 
             should_render = true;
         }
-        _ => {}
+        "set_status" => {
+            if parts.len() < 4 {
+                return false;
+            }
+            let pane_id = match parts[2].parse::<u32>() {
+                Ok(id) => id,
+                Err(_) => {
+                    tracing::warn!("set_status: invalid pane_id: {}", parts[2]);
+                    return false;
+                }
+            };
+            let emoji = parts[3];
+            if let Some(tab_idx) = resolve_tab_index(&state.panes, pane_id) {
+                if emoji.is_empty() {
+                    state.tab_statuses.remove(&tab_idx);
+                } else {
+                    state.tab_statuses.insert(tab_idx, emoji.to_string());
+                }
+                should_render = true;
+            }
+        }
+        "clear_status" => {
+            if parts.len() < 3 {
+                return false;
+            }
+            let pane_id = match parts[2].parse::<u32>() {
+                Ok(id) => id,
+                Err(_) => {
+                    tracing::warn!("clear_status: invalid pane_id: {}", parts[2]);
+                    return false;
+                }
+            };
+            if let Some(tab_idx) = resolve_tab_index(&state.panes, pane_id) {
+                state.tab_statuses.remove(&tab_idx);
+                should_render = true;
+            }
+        }
+        _ => {
+            tracing::debug!("unknown zjstatus command: {}", parts[1]);
+        }
     }
 
     should_render
@@ -116,4 +166,121 @@ fn rerun_command(state: &mut ZellijState, command_name: &str) {
     state
         .command_results
         .insert(command_name.to_string(), command_result.clone());
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
+
+    use zellij_tile::prelude::{PaneInfo, PaneManifest};
+
+    use crate::config::ZellijState;
+
+    use super::{process_line, resolve_tab_index};
+
+    fn make_state_with_panes() -> ZellijState {
+        let mut panes = HashMap::new();
+        panes.insert(
+            0,
+            vec![
+                PaneInfo {
+                    id: 10,
+                    ..PaneInfo::default()
+                },
+                PaneInfo {
+                    id: 11,
+                    ..PaneInfo::default()
+                },
+            ],
+        );
+        panes.insert(
+            1,
+            vec![PaneInfo {
+                id: 20,
+                ..PaneInfo::default()
+            }],
+        );
+
+        let mut state = ZellijState::default();
+        state.panes = PaneManifest { panes };
+        state
+    }
+
+    #[test]
+    fn test_resolve_tab_index_found() {
+        let state = make_state_with_panes();
+        assert_eq!(resolve_tab_index(&state.panes, 20), Some(1));
+    }
+
+    #[test]
+    fn test_resolve_tab_index_not_found() {
+        let state = make_state_with_panes();
+        assert_eq!(resolve_tab_index(&state.panes, 99), None);
+    }
+
+    #[test]
+    fn test_set_status_valid() {
+        let mut state = make_state_with_panes();
+        let result = process_line(&mut state, "zjstatus::set_status::10::🤖");
+        assert!(result);
+        assert_eq!(state.tab_statuses.get(&0), Some(&"🤖".to_string()));
+    }
+
+    #[test]
+    fn test_set_status_invalid_pane_id() {
+        let mut state = make_state_with_panes();
+        let result = process_line(&mut state, "zjstatus::set_status::abc::🤖");
+        assert!(!result);
+        assert!(state.tab_statuses.is_empty());
+    }
+
+    #[test]
+    fn test_set_status_unknown_pane_id() {
+        let mut state = make_state_with_panes();
+        let result = process_line(&mut state, "zjstatus::set_status::99::🤖");
+        assert!(!result);
+        assert!(state.tab_statuses.is_empty());
+    }
+
+    #[test]
+    fn test_set_status_empty_emoji_clears() {
+        let mut state = make_state_with_panes();
+        state.tab_statuses.insert(0, "🤖".to_string());
+        let result = process_line(&mut state, "zjstatus::set_status::10::");
+        assert!(result);
+        assert!(state.tab_statuses.get(&0).is_none());
+    }
+
+    #[test]
+    fn test_clear_status() {
+        let mut state = make_state_with_panes();
+        state.tab_statuses.insert(1, "✅".to_string());
+        let result = process_line(&mut state, "zjstatus::clear_status::20");
+        assert!(result);
+        assert!(state.tab_statuses.get(&1).is_none());
+    }
+
+    #[test]
+    fn test_clear_status_idempotent() {
+        let mut state = make_state_with_panes();
+        let result = process_line(&mut state, "zjstatus::clear_status::20");
+        assert!(result);
+        assert!(state.tab_statuses.is_empty());
+    }
+
+    #[test]
+    fn test_set_status_too_few_parts() {
+        let mut state = make_state_with_panes();
+        let result = process_line(&mut state, "zjstatus::set_status::10");
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_clear_status_invalid_pane_id() {
+        let mut state = make_state_with_panes();
+        state.tab_statuses.insert(0, "✅".to_string());
+        let result = process_line(&mut state, "zjstatus::clear_status::abc");
+        assert!(!result);
+        assert_eq!(state.tab_statuses.get(&0), Some(&"✅".to_string()));
+    }
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Phase 3: Edge-case tests — tab switching, many tabs, command widget.
+# Edge-case tests — tab switching, many tabs, command widget.
 # Sourced by docker-test-runner.sh (helpers.sh already loaded).
 #
 

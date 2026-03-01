@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Phase 2: Basic tests — plugin loading and pipe commands.
+# Basic tests — plugin loading and pipe commands.
 # Sourced by docker-test-runner.sh (helpers.sh already loaded).
 #
 

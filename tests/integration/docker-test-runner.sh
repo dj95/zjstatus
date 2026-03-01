@@ -22,6 +22,11 @@ for test_script in "$SCRIPT_DIR"/test_*.sh; do
     if [[ -f "$test_script" ]]; then
         echo ""
         echo "--- Running: $(basename "$test_script") ---"
+        if ! bash -n "$test_script" 2>/dev/null; then
+            echo "  FAIL: syntax error in $(basename "$test_script"), skipping"
+            ((FAIL++)) || true
+            continue
+        fi
         source "$test_script"
     fi
 done

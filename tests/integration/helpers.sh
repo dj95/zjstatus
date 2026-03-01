@@ -14,7 +14,20 @@ ZELLIJ_TEST_TIMEOUT="${ZELLIJ_TEST_TIMEOUT:-10}"
 # --- Setup / Teardown ---
 
 setup_zellij() {
-    local layout="${1:-}"
+    local layout="" no_wait=false session=""
+
+    # Parse named arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --no-wait)  no_wait=true; shift ;;
+            --session)  session="$2"; shift 2 ;;
+            *)          layout="$1"; shift ;;
+        esac
+    done
+
+    if [[ -n "$session" ]]; then
+        ZELLIJ_SESSION="$session"
+    fi
 
     if [[ ! -f "$PLUGIN_WASM" ]]; then
         echo "ERROR: Plugin not found at $PLUGIN_WASM"
@@ -70,7 +83,9 @@ PERMS
     fi
 
     # Wait for plugin WASM compilation and initialization
-    sleep 5
+    if [[ "$no_wait" != true ]]; then
+        sleep 5
+    fi
 }
 
 teardown_zellij() {
@@ -124,8 +139,14 @@ assert_eq() {
 
 assert_tab_count() {
     local expected="$1" msg="${2:-tab count is $1}"
-    local actual
-    actual=$(timeout 5 zellij action query-tab-names 2>/dev/null | wc -l)
+    local actual attempt
+    for attempt in $(seq 1 5); do
+        actual=$(timeout 5 zellij action query-tab-names 2>/dev/null | wc -l)
+        if [[ "$actual" == "$expected" ]]; then
+            break
+        fi
+        sleep 0.5
+    done
     assert_eq "$actual" "$expected" "$msg"
 }
 

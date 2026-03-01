@@ -30,7 +30,7 @@ cat > /root/.cache/zellij/permissions.kdl <<PERMS
 PERMS
 
 # Start Zellij
-script -qfc "zellij --session $ZELLIJ_SESSION --layout /root/.config/zellij/test-layout.kdl options --disable-mouse-mode" /dev/null > /dev/null 2>&1 &
+script -qfc "zellij --session $ZELLIJ_SESSION -n /root/.config/zellij/test-layout.kdl options --disable-mouse-mode" /dev/null > /dev/null 2>&1 &
 ZELLIJ_PID=$!
 
 # Wait ONLY for session to appear (not for plugin init)

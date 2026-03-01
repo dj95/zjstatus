@@ -43,7 +43,7 @@ PERMS
     # stderr goes to /dev/null — script PTY does NOT propagate plugin panics
     # to stderr anyway. Panic detection uses session liveness instead.
     if [[ -n "$layout" ]]; then
-        script -qfc "zellij --session $ZELLIJ_SESSION --layout /root/.config/zellij/test-layout.kdl options --disable-mouse-mode" /dev/null > /dev/null 2>&1 &
+        script -qfc "zellij --session $ZELLIJ_SESSION -n /root/.config/zellij/test-layout.kdl options --disable-mouse-mode" /dev/null > /dev/null 2>&1 &
     else
         script -qfc "zellij --session $ZELLIJ_SESSION options --disable-mouse-mode" /dev/null > /dev/null 2>&1 &
     fi

@@ -1,0 +1,18 @@
+layout {
+    pane split_direction="vertical" {
+        pane
+    }
+
+    pane size=1 borderless=true {
+        plugin location="file:/test/plugin.wasm" {
+            format_left  "#[fg=blue]{mode} {tabs}"
+            format_right "{datetime}"
+            mode_normal "#[fg=green]NORMAL"
+            tab_normal "#[fg=white]{name}"
+            tab_active "#[fg=yellow,bold]{name}"
+            datetime "{:%H:%M}"
+            command_cmd_test "echo hello"
+            command_cmd_test_interval "5"
+        }
+    }
+}

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+#
+# Regression test template for zjstatus.
+# Copy this file to test_99_regression_issueN.sh and fill in the scenario.
+#
+# Sourced by docker-test-runner.sh (helpers.sh already loaded).
+#
+
+# --- test_regression_issueN ---
+echo "  [test_regression_issueN] description of the bug"
+
+# Reproduce the bug scenario:
+# send_pipe "zjstatus::..."
+# zellij action ...
+# sleep 1
+
+# Verify plugin survived:
+# assert_session_alive "issueN: session alive"
+# assert_pipe_responds "zjstatus::notify::check" "issueN: plugin responds"
+
+# Verify expected behavior:
+# assert_tab_count "1" "issueN: expected tab count"

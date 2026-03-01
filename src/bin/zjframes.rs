@@ -1,6 +1,6 @@
 use zellij_tile::prelude::*;
 
-use std::{collections::BTreeMap, sync::Arc};
+use std::collections::BTreeMap;
 
 use zjstatus::frames;
 

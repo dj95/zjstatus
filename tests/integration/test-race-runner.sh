@@ -63,6 +63,7 @@ trap cleanup_race EXIT
 # Send pipe IMMEDIATELY — plugin may not have permissions yet.
 # This tests the pending_events buffer (events queued until PermissionRequestResult).
 echo "  [test_race_pipe_before_init] sending pipe before plugin init"
+set +e
 send_pipe "zjstatus::notify::Race Test"
 send_pipe "zjstatus::pipe::race_key::race_value"
 send_pipe "zjstatus::set_status::1::🏁"
@@ -74,6 +75,7 @@ sleep 5
 assert_session_alive "race: session alive after early pipes"
 # Verify: plugin still responds normally after the race
 assert_pipe_responds "zjstatus::notify::post race" "race: plugin responds after early pipes"
+set -e
 
 # Cleanup handled by EXIT trap
 print_summary

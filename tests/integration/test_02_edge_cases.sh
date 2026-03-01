@@ -6,17 +6,17 @@
 
 # --- test_tab_switching ---
 echo "  [test_tab_switching] switching between 3 tabs"
-zellij action new-tab 2>/dev/null || true
+zellij action new-tab 2>/dev/null
 sleep 0.5
-zellij action new-tab 2>/dev/null || true
+zellij action new-tab 2>/dev/null
 sleep 0.5
 assert_tab_count "3" "created 3 tabs"
 # Switch between tabs
-zellij action go-to-tab 2 2>/dev/null || true
+zellij action go-to-tab 2 2>/dev/null
 sleep 0.3
-zellij action go-to-tab 3 2>/dev/null || true
+zellij action go-to-tab 3 2>/dev/null
 sleep 0.3
-zellij action go-to-tab 1 2>/dev/null || true
+zellij action go-to-tab 1 2>/dev/null
 sleep 0.5
 assert_session_alive "tab switching: session alive"
 assert_pipe_responds "zjstatus::notify::after switch" "tab switching: plugin responds after switches"
@@ -32,7 +32,7 @@ assert_pipe_responds "zjstatus::notify::after cmd" "command widget: plugin respo
 # --- test_many_tabs ---
 echo "  [test_many_tabs] creating 15 tabs"
 for i in $(seq 1 15); do
-    zellij action new-tab 2>/dev/null || true
+    zellij action new-tab 2>/dev/null
     sleep 0.2
 done
 sleep 2
@@ -45,7 +45,7 @@ assert_tab_count "1" "cleaned up to 1 tab"
 # --- test_close_all_tabs_except_one ---
 echo "  [test_close_all_tabs_except_one] create 5 tabs then close 4"
 for i in $(seq 1 4); do
-    zellij action new-tab 2>/dev/null || true
+    zellij action new-tab 2>/dev/null
     sleep 0.3
 done
 assert_tab_count "5" "5 tabs created"

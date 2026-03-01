@@ -137,6 +137,7 @@ send_pipe() {
     if [[ $rc -ne 0 ]]; then
         echo "  WARNING: send_pipe exit code $rc for: $1"
     fi
+    return $rc
 }
 
 # --- Tab helpers ---
@@ -160,6 +161,8 @@ close_extra_tabs() {
     if [[ "$iter" -ge "$max_iter" ]] && [[ "$tab_count" -gt 1 ]]; then
         echo "  WARNING: close_extra_tabs exhausted $max_iter iterations, $tab_count tabs remain"
         timeout 5 zellij action go-to-tab 1 2>/dev/null || true
+        sleep 0.3
+        return 1
     fi
     sleep 0.3
 }

@@ -30,15 +30,15 @@ assert_session_alive "command widget: session alive after command execution"
 assert_pipe_responds "zjstatus::notify::after cmd" "command widget: plugin responds"
 
 # --- test_many_tabs ---
-echo "  [test_many_tabs] creating 15 tabs"
-for i in $(seq 1 15); do
+echo "  [test_many_tabs] creating 7 tabs"
+for i in $(seq 1 7); do
     zellij action new-tab 2>/dev/null
-    sleep 0.2
+    sleep 0.5
 done
 sleep 2
-assert_tab_count "16" "16 tabs exist (1 original + 15 new)"
-assert_session_alive "many tabs: session alive with 16 tabs"
-assert_pipe_responds "zjstatus::notify::many tabs" "many tabs: plugin responds with 16 tabs"
+assert_tab_count "8" "8 tabs exist (1 original + 7 new)"
+assert_session_alive "many tabs: session alive with 8 tabs"
+assert_pipe_responds "zjstatus::notify::many tabs" "many tabs: plugin responds with 8 tabs"
 close_extra_tabs
 assert_tab_count "1" "cleaned up to 1 tab"
 

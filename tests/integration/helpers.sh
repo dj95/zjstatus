@@ -132,7 +132,11 @@ assert_tab_count() {
 # --- Pipe helpers ---
 
 send_pipe() {
-    timeout "${ZELLIJ_TEST_TIMEOUT}s" zellij pipe --plugin "file:$PLUGIN_WASM" -- "$1" < /dev/null 2>/dev/null || true
+    local rc=0
+    timeout "${ZELLIJ_TEST_TIMEOUT}s" zellij pipe --plugin "file:$PLUGIN_WASM" -- "$1" < /dev/null 2>/dev/null || rc=$?
+    if [[ $rc -ne 0 ]]; then
+        echo "  WARNING: send_pipe exit code $rc for: $1"
+    fi
 }
 
 # --- Tab helpers ---
@@ -153,7 +157,8 @@ close_extra_tabs() {
         fi
         tab_count=$(timeout 5 zellij action query-tab-names 2>/dev/null | wc -l)
     done
-    if [[ "$tab_count" -gt 1 ]]; then
+    if [[ "$iter" -ge "$max_iter" ]] && [[ "$tab_count" -gt 1 ]]; then
+        echo "  WARNING: close_extra_tabs exhausted $max_iter iterations, $tab_count tabs remain"
         timeout 5 zellij action go-to-tab 1 2>/dev/null || true
     fi
     sleep 0.3
@@ -166,5 +171,5 @@ print_summary() {
     echo "==============================="
     echo "Results: $PASS passed, $FAIL failed"
     echo "==============================="
-    return $FAIL
+    [[ "$FAIL" -gt 0 ]] && return 1 || return 0
 }

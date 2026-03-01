@@ -38,8 +38,27 @@ for i in $(seq 1 30); do
     if zellij list-sessions 2>/dev/null | grep -q "$ZELLIJ_SESSION"; then
         break
     fi
+    if ! kill -0 $ZELLIJ_PID 2>/dev/null; then
+        echo "ERROR: Zellij process died during startup"
+        exit 1
+    fi
     sleep 0.5
 done
+
+if ! zellij list-sessions 2>/dev/null | grep -q "$ZELLIJ_SESSION"; then
+    echo "ERROR: Race test session did not start within 15s"
+    kill $ZELLIJ_PID 2>/dev/null || true
+    exit 1
+fi
+
+# Set up cleanup trap before sending pipes
+cleanup_race() {
+    zellij kill-session "$ZELLIJ_SESSION" 2>/dev/null || true
+    if [[ -n "${ZELLIJ_PID:-}" ]]; then
+        wait $ZELLIJ_PID 2>/dev/null || true
+    fi
+}
+trap cleanup_race EXIT
 
 # Send pipe IMMEDIATELY — plugin may not have permissions yet.
 # This tests the pending_events buffer (events queued until PermissionRequestResult).
@@ -56,9 +75,5 @@ assert_session_alive "race: session alive after early pipes"
 # Verify: plugin still responds normally after the race
 assert_pipe_responds "zjstatus::notify::post race" "race: plugin responds after early pipes"
 
-# Cleanup
-trap '' EXIT
-zellij kill-session "$ZELLIJ_SESSION" 2>/dev/null || true
-wait $ZELLIJ_PID 2>/dev/null || true
-
+# Cleanup handled by EXIT trap
 print_summary

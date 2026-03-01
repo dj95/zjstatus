@@ -14,7 +14,10 @@ echo "=== zjstatus Integration Tests ==="
 setup_zellij "$SCRIPT_DIR/test-layout.kdl"
 trap teardown_zellij EXIT
 
-# Run all test scripts in order
+# Run all test scripts in order.
+# Disable set -e so assertion failures don't abort the runner —
+# we want to run ALL tests and report the summary.
+set +e
 for test_script in "$SCRIPT_DIR"/test_*.sh; do
     if [[ -f "$test_script" ]]; then
         echo ""
@@ -22,6 +25,7 @@ for test_script in "$SCRIPT_DIR"/test_*.sh; do
         source "$test_script"
     fi
 done
+set -e
 
 # --- Summary ---
 print_summary

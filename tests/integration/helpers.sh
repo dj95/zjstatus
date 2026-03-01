@@ -125,7 +125,7 @@ assert_eq() {
 assert_tab_count() {
     local expected="$1" msg="${2:-tab count is $1}"
     local actual
-    actual=$(zellij action query-tab-names 2>/dev/null | wc -l)
+    actual=$(timeout 5 zellij action query-tab-names 2>/dev/null | wc -l)
     assert_eq "$actual" "$expected" "$msg"
 }
 
@@ -138,16 +138,24 @@ send_pipe() {
 # --- Tab helpers ---
 
 close_extra_tabs() {
-    local tab_count
-    tab_count=$(zellij action query-tab-names 2>/dev/null | wc -l)
-    while [[ "$tab_count" -gt 1 ]]; do
-        zellij action go-to-tab "$tab_count" 2>/dev/null || true
+    local tab_count max_iter=30 iter=0
+    tab_count=$(timeout 5 zellij action query-tab-names 2>/dev/null | wc -l)
+    while [[ "$tab_count" -gt 1 ]] && [[ "$iter" -lt "$max_iter" ]]; do
+        ((iter++)) || true
+        timeout 5 zellij action go-to-tab "$tab_count" 2>/dev/null || true
         sleep 0.2
-        zellij action close-tab 2>/dev/null || true
+        timeout 5 zellij action close-tab 2>/dev/null || true
         sleep 0.5
-        tab_count=$(zellij action query-tab-names 2>/dev/null | wc -l)
+        # Verify session still exists
+        if ! zellij list-sessions 2>/dev/null | grep -q "$ZELLIJ_SESSION"; then
+            echo "  WARNING: session died during tab cleanup"
+            return 1
+        fi
+        tab_count=$(timeout 5 zellij action query-tab-names 2>/dev/null | wc -l)
     done
-    zellij action go-to-tab 1 2>/dev/null || true
+    if [[ "$tab_count" -gt 1 ]]; then
+        timeout 5 zellij action go-to-tab 1 2>/dev/null || true
+    fi
     sleep 0.3
 }
 

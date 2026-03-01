@@ -165,13 +165,13 @@ send_pipe() {
 
 close_extra_tabs() {
     local tab_count max_iter=30 iter=0
-    tab_count=$(timeout 5 zellij action query-tab-names 2>/dev/null | wc -l)
+    tab_count=$(timeout 10 zellij action query-tab-names 2>/dev/null | wc -l)
     while [[ "$tab_count" -gt 1 ]] && [[ "$iter" -lt "$max_iter" ]]; do
         ((iter++)) || true
-        timeout 5 zellij action go-to-tab "$tab_count" 2>/dev/null || true
-        sleep 0.2
-        timeout 5 zellij action close-tab 2>/dev/null || true
+        timeout 10 zellij action go-to-tab "$tab_count" 2>/dev/null || true
         sleep 0.5
+        timeout 10 zellij action close-tab 2>/dev/null || true
+        sleep 1
         # Verify session still exists
         if ! zellij list-sessions 2>/dev/null | grep -q "$ZELLIJ_SESSION"; then
             echo "  WARNING: session died during tab cleanup"

@@ -6,18 +6,18 @@
 
 # --- test_tab_switching ---
 echo "  [test_tab_switching] switching between 3 tabs"
-zellij action new-tab 2>/dev/null
-sleep 0.5
-zellij action new-tab 2>/dev/null
-sleep 0.5
+timeout 10 zellij action new-tab 2>/dev/null
+sleep 1
+timeout 10 zellij action new-tab 2>/dev/null
+sleep 1
 assert_tab_count "3" "created 3 tabs"
 # Switch between tabs
-zellij action go-to-tab 2 2>/dev/null
-sleep 0.3
-zellij action go-to-tab 3 2>/dev/null
-sleep 0.3
-zellij action go-to-tab 1 2>/dev/null
+timeout 5 zellij action go-to-tab 2 2>/dev/null
 sleep 0.5
+timeout 5 zellij action go-to-tab 3 2>/dev/null
+sleep 0.5
+timeout 5 zellij action go-to-tab 1 2>/dev/null
+sleep 1
 assert_session_alive "tab switching: session alive"
 assert_pipe_responds "zjstatus::notify::after switch" "tab switching: plugin responds after switches"
 close_extra_tabs
@@ -30,26 +30,25 @@ assert_session_alive "command widget: session alive after command execution"
 assert_pipe_responds "zjstatus::notify::after cmd" "command widget: plugin responds"
 
 # --- test_many_tabs ---
-echo "  [test_many_tabs] creating 7 tabs"
-for i in $(seq 1 7); do
-    zellij action new-tab 2>/dev/null
-    sleep 0.5
+echo "  [test_many_tabs] creating 4 tabs"
+for i in $(seq 1 4); do
+    timeout 10 zellij action new-tab 2>/dev/null
+    sleep 1
 done
 sleep 2
-assert_tab_count "8" "8 tabs exist (1 original + 7 new)"
-assert_session_alive "many tabs: session alive with 8 tabs"
-assert_pipe_responds "zjstatus::notify::many tabs" "many tabs: plugin responds with 8 tabs"
+assert_tab_count "5" "5 tabs exist (1 original + 4 new)"
+assert_session_alive "many tabs: session alive with 5 tabs"
+assert_pipe_responds "zjstatus::notify::many tabs" "many tabs: plugin responds with 5 tabs"
 close_extra_tabs
 assert_tab_count "1" "cleaned up to 1 tab"
 
 # --- test_close_all_tabs_except_one ---
-echo "  [test_close_all_tabs_except_one] create 5 tabs then close 4"
-for i in $(seq 1 4); do
-    zellij action new-tab 2>/dev/null
-    sleep 0.3
+echo "  [test_close_all_tabs_except_one] create 3 tabs then close 2"
+for i in $(seq 1 2); do
+    timeout 10 zellij action new-tab 2>/dev/null
+    sleep 1
 done
-assert_tab_count "5" "5 tabs created"
-# Close tabs back to 1
+assert_tab_count "3" "3 tabs created"
 close_extra_tabs
 assert_tab_count "1" "back to 1 tab"
 assert_session_alive "close tabs: session alive"

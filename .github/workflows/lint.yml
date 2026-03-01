@@ -54,3 +54,46 @@ jobs:
 
       - name: Run tests
         run: cargo nextest run --lib
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: tests
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
+
+      - name: Install WASI SDK
+        run: |
+          wget https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/wasi-sdk-20.0-linux.tar.gz
+          tar -xzf wasi-sdk-20.0-linux.tar.gz
+          mv wasi-sdk-20.0 /opt/wasi-sdk
+        env:
+          WASI_SDK_PATH: /opt/wasi-sdk
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96 # stable
+        with:
+          toolchain: "1.91.0"
+          target: wasm32-wasip1
+
+      - name: Build WASM
+        run: cargo build --target wasm32-wasip1 --release
+
+      - name: Build test Docker image
+        run: docker build -f Dockerfile.test -t zjstatus-test .
+
+      - name: Run integration tests
+        run: |
+          docker run --rm \
+            -v "$(pwd)/target/wasm32-wasip1/release/zjstatus.wasm:/test/plugin.wasm:ro" \
+            -v "$(pwd)/tests/integration:/test/tests:ro" \
+            zjstatus-test \
+            /test/tests/docker-test-runner.sh
+
+      - name: Run race condition test
+        run: |
+          docker run --rm \
+            -v "$(pwd)/target/wasm32-wasip1/release/zjstatus.wasm:/test/plugin.wasm:ro" \
+            -v "$(pwd)/tests/integration:/test/tests:ro" \
+            zjstatus-test \
+            /test/tests/test-race-runner.sh

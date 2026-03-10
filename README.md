@@ -17,7 +17,7 @@
   The goal of this statusbar is to provide a highly customizable and extensible statusbar for zellij. Single
   modules can be formatted separately. Due to the widget structure new modules can be created with ease.
 
-  As an addition, this repsitory contains *zjframes* which can be used to toggle pane frames based on different
+  As an addition, this repository contains *zjframes* which can be used to toggle pane frames based on different
   conditions even without loading *zjstatus*, e.g. when using the default status bars.
 </p>
 
@@ -107,16 +107,16 @@ For configuring, please follow the [documentation](https://github.com/dj95/zjsta
 
 ## 🏎️ Quick Start for zjstatus
 
-Place the following configuration in your default layout file, e.g. `~/.config/zellij/layouts/default.kdl`. Right after starting zellij, it will prompt for permissions, that needs to be granted in order for zjstatus to work. Simply navigate to the pane or click on it and press `y`. This must be repeated on updates. For more details on permissions, please visit the [wiki](https://github.com/dj95/zjstatus/wiki/2-%E2%80%90-Permissions).
+Place the following configuration in your default layout file, e.g. `~/.config/zellij/layouts/default.kdl`. Right after starting zellij, it will prompt for permissions, which need to be granted in order for zjstatus to work. Simply navigate to the pane or click on it and press `y`. This must be repeated on updates. For more details on permissions, please visit the [wiki](https://github.com/dj95/zjstatus/wiki/2-%E2%80%90-Permissions).
 
 > [!IMPORTANT]
-> Downloading zjstatus as file and using `file:~/path/to/zjstatus.wasm` is recommend, even if the quickstart includes the https location.
+> Downloading zjstatus as file and using `file:~/path/to/zjstatus.wasm` is recommended, even if the quickstart includes the https location.
 
 > [!IMPORTANT]
 > Using zjstatus involves creating new layouts and overriding the default one. This will lead to swap layouts not working, when they are not configured correctly. Please follow [this documentation](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration#swap-layouts) for getting swap layouts back to work, if you need them.
 
 > [!IMPORTANT]
-> If you want to hide borders, please remove the `hide_frame_for_single_pane` option or set it to `false`. Otherwise zjstatus will toggle frame borders even if the are hidden in zellijs config!
+> If you want to hide borders, please remove the `hide_frame_for_single_pane` option or set it to `false`. Otherwise zjstatus will toggle frame borders even if they are hidden in zellij's config!
 
 ```javascript
 layout {
@@ -162,7 +162,7 @@ Add the following to the *config.kdl* or add the plugin to `load_plugins`, if yo
 Double check if the configuration matches your expectations. Then restart zellij.
 
 > [!IMPORTANT]
-> Downloading zjframes as file and using `file:~/path/to/zjframes.wasm` is recommend, even if the quickstart includes the https location.
+> Downloading zjframes as file and using `file:~/path/to/zjframes.wasm` is recommended, even if the quickstart includes the https location.
 
 ```javascript
 // Plugins to load in the background when a new session starts

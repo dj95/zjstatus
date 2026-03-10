@@ -27,7 +27,7 @@ tracing = []
 [dependencies]
 zellij-tile = "0.43.1"
 chrono = { version = "0.4.43", default-features = false, features = ["clock"] }
-regex = "1.12.2"
+regex = "1.12.3"
 chrono-tz = "0.10.4"
 anyhow = "1.0.101"
 anstyle = "1.0.13"

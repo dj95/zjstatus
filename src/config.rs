@@ -14,6 +14,9 @@ use chrono::{DateTime, Local};
 #[derive(Default, Debug, Clone)]
 pub struct ZellijState {
     pub cols: usize,
+    /// Columns reserved by other bar sections (right + center).
+    /// Set by render_bar before processing the tabs widget.
+    pub reserved_cols: usize,
     pub command_results: BTreeMap<String, CommandResult>,
     pub pipe_results: BTreeMap<String, String>,
     pub mode: ModeInfo,
@@ -171,7 +174,7 @@ impl ModuleConfig {
 
     pub fn handle_mouse_action(
         &mut self,
-        state: ZellijState,
+        mut state: ZellijState,
         mouse: Mouse,
         widget_map: BTreeMap<String, Arc<dyn Widget>>,
     ) {
@@ -184,14 +187,6 @@ impl ModuleConfig {
             Mouse::Release(_, y) => y,
             Mouse::Hover(_, _) => return,
         };
-
-        let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
-            format!(
-                "{}{}",
-                acc,
-                part.format_string_with_widgets(&widget_map, &state)
-            )
-        });
 
         let output_center = self
             .center_parts
@@ -214,6 +209,17 @@ impl ModuleConfig {
                     part.format_string_with_widgets(&widget_map, &state)
                 )
             });
+
+        state.reserved_cols =
+            console::measure_text_width(&output_right) + console::measure_text_width(&output_center);
+
+        let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
+            format!(
+                "{}{}",
+                acc,
+                part.format_string_with_widgets(&widget_map, &state)
+            )
+        });
 
         let (output_left, output_center, output_right) = match self.hide_on_overlength {
             true => self.trim_output(&output_left, &output_center, &output_right, state.cols),
@@ -326,7 +332,7 @@ impl ModuleConfig {
 
     pub fn render_bar(
         &mut self,
-        state: ZellijState,
+        mut state: ZellijState,
         widget_map: BTreeMap<String, Arc<dyn Widget>>,
     ) -> String {
         if self.left_parts.is_empty() && self.center_parts.is_empty() && self.right_parts.is_empty()
@@ -334,13 +340,8 @@ impl ModuleConfig {
             return "No configuration found. See https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration for more info".to_string();
         }
 
-        let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
-            format!(
-                "{acc}{}",
-                part.format_string_with_widgets(&widget_map, &state)
-            )
-        });
-
+        // Render right and center first so we can measure their width
+        // and give the tabs widget a width budget for dynamic truncation.
         let output_center = self
             .center_parts
             .iter_mut()
@@ -360,6 +361,16 @@ impl ModuleConfig {
                     part.format_string_with_widgets(&widget_map, &state)
                 )
             });
+
+        state.reserved_cols =
+            console::measure_text_width(&output_right) + console::measure_text_width(&output_center);
+
+        let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
+            format!(
+                "{acc}{}",
+                part.format_string_with_widgets(&widget_map, &state)
+            )
+        });
 
         let (output_left, output_center, output_right) = match self.hide_on_overlength {
             true => self.trim_output(&output_left, &output_center, &output_right, state.cols),

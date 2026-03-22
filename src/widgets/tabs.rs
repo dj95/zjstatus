@@ -187,14 +187,6 @@ impl Widget for TabsWidget {
         let mut offset = 0;
         let window = self.visible_tab_window(state);
 
-        let active_pos = &state
-            .tabs
-            .iter()
-            .find(|t| t.active)
-            .expect("no active tab")
-            .position
-            + 1;
-
         if window.truncated_start > 0 {
             for f in &self.tab_truncate_start_format {
                 let mut content = f.content.clone();
@@ -207,7 +199,7 @@ impl Widget for TabsWidget {
                 offset += console::measure_text_width(&f.format_string(&content));
 
                 if pos <= offset {
-                    switch_tab_to(active_pos.saturating_sub(1) as u32);
+                    switch_tab_to(window.truncated_start as u32);
                     return;
                 }
             }
@@ -273,7 +265,8 @@ impl Widget for TabsWidget {
                 offset += console::measure_text_width(&f.format_string(&content));
 
                 if pos <= offset {
-                    switch_tab_to(cmp::min(active_pos + 1, state.tabs.len()) as u32);
+                    let target = state.tabs.len() - window.truncated_end + 1;
+                    switch_tab_to(target as u32);
                     return;
                 }
             }

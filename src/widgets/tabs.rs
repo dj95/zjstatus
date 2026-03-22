@@ -187,27 +187,20 @@ impl Widget for TabsWidget {
         let mut offset = 0;
         let window = self.visible_tab_window(state);
 
-        let active_pos = &state
-            .tabs
-            .iter()
-            .find(|t| t.active)
-            .expect("no active tab")
-            .position
-            + 1;
-
         if window.truncated_start > 0 {
             for f in &self.tab_truncate_start_format {
                 let mut content = f.content.clone();
 
                 if content.contains("{count}") {
                     content =
-                        content.replace("{count}", (window.truncated_end).to_string().as_str());
+                        content.replace("{count}", (window.truncated_start).to_string().as_str());
                 }
 
                 offset += console::measure_text_width(&f.format_string(&content));
 
                 if pos <= offset {
-                    switch_tab_to(active_pos.saturating_sub(1) as u32);
+                    switch_tab_to(window.truncated_start as u32);
+                    return;
                 }
             }
         }
@@ -220,7 +213,7 @@ impl Widget for TabsWidget {
                 content = format!("{}{}", content, sep.format_string(&sep.content));
             }
             let content_len = console::measure_text_width(&content);
-            if pos > offset && pos < offset + content_len {
+            if pos >= offset && pos < offset + content_len {
                 switch_tab_to(tab.position as u32 + 1);
                 return;
             }
@@ -240,10 +233,9 @@ impl Widget for TabsWidget {
 
             let content_len = console::measure_text_width(&rendered_content);
 
-            if pos > offset && pos < offset + content_len {
+            if pos >= offset && pos < offset + content_len {
                 switch_tab_to(tab.position as u32 + 1);
-
-                break;
+                return;
             }
 
             offset += content_len;
@@ -253,7 +245,7 @@ impl Widget for TabsWidget {
             let rendered = self.render_tab(tab, &state.panes, &state.mode);
             let truncated = console::truncate_str(&rendered, max_width, "\u{2026}");
             let content_len = console::measure_text_width(&truncated);
-            if pos > offset && pos < offset + content_len {
+            if pos >= offset && pos < offset + content_len {
                 switch_tab_to(tab.position as u32 + 1);
                 return;
             }
@@ -272,7 +264,9 @@ impl Widget for TabsWidget {
                 offset += console::measure_text_width(&f.format_string(&content));
 
                 if pos <= offset {
-                    switch_tab_to(cmp::min(active_pos + 1, state.tabs.len()) as u32);
+                    let target = state.tabs.len() - window.truncated_end + 1;
+                    switch_tab_to(target as u32);
+                    return;
                 }
             }
         }

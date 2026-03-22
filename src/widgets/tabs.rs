@@ -201,13 +201,14 @@ impl Widget for TabsWidget {
 
                 if content.contains("{count}") {
                     content =
-                        content.replace("{count}", (window.truncated_end).to_string().as_str());
+                        content.replace("{count}", (window.truncated_start).to_string().as_str());
                 }
 
                 offset += console::measure_text_width(&f.format_string(&content));
 
                 if pos <= offset {
                     switch_tab_to(active_pos.saturating_sub(1) as u32);
+                    return;
                 }
             }
         }
@@ -273,6 +274,7 @@ impl Widget for TabsWidget {
 
                 if pos <= offset {
                     switch_tab_to(cmp::min(active_pos + 1, state.tabs.len()) as u32);
+                    return;
                 }
             }
         }

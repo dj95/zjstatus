@@ -293,29 +293,35 @@ impl TabsWidget {
 
     fn replace_indicators(&self, content: String, tab: &TabInfo, panes: &PaneManifest) -> String {
         let mut content = content;
-        if content.contains("{fullscreen_indicator}") && self.fullscreen_indicator.is_some() {
+        if content.contains("{fullscreen_indicator}")
+            && let Some(fullscreen_indicator) = self.fullscreen_indicator.clone()
+        {
             content = content.replace(
                 "{fullscreen_indicator}",
                 if tab.is_fullscreen_active {
-                    self.fullscreen_indicator.as_ref().unwrap()
+                    fullscreen_indicator.as_ref()
                 } else {
                     ""
                 },
             );
         }
 
-        if content.contains("{sync_indicator}") && self.sync_indicator.is_some() {
+        if content.contains("{sync_indicator}")
+            && let Some(sync_indicator) = self.sync_indicator.clone()
+        {
             content = content.replace(
                 "{sync_indicator}",
                 if tab.is_sync_panes_active {
-                    self.sync_indicator.as_ref().unwrap()
+                    sync_indicator.as_ref()
                 } else {
                     ""
                 },
             );
         }
 
-        if content.contains("{floating_indicator}") && self.floating_indicator.is_some() {
+        if content.contains("{floating_indicator}")
+            && let Some(floating_indicator) = self.floating_indicator.clone()
+        {
             let panes_for_tab: Vec<PaneInfo> =
                 panes.panes.get(&tab.position).cloned().unwrap_or_default();
 
@@ -324,7 +330,7 @@ impl TabsWidget {
             content = content.replace(
                 "{floating_indicator}",
                 if is_floating {
-                    self.floating_indicator.as_ref().unwrap()
+                    floating_indicator.as_ref()
                 } else {
                     ""
                 },

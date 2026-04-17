@@ -24,7 +24,7 @@ pub struct TabsWidget {
     tab_display_count: Option<usize>,
     tab_truncate_start_format: Vec<FormattedPart>,
     tab_truncate_end_format: Vec<FormattedPart>,
-    tab_zero_based_index: Option<bool>,
+    tab_zero_based_index: bool,
 }
 
 impl TabsWidget {
@@ -80,10 +80,10 @@ impl TabsWidget {
             .unwrap_or_default();
 
         let tab_zero_based_index = match config.get("tab_zero_based_index") {
-            Some(e) => e.parse::<bool>().ok(),
-            None => None,
+            Some(e) => matches!(e.as_str(), "true"),
+            None => false,
         };
-        
+
         let separator = config
             .get("tab_separator")
             .map(|s| FormattedPart::from_format_string(s, config));
@@ -277,10 +277,9 @@ impl TabsWidget {
             }
 
             if content.contains("{index}") {
-                let index = if self.tab_zero_based_index.is_some_and(|x| x) {
-                    tab.position
-                } else {
-                    tab.position + 1
+                let index = match self.tab_zero_based_index {
+                    true => tab.position,
+                    false => tab.position + 1,
                 };
                 content = content.replace("{index}", index.to_string().as_str());
             }

@@ -51,6 +51,7 @@ layout {
             tab_display_count       "3"
             tab_truncate_start_format "#[fg=$blue,bg=$bg]#[bg=$blue,fg=black] +{count} ... #[fg=$bg,bg=$blue]"
             tab_truncate_end_format "#[fg=red,bg=$bg] ... +{count} > #[bg=$yellow] "
+            tab_zero_based_index "false"
 
             command_0_command      "echo \"平仮名, ひらがな 📦\""
             command_0_clickaction "bash -c \"zellij --session zjstatus-dev pipe 'zjstatus::notify::hello world!' -n zjstatus\""

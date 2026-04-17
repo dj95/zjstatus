@@ -24,6 +24,7 @@ pub struct TabsWidget {
     tab_display_count: Option<usize>,
     tab_truncate_start_format: Vec<FormattedPart>,
     tab_truncate_end_format: Vec<FormattedPart>,
+    tab_zero_based_index: Option<bool>,
 }
 
 impl TabsWidget {
@@ -78,6 +79,11 @@ impl TabsWidget {
             .map(|form| FormattedPart::multiple_from_format_string(form, config))
             .unwrap_or_default();
 
+        let tab_zero_based_index = match config.get("tab_zero_based_index") {
+            Some(e) => e.parse::<bool>().ok(),
+            None => None,
+        };
+        
         let separator = config
             .get("tab_separator")
             .map(|s| FormattedPart::from_format_string(s, config));
@@ -97,6 +103,7 @@ impl TabsWidget {
             tab_display_count,
             tab_truncate_start_format,
             tab_truncate_end_format,
+            tab_zero_based_index,
         }
     }
 }
@@ -270,7 +277,12 @@ impl TabsWidget {
             }
 
             if content.contains("{index}") {
-                content = content.replace("{index}", (tab.position + 1).to_string().as_str());
+                let index = if self.tab_zero_based_index.is_some_and(|x| x) {
+                    tab.position
+                } else {
+                    tab.position + 1
+                };
+                content = content.replace("{index}", index.to_string().as_str());
             }
 
             if content.contains("{floating_total_count}") {

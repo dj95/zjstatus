@@ -36,7 +36,7 @@ jobs:
         with:
           profile: minimal
           override: true
-          toolchain: "1.91.0"
+          toolchain: "1.95.0"
           target: wasm32-wasip1
         env:
           WASI_SDK_PATH: /opt/wasi-sdk

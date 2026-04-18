@@ -9,6 +9,18 @@ use crate::{config::ZellijState, render::FormattedPart};
 
 use super::widget::Widget;
 
+struct TabWindow {
+    truncated_start: usize,
+    truncated_end: usize,
+    tabs: Vec<TabInfo>,
+    /// Partially visible tab at the left edge, with max display width.
+    left_boundary: Option<(TabInfo, usize)>,
+    /// Partially visible tab at the right edge, with max display width.
+    right_boundary: Option<(TabInfo, usize)>,
+    /// Max total output width for the tab section (0 = no limit).
+    available: usize,
+}
+
 pub struct TabsWidget {
     active_tab_format: Vec<FormattedPart>,
     active_tab_fullscreen_format: Vec<FormattedPart>,
@@ -110,47 +122,69 @@ impl TabsWidget {
 
 impl Widget for TabsWidget {
     fn process(&self, _name: &str, state: &ZellijState) -> String {
+        let window = self.visible_tab_window(state);
         let mut output = "".to_owned();
-        let mut counter = 0;
 
-        let (truncated_start, truncated_end, tabs) =
-            get_tab_window(&state.tabs, self.tab_display_count);
-
-        if truncated_start > 0 {
+        if window.truncated_start > 0 {
             for f in &self.tab_truncate_start_format {
                 let mut content = f.content.clone();
 
                 if content.contains("{count}") {
-                    content = content.replace("{count}", (truncated_start).to_string().as_str());
+                    content =
+                        content.replace("{count}", (window.truncated_start).to_string().as_str());
                 }
 
                 output = format!("{output}{}", f.format_string(&content));
             }
         }
 
-        for tab in &tabs {
+        if let Some((ref tab, max_width)) = window.left_boundary {
+            let rendered = self.render_tab(tab, &state.panes, &state.mode);
+            output = format!(
+                "{output}{}",
+                console::truncate_str(&rendered, max_width, "\u{2026}")
+            );
+            if let Some(sep) = &self.separator {
+                output = format!("{output}{}", sep.format_string(&sep.content));
+            }
+        }
+
+        let tab_count = window.tabs.len();
+        for (i, tab) in window.tabs.iter().enumerate() {
             let content = self.render_tab(tab, &state.panes, &state.mode);
-            counter += 1;
 
             output = format!("{}{}", output, content);
 
-            if counter < tabs.len()
+            if (i + 1 < tab_count || window.right_boundary.is_some())
                 && let Some(sep) = &self.separator
             {
                 output = format!("{}{}", output, sep.format_string(&sep.content));
             }
         }
 
-        if truncated_end > 0 {
+        if let Some((ref tab, max_width)) = window.right_boundary {
+            let rendered = self.render_tab(tab, &state.panes, &state.mode);
+            output = format!(
+                "{output}{}",
+                console::truncate_str(&rendered, max_width, "\u{2026}")
+            );
+        }
+
+        if window.truncated_end > 0 {
             for f in &self.tab_truncate_end_format {
                 let mut content = f.content.clone();
 
                 if content.contains("{count}") {
-                    content = content.replace("{count}", (truncated_end).to_string().as_str());
+                    content =
+                        content.replace("{count}", (window.truncated_end).to_string().as_str());
                 }
 
                 output = format!("{output}{}", f.format_string(&content));
             }
+        }
+
+        if window.available > 0 && console::measure_text_width(&output) > window.available {
+            output = console::truncate_str(&output, window.available, "\u{2026}").to_string();
         }
 
         output
@@ -158,41 +192,46 @@ impl Widget for TabsWidget {
 
     fn process_click(&self, _name: &str, state: &ZellijState, pos: usize) {
         let mut offset = 0;
-        let mut counter = 0;
+        let window = self.visible_tab_window(state);
 
-        let (truncated_start, truncated_end, tabs) =
-            get_tab_window(&state.tabs, self.tab_display_count);
-
-        let active_pos = &state
-            .tabs
-            .iter()
-            .find(|t| t.active)
-            .expect("no active tab")
-            .position
-            + 1;
-
-        if truncated_start > 0 {
+        if window.truncated_start > 0 {
             for f in &self.tab_truncate_start_format {
                 let mut content = f.content.clone();
 
                 if content.contains("{count}") {
-                    content = content.replace("{count}", (truncated_end).to_string().as_str());
+                    content =
+                        content.replace("{count}", (window.truncated_start).to_string().as_str());
                 }
 
                 offset += console::measure_text_width(&f.format_string(&content));
 
                 if pos <= offset {
-                    switch_tab_to(active_pos.saturating_sub(1) as u32);
+                    switch_tab_to(window.truncated_start as u32);
+                    return;
                 }
             }
         }
 
-        for tab in &tabs {
-            counter += 1;
+        if let Some((ref tab, max_width)) = window.left_boundary {
+            let rendered = self.render_tab(tab, &state.panes, &state.mode);
+            let truncated = console::truncate_str(&rendered, max_width, "\u{2026}");
+            let mut content = truncated.to_string();
+            if let Some(sep) = &self.separator {
+                content = format!("{}{}", content, sep.format_string(&sep.content));
+            }
+            let content_len = console::measure_text_width(&content);
+            if pos >= offset && pos < offset + content_len {
+                switch_tab_to(tab.position as u32 + 1);
+                return;
+            }
+            offset += content_len;
+        }
 
+        let tab_count = window.tabs.len();
+        for (i, tab) in window.tabs.iter().enumerate() {
             let mut rendered_content = self.render_tab(tab, &state.panes, &state.mode);
 
-            if counter < tabs.len()
+            if (i + 1 < tab_count || window.right_boundary.is_some())
                 && let Some(sep) = &self.separator
             {
                 rendered_content =
@@ -201,27 +240,40 @@ impl Widget for TabsWidget {
 
             let content_len = console::measure_text_width(&rendered_content);
 
-            if pos > offset && pos < offset + content_len {
+            if pos >= offset && pos < offset + content_len {
                 switch_tab_to(tab.position as u32 + 1);
-
-                break;
+                return;
             }
 
             offset += content_len;
         }
 
-        if truncated_end > 0 {
+        if let Some((ref tab, max_width)) = window.right_boundary {
+            let rendered = self.render_tab(tab, &state.panes, &state.mode);
+            let truncated = console::truncate_str(&rendered, max_width, "\u{2026}");
+            let content_len = console::measure_text_width(&truncated);
+            if pos >= offset && pos < offset + content_len {
+                switch_tab_to(tab.position as u32 + 1);
+                return;
+            }
+            offset += content_len;
+        }
+
+        if window.truncated_end > 0 {
             for f in &self.tab_truncate_end_format {
                 let mut content = f.content.clone();
 
                 if content.contains("{count}") {
-                    content = content.replace("{count}", (truncated_end).to_string().as_str());
+                    content =
+                        content.replace("{count}", (window.truncated_end).to_string().as_str());
                 }
 
                 offset += console::measure_text_width(&f.format_string(&content));
 
                 if pos <= offset {
-                    switch_tab_to(cmp::min(active_pos + 1, state.tabs.len()) as u32);
+                    let target = state.tabs.len() - window.truncated_end + 1;
+                    switch_tab_to(target as u32);
+                    return;
                 }
             }
         }
@@ -229,6 +281,171 @@ impl Widget for TabsWidget {
 }
 
 impl TabsWidget {
+    /// Get the visible tab window. Uses fixed count windowing if tab_display_count
+    /// is configured, otherwise fits tabs to the available width.
+    fn visible_tab_window(&self, state: &ZellijState) -> TabWindow {
+        if self.tab_display_count.is_some() {
+            let (start, end, tabs) = get_tab_window(&state.tabs, self.tab_display_count);
+            return TabWindow {
+                truncated_start: start,
+                truncated_end: end,
+                tabs,
+                left_boundary: None,
+                right_boundary: None,
+                available: 0,
+            };
+        }
+        if state.cols > 0 {
+            let available = state.cols.saturating_sub(state.reserved_cols);
+            return self.fit_tab_window(&state.tabs, &state.panes, &state.mode, available);
+        }
+        TabWindow {
+            truncated_start: 0,
+            truncated_end: 0,
+            tabs: state.tabs.to_vec(),
+            left_boundary: None,
+            right_boundary: None,
+            available: 0,
+        }
+    }
+
+    /// Find the widest window of tabs around the active tab that fits within
+    /// the given column budget. Boundary tabs that don't fully fit are included
+    /// with a max display width for truncated rendering.
+    fn fit_tab_window(
+        &self,
+        tabs: &[TabInfo],
+        panes: &PaneManifest,
+        mode: &ModeInfo,
+        available: usize,
+    ) -> TabWindow {
+        if tabs.is_empty() {
+            return TabWindow {
+                truncated_start: 0,
+                truncated_end: 0,
+                tabs: vec![],
+                left_boundary: None,
+                right_boundary: None,
+                available,
+            };
+        }
+
+        let max_count_str = tabs.len().to_string();
+        let trunc_end_width: usize = self.tab_truncate_end_format.iter().map(|f| {
+            let content = f.content.replace("{count}", &max_count_str);
+            console::measure_text_width(&f.format_string(&content))
+        }).sum();
+        let trunc_start_width: usize = self.tab_truncate_start_format.iter().map(|f| {
+            let content = f.content.replace("{count}", &max_count_str);
+            console::measure_text_width(&f.format_string(&content))
+        }).sum();
+
+        let sep_width = self.separator.as_ref()
+            .map(|s| console::measure_text_width(&s.format_string(&s.content)))
+            .unwrap_or(0);
+
+        let tab_widths: Vec<usize> = tabs.iter()
+            .map(|t| console::measure_text_width(&self.render_tab(t, panes, mode)))
+            .collect();
+
+        let total: usize = tab_widths.iter().sum::<usize>()
+            + sep_width * tabs.len().saturating_sub(1);
+        if total <= available {
+            return TabWindow {
+                truncated_start: 0,
+                truncated_end: 0,
+                tabs: tabs.to_vec(),
+                left_boundary: None,
+                right_boundary: None,
+                available,
+            };
+        }
+
+        let active_idx = tabs.iter().position(|t| t.active).unwrap_or(0);
+        let mut left = active_idx;
+        let mut right = active_idx;
+        let mut width = tab_widths[active_idx];
+
+        loop {
+            let can_go_left = left > 0;
+            let can_go_right = right + 1 < tabs.len();
+
+            if !can_go_left && !can_go_right {
+                break;
+            }
+
+            // Reserve space for truncation indicators after expanding right.
+            let trunc_reserve = if left > 0 { trunc_start_width } else { 0 }
+                + if right + 2 < tabs.len() { trunc_end_width } else { 0 };
+
+            let mut grew = false;
+            if can_go_right {
+                let candidate = width + sep_width + tab_widths[right + 1];
+                if candidate + trunc_reserve <= available {
+                    right += 1;
+                    width = candidate;
+                    grew = true;
+                }
+            }
+            if can_go_left {
+                let new_trunc_reserve = if left > 1 { trunc_start_width } else { 0 }
+                    + if right + 1 < tabs.len() { trunc_end_width } else { 0 };
+                let candidate = width + sep_width + tab_widths[left - 1];
+                if candidate + new_trunc_reserve <= available {
+                    left -= 1;
+                    width = candidate;
+                    grew = true;
+                }
+            }
+
+            if !grew {
+                break;
+            }
+        }
+
+        // Try to partially show boundary tabs in remaining space.
+        let start_trunc = if left > 0 { trunc_start_width } else { 0 };
+        let end_trunc = if right + 1 < tabs.len() { trunc_end_width } else { 0 };
+        let mut remaining = available.saturating_sub(width + start_trunc + end_trunc);
+
+        // Only show boundary tabs when 2+ tabs are hidden on that side,
+        // so the truncation indicator (with decremented count) always remains.
+        let mut right_boundary = None;
+        if right + 2 < tabs.len() {
+            let min_width = trunc_end_width.max(1);
+            let budget = remaining.saturating_sub(sep_width);
+            if budget >= min_width {
+                right_boundary = Some((tabs[right + 1].clone(), budget));
+                remaining = remaining.saturating_sub(sep_width + budget);
+            }
+        }
+
+        let mut left_boundary = None;
+        if left > 1 {
+            let min_width = trunc_start_width.max(1);
+            let budget = remaining.saturating_sub(sep_width);
+            if budget >= min_width {
+                left_boundary = Some((tabs[left - 1].clone(), budget));
+            }
+        }
+
+        let truncated_start = if left_boundary.is_some() { left - 1 } else { left };
+        let truncated_end = if right_boundary.is_some() {
+            tabs.len() - right - 2
+        } else {
+            tabs.len() - right - 1
+        };
+
+        TabWindow {
+            truncated_start,
+            truncated_end,
+            tabs: tabs[left..=right].to_vec(),
+            left_boundary,
+            right_boundary,
+            available,
+        }
+    }
+
     fn select_format(&self, info: &TabInfo, mode: &ModeInfo) -> &Vec<FormattedPart> {
         if info.active && mode.mode == InputMode::RenameTab {
             return &self.rename_tab_format;

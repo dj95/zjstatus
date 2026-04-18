@@ -30,7 +30,7 @@ register_plugin!(State);
 
 #[cfg(feature = "tracing")]
 fn init_tracing() {
-    use std::fs::File;
+    use std::{fs::File, sync::Arc};
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
     let file = File::create("/host/.zjframes.log");

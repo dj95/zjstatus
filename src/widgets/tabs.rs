@@ -284,7 +284,9 @@ impl TabsWidget {
                 content = content.replace("{index}", index.to_string().as_str());
             }
 
-            if content.contains("{floating_total_count}") {
+            if content.contains("{floating_total_count}")
+                || content.contains("{focused_pane_title}")
+            {
                 let panes_for_tab: Vec<PaneInfo> =
                     panes.panes.get(&tab.position).cloned().unwrap_or_default();
 
@@ -292,6 +294,14 @@ impl TabsWidget {
                     "{floating_total_count}",
                     &format!("{}", panes_for_tab.iter().filter(|p| p.is_floating).count()),
                 );
+
+                let focused_pane_title = panes_for_tab
+                    .iter()
+                    .find(|pane| pane.is_focused)
+                    .map(|pane| pane.title.clone())
+                    .unwrap_or_default();
+
+                content = content.replace("{focused_pane_title}", &focused_pane_title);
             }
 
             content = self.replace_indicators(content, tab, panes);

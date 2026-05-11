@@ -67,6 +67,6 @@ impl Widget for SwapLayoutWidget {
     }
 
     fn process_click(&self, _name: &str, _state: &ZellijState, _pos: usize) {
-        next_swap_layout()
+        next_swap_layout();
     }
 }

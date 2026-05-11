@@ -1,14 +1,10 @@
-use lazy_static::lazy_static;
-use regex::Regex;
 use std::collections::BTreeMap;
 
-use crate::render::{FormattedPart, formatted_parts_from_string_cached};
+use crate::render::{
+    FormattedPart, formatted_parts_from_string_cached, truncate_ansi_string_to_width_from,
+};
 
 use super::widget::Widget;
-
-lazy_static! {
-    static ref PIPE_REGEX: Regex = Regex::new("_[a-zA-Z0-9]+$").unwrap();
-}
 
 #[derive(Clone, Debug, PartialEq)]
 enum RenderMode {
@@ -26,6 +22,10 @@ pub struct PipeWidget {
 struct PipeConfig {
     format: Vec<FormattedPart>,
     render_mode: RenderMode,
+    truncate: bool,
+    overflow: String,
+    scrollable: bool,
+    scroll_step: usize,
 }
 
 impl PipeWidget {
@@ -86,6 +86,63 @@ impl Widget for PipeWidget {
     }
 
     fn process_click(&self, _name: &str, _state: &crate::config::ZellijState, _pos: usize) {}
+
+    fn is_truncatable(&self, name: &str) -> bool {
+        self.config
+            .get(name)
+            .map(|pipe_config| pipe_config.truncate)
+            .unwrap_or(false)
+    }
+
+    fn process_scroll(
+        &self,
+        name: &str,
+        state: &mut crate::config::ZellijState,
+        delta: isize,
+    ) -> bool {
+        let Some(pipe_config) = self.config.get(name) else {
+            return false;
+        };
+        if !pipe_config.scrollable {
+            return false;
+        }
+
+        let current_offset = state.pipe_scroll_offsets.get(name).copied().unwrap_or(0);
+        let max_offset = console::measure_text_width(&self.process(name, state)).saturating_sub(1);
+        let step = pipe_config.scroll_step * delta.unsigned_abs().max(1);
+        let next_offset = if delta.is_negative() {
+            current_offset.saturating_sub(step)
+        } else {
+            current_offset.saturating_add(step)
+        }
+        .min(max_offset);
+
+        state
+            .pipe_scroll_offsets
+            .insert(name.to_owned(), next_offset);
+        true
+    }
+
+    fn truncate(
+        &self,
+        name: &str,
+        output: &str,
+        max_width: usize,
+        state: &crate::config::ZellijState,
+    ) -> String {
+        let overflow = self
+            .config
+            .get(name)
+            .map(|pipe_config| pipe_config.overflow.as_str())
+            .unwrap_or("...");
+        let offset = self
+            .config
+            .get(name)
+            .filter(|pipe_config| pipe_config.scrollable)
+            .and_then(|_| state.pipe_scroll_offsets.get(name).copied())
+            .unwrap_or(0);
+        truncate_ansi_string_to_width_from(output, overflow, max_width, offset)
+    }
 }
 
 fn render_dynamic_formatted_content(content: &str, config: &BTreeMap<String, String>) -> String {
@@ -107,22 +164,28 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, PipeConf
     let mut config: BTreeMap<String, PipeConfig> = BTreeMap::new();
 
     for key in keys {
-        let pipe_name = PIPE_REGEX.replace(&key, "").to_string();
+        let Some((pipe_name, suffix)) = split_pipe_key(&key) else {
+            continue;
+        };
         let mut pipe_conf = PipeConfig {
             format: vec![],
             render_mode: RenderMode::Static,
+            truncate: false,
+            overflow: "...".to_owned(),
+            scrollable: false,
+            scroll_step: 4,
         };
 
-        if let Some(existing_conf) = config.get(pipe_name.as_str()) {
+        if let Some(existing_conf) = config.get(pipe_name) {
             pipe_conf = existing_conf.clone();
         }
 
-        if key.ends_with("format") {
+        if suffix == "format" {
             pipe_conf.format =
                 FormattedPart::multiple_from_format_string(zj_conf.get(&key).unwrap(), zj_conf);
         }
 
-        if key.ends_with("rendermode") {
+        if suffix == "rendermode" {
             pipe_conf.render_mode = match zj_conf.get(&key) {
                 Some(mode) => match mode.as_str() {
                     "static" => RenderMode::Static,
@@ -134,7 +197,46 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, PipeConf
             };
         }
 
-        config.insert(pipe_name, pipe_conf);
+        if suffix == "truncate" {
+            pipe_conf.truncate = zj_conf.get(&key).map(|v| v == "true").unwrap_or(false);
+        }
+
+        if suffix == "overflow"
+            && let Some(overflow) = zj_conf.get(&key)
+        {
+            pipe_conf.overflow.clone_from(overflow);
+        }
+
+        if suffix == "scrollable" {
+            pipe_conf.scrollable = zj_conf.get(&key).map(|v| v == "true").unwrap_or(false);
+        }
+
+        if suffix == "scroll_step" {
+            pipe_conf.scroll_step = zj_conf
+                .get(&key)
+                .and_then(|v| v.parse::<usize>().ok())
+                .unwrap_or(4)
+                .max(1);
+        }
+
+        config.insert(pipe_name.to_owned(), pipe_conf);
     }
     config
+}
+
+fn split_pipe_key(key: &str) -> Option<(&str, &str)> {
+    for suffix in [
+        "scroll_step",
+        "rendermode",
+        "scrollable",
+        "truncate",
+        "overflow",
+        "format",
+    ] {
+        let key_suffix = format!("_{suffix}");
+        if let Some(pipe_name) = key.strip_suffix(&key_suffix) {
+            return Some((pipe_name, suffix));
+        }
+    }
+    None
 }

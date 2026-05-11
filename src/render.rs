@@ -374,6 +374,154 @@ fn color_by_name(color: &str) -> Option<AnsiColor> {
     }
 }
 
+pub fn truncate_ansi_string_to_width_from(
+    text: &str,
+    overflow_str: &str,
+    max_width: usize,
+    offset: usize,
+) -> String {
+    let visible_width = console::measure_text_width(text);
+    let overflow_width = console::measure_text_width(overflow_str);
+
+    if visible_width <= max_width {
+        return text.to_owned();
+    }
+
+    if offset == 0 {
+        return truncate_ansi_string_to_width_head(text, overflow_str, max_width);
+    }
+
+    if max_width == 0 {
+        return String::new();
+    }
+
+    if max_width <= overflow_width {
+        return take_string_width(overflow_str, max_width);
+    }
+
+    let start_offset = offset.min(visible_width.saturating_sub(1));
+    let remaining_width = visible_width.saturating_sub(start_offset);
+    let prefix_width = overflow_width;
+    let mut suffix_width = 0usize;
+    let mut content_width_limit = max_width.saturating_sub(prefix_width);
+
+    if remaining_width > content_width_limit {
+        suffix_width = overflow_width;
+        content_width_limit = max_width.saturating_sub(prefix_width + suffix_width);
+    }
+
+    let mut result = String::new();
+    let mut skipped_width = 0usize;
+    let mut content_width = 0usize;
+    let mut chars = text.chars().peekable();
+    let mut added_prefix = false;
+
+    while let Some(ch) = chars.next() {
+        if ch == '\x1b' {
+            result.push(ch);
+            for escape_ch in chars.by_ref() {
+                result.push(escape_ch);
+                if escape_ch == 'm' {
+                    break;
+                }
+            }
+            continue;
+        }
+
+        let char_width = console::measure_text_width(&ch.to_string());
+        if skipped_width + char_width <= start_offset {
+            skipped_width += char_width;
+            continue;
+        }
+
+        if !added_prefix {
+            result.push_str(overflow_str);
+            added_prefix = true;
+        }
+
+        if content_width + char_width > content_width_limit {
+            break;
+        }
+
+        result.push(ch);
+        content_width += char_width;
+    }
+
+    if suffix_width > 0 {
+        result.push_str(overflow_str);
+    }
+
+    result
+}
+
+fn truncate_ansi_string_to_width_head(text: &str, overflow_str: &str, max_width: usize) -> String {
+    let visible_width = console::measure_text_width(text);
+    let overflow_width = console::measure_text_width(overflow_str);
+
+    if visible_width <= max_width {
+        return text.to_owned();
+    }
+
+    if max_width == 0 {
+        return String::new();
+    }
+
+    if max_width <= overflow_width {
+        return take_string_width(overflow_str, max_width);
+    }
+
+    let target_width = max_width - overflow_width;
+    let mut result = String::new();
+    let mut visible_width = 0usize;
+    let mut chars = text.chars().peekable();
+    let mut add_visible = true;
+
+    while let Some(ch) = chars.next() {
+        if ch == '\x1b' {
+            result.push(ch);
+            for escape_ch in chars.by_ref() {
+                result.push(escape_ch);
+                if escape_ch == 'm' {
+                    break;
+                }
+            }
+            continue;
+        }
+
+        if !add_visible {
+            continue;
+        }
+
+        let char_width = console::measure_text_width(&ch.to_string());
+        if visible_width + char_width > target_width {
+            add_visible = false;
+            continue;
+        }
+
+        result.push(ch);
+        visible_width += char_width;
+    }
+
+    result.push_str(overflow_str);
+    result
+}
+
+fn take_string_width(text: &str, max_width: usize) -> String {
+    let mut result = String::new();
+    let mut width = 0usize;
+
+    for ch in text.chars() {
+        let char_width = console::measure_text_width(&ch.to_string());
+        if width + char_width > max_width {
+            break;
+        }
+        result.push(ch);
+        width += char_width;
+    }
+
+    result
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

@@ -226,7 +226,7 @@ impl Widget for TabsWidget {
             if pos > offset && pos < offset + content_len {
                 switch_tab_to(tab.position as u32 + 1);
 
-                break;
+                return;
             }
 
             offset += content_len;

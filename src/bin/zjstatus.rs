@@ -101,6 +101,7 @@ impl ZellijPlugin for State {
             cols: 0,
             command_results: BTreeMap::new(),
             pipe_results: BTreeMap::new(),
+            pipe_scroll_offsets: BTreeMap::new(),
             mode: ModeInfo::default(),
             panes: PaneManifest::default(),
             plugin_uuid: uid.to_string(),
@@ -243,8 +244,8 @@ impl State {
                 tracing::Span::current().record("event_type", "Event::Mouse");
                 tracing::debug!(mouse = ?mouse_info);
 
-                self.module_config.handle_mouse_action(
-                    self.state.clone(),
+                should_render = self.module_config.handle_mouse_action(
+                    &mut self.state,
                     mouse_info,
                     self.widget_map.clone(),
                 );

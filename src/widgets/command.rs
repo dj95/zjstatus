@@ -554,9 +554,15 @@ mod test {
 
     #[rstest]
     // no result, interval 1 second
-    #[case(1, &ZellijState{ plugin_uuid: "test_command_result_1".to_owned(), ..Default::default() }, true)]
+    #[case(1, &ZellijState {
+        plugin_uuid: uuid::Uuid::new_v4().to_string(),
+        ..ZellijState::default()
+    }, true)]
     // only run once without a result
-    #[case(0, &ZellijState::default(), true)]
+    #[case(0, &ZellijState {
+        plugin_uuid: uuid::Uuid::new_v4().to_string(),
+        ..ZellijState::default()
+    }, true)]
     // do not run with run once and result
     #[case(0, &ZellijState {
         command_results: BTreeMap::from([(

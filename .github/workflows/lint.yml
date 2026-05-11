@@ -30,7 +30,7 @@ jobs:
           components: clippy
 
       - name: Run Clippy
-        uses: clechasseur/rs-clippy-check@b418607012136b974dc5c880877df721d630bbc1 # v3
+        uses: clechasseur/rs-clippy-check@1e16925ceec49b64803a6abc5f6bbe79044c3bd4 # v3
         with:
           args: --all-features --lib
           toolchain: "1.95.0"

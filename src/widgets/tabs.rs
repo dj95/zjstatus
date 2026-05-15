@@ -16,11 +16,15 @@ pub struct TabsWidget {
     normal_tab_format: Vec<FormattedPart>,
     normal_tab_fullscreen_format: Vec<FormattedPart>,
     normal_tab_sync_format: Vec<FormattedPart>,
+    normal_tab_bell_format: Option<Vec<FormattedPart>>,
+    normal_tab_flashing_bell_format: Option<Vec<FormattedPart>>,
     rename_tab_format: Vec<FormattedPart>,
     separator: Option<FormattedPart>,
     fullscreen_indicator: Option<String>,
     floating_indicator: Option<String>,
     sync_indicator: Option<String>,
+    bell_indicator: Option<String>,
+    flashing_bell_indicator: Option<String>,
     tab_display_count: Option<usize>,
     tab_truncate_start_format: Vec<FormattedPart>,
     tab_truncate_end_format: Vec<FormattedPart>,
@@ -43,6 +47,14 @@ impl TabsWidget {
             Some(form) => FormattedPart::multiple_from_format_string(form, config),
             None => normal_tab_format.clone(),
         };
+
+        let normal_tab_bell_format = config
+            .get("tab_normal_bell")
+            .map(|form| FormattedPart::multiple_from_format_string(form, config));
+
+        let normal_tab_flashing_bell_format = config
+            .get("tab_normal_flashing_bell")
+            .map(|form| FormattedPart::multiple_from_format_string(form, config));
 
         let mut active_tab_format = normal_tab_format.clone();
         if let Some(form) = config.get("tab_active") {
@@ -88,10 +100,18 @@ impl TabsWidget {
             .get("tab_separator")
             .map(|s| FormattedPart::from_format_string(s, config));
 
+        let bell_indicator = config.get("tab_bell_indicator").cloned();
+        let flashing_bell_indicator = config
+            .get("tab_flashing_bell_indicator")
+            .cloned()
+            .or_else(|| bell_indicator.clone());
+
         Self {
             normal_tab_format,
             normal_tab_fullscreen_format,
             normal_tab_sync_format,
+            normal_tab_bell_format,
+            normal_tab_flashing_bell_format,
             active_tab_format,
             active_tab_fullscreen_format,
             active_tab_sync_format,
@@ -100,6 +120,8 @@ impl TabsWidget {
             floating_indicator: config.get("tab_floating_indicator").cloned(),
             sync_indicator: config.get("tab_sync_indicator").cloned(),
             fullscreen_indicator: config.get("tab_fullscreen_indicator").cloned(),
+            bell_indicator,
+            flashing_bell_indicator,
             tab_display_count,
             tab_truncate_start_format,
             tab_truncate_end_format,
@@ -234,6 +256,23 @@ impl TabsWidget {
             return &self.rename_tab_format;
         }
 
+        if !info.active && info.is_flashing_bell {
+            let fmt = self
+                .normal_tab_flashing_bell_format
+                .as_ref()
+                .or(self.normal_tab_bell_format.as_ref());
+            if let Some(fmt) = fmt {
+                return fmt;
+            }
+        }
+
+        if !info.active
+            && info.has_bell_notification
+            && let Some(fmt) = self.normal_tab_bell_format.as_ref()
+        {
+            return fmt;
+        }
+
         if info.active && info.is_fullscreen_active {
             return &self.active_tab_fullscreen_format;
         }
@@ -346,6 +385,20 @@ impl TabsWidget {
                     ""
                 },
             );
+        }
+
+        if content.contains("{bell_indicator}")
+            && (self.bell_indicator.is_some() || self.flashing_bell_indicator.is_some())
+        {
+            let indicator = if tab.is_flashing_bell {
+                self.flashing_bell_indicator.as_deref().unwrap_or("")
+            } else if tab.has_bell_notification {
+                self.bell_indicator.as_deref().unwrap_or("")
+            } else {
+                ""
+            };
+
+            content = content.replace("{bell_indicator}", indicator);
         }
 
         content

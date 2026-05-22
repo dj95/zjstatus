@@ -20,6 +20,8 @@ use zjstatus::{
     },
 };
 
+const TIMER_INTERVAL_SECS: f64 = 1.0;
+
 #[derive(Default)]
 struct State {
     pending_events: Vec<Event>,
@@ -28,6 +30,7 @@ struct State {
     userspace_configuration: BTreeMap<String, String>,
     module_config: config::ModuleConfig,
     widget_map: BTreeMap<String, Arc<dyn Widget>>,
+    timer_rendering_enabled: bool,
     err: Option<anyhow::Error>,
 }
 
@@ -65,7 +68,8 @@ impl ZellijPlugin for State {
             PermissionType::RunCommands,
         ]);
 
-        subscribe(&[
+        let timer_rendering_enabled = needs_timer_rendering(&configuration);
+        let mut subscriptions = vec![
             EventType::Mouse,
             EventType::ModeUpdate,
             EventType::PaneUpdate,
@@ -73,7 +77,12 @@ impl ZellijPlugin for State {
             EventType::TabUpdate,
             EventType::SessionUpdate,
             EventType::RunCommandResult,
-        ]);
+        ];
+        if timer_rendering_enabled {
+            subscriptions.push(EventType::Timer);
+            set_timeout(TIMER_INTERVAL_SECS);
+        }
+        subscribe(&subscriptions);
 
         self.module_config = match ModuleConfig::new(&configuration) {
             Ok(mc) => mc,
@@ -84,6 +93,7 @@ impl ZellijPlugin for State {
         };
         self.widget_map = register_widgets(&configuration);
         self.userspace_configuration = configuration;
+        self.timer_rendering_enabled = timer_rendering_enabled;
         self.pending_events = Vec::new();
         self.got_permissions = false;
         let uid = Uuid::new_v4();
@@ -258,6 +268,8 @@ impl State {
                         },
                     );
                 }
+
+                should_render = true;
             }
             Event::SessionUpdate(session_info, _) => {
                 tracing::Span::current().record("event_type", "Event::SessionUpdate");
@@ -294,10 +306,49 @@ impl State {
 
                 should_render = true;
             }
+            Event::Timer(_) => {
+                if !self.timer_rendering_enabled {
+                    return false;
+                }
+
+                set_timeout(TIMER_INTERVAL_SECS);
+
+                should_render = true;
+            }
             _ => (),
         };
         should_render
     }
+}
+
+fn needs_timer_rendering(configuration: &BTreeMap<String, String>) -> bool {
+    format_contains_widget(configuration, "datetime") || has_interval_command(configuration)
+}
+
+fn format_contains_widget(configuration: &BTreeMap<String, String>, widget_name: &str) -> bool {
+    let widget_token = format!("{{{widget_name}}}");
+
+    ["format_left", "format_center", "format_right"]
+        .iter()
+        .filter_map(|key| configuration.get(*key))
+        .any(|format| format.contains(&widget_token))
+}
+
+fn has_interval_command(configuration: &BTreeMap<String, String>) -> bool {
+    configuration
+        .iter()
+        .filter(|(key, command)| {
+            key.starts_with("command_") && key.ends_with("_command") && !command.trim().is_empty()
+        })
+        .any(|(key, _)| {
+            let command_name = key.trim_end_matches("_command");
+            let interval_key = format!("{command_name}_interval");
+
+            configuration
+                .get(&interval_key)
+                .map(|interval| interval.parse::<i64>().unwrap_or(1) != 0)
+                .unwrap_or(true)
+        })
 }
 
 fn register_widgets(configuration: &BTreeMap<String, String>) -> BTreeMap<String, Arc<dyn Widget>> {

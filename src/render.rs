@@ -1,4 +1,4 @@
-use cached::{SizedCache, proc_macro::cached};
+use cached::{LruCache, macros::cached};
 use lazy_static::lazy_static;
 use std::{collections::BTreeMap, sync::Arc};
 
@@ -40,8 +40,8 @@ pub struct FormattedPart {
 }
 
 #[cached(
-    ty = "SizedCache<String, FormattedPart>",
-    create = "{ SizedCache::with_size(100) }",
+    ty = "LruCache<String, FormattedPart>",
+    create = "{ LruCache::with_size(100) }",
     convert = r#"{ (format.to_owned()) }"#
 )]
 pub fn formatted_part_from_string_cached(
@@ -52,8 +52,8 @@ pub fn formatted_part_from_string_cached(
 }
 
 #[cached(
-    ty = "SizedCache<String, Vec<FormattedPart>>",
-    create = "{ SizedCache::with_size(100) }",
+    ty = "LruCache<String, Vec<FormattedPart>>",
+    create = "{ LruCache::with_size(100) }",
     convert = r#"{ (config_string.to_owned()) }"#
 )]
 pub fn formatted_parts_from_string_cached(
@@ -304,8 +304,8 @@ fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {
 }
 
 #[cached(
-    ty = "SizedCache<String, Option<Color>>",
-    create = "{ SizedCache::with_size(100) }",
+    ty = "LruCache<String, Option<Color>>",
+    create = "{ LruCache::with_size(100) }",
     convert = r#"{ (color.to_owned()) }"#
 )]
 fn parse_color(color: &str, config: &BTreeMap<String, String>) -> Option<Color> {

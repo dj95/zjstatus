@@ -20,6 +20,9 @@ use zjstatus::{
     },
 };
 
+// Matches the old incidental Zellij session scan cadence.
+const REFRESH_INTERVAL_SECONDS: f64 = 1.0;
+
 #[derive(Default)]
 struct State {
     pending_events: Vec<Event>,
@@ -70,10 +73,12 @@ impl ZellijPlugin for State {
             EventType::ModeUpdate,
             EventType::PaneUpdate,
             EventType::PermissionRequestResult,
+            EventType::Timer,
             EventType::TabUpdate,
             EventType::SessionUpdate,
             EventType::RunCommandResult,
         ]);
+        set_timeout(REFRESH_INTERVAL_SECONDS);
 
         self.module_config = match ModuleConfig::new(&configuration) {
             Ok(mc) => mc,
@@ -291,6 +296,13 @@ impl State {
 
                 self.state.cache_mask = UpdateEventMask::Tab as u8;
                 self.state.tabs = tab_info;
+
+                should_render = true;
+            }
+            Event::Timer(_) => {
+                tracing::Span::current().record("event_type", "Event::Timer");
+                set_timeout(REFRESH_INTERVAL_SECONDS);
+                self.state.cache_mask = 0;
 
                 should_render = true;
             }

@@ -14,6 +14,9 @@ use chrono::{DateTime, Local};
 #[derive(Default, Debug, Clone)]
 pub struct ZellijState {
     pub cols: usize,
+    /// Columns reserved by bar sections not containing the tabs widget.
+    /// Set before rendering the section that contains tabs.
+    pub reserved_cols: usize,
     pub command_results: BTreeMap<String, CommandResult>,
     pub pipe_results: BTreeMap<String, String>,
     pub mode: ModeInfo,
@@ -169,9 +172,19 @@ impl ModuleConfig {
         })
     }
 
+    fn tabs_section(&self) -> Part {
+        if self.left_parts.iter().any(|p| p.content.contains("{tabs}")) {
+            Part::Left
+        } else if self.center_parts.iter().any(|p| p.content.contains("{tabs}")) {
+            Part::Center
+        } else {
+            Part::Right
+        }
+    }
+
     pub fn handle_mouse_action(
         &mut self,
-        state: ZellijState,
+        mut state: ZellijState,
         mouse: Mouse,
         widget_map: BTreeMap<String, Arc<dyn Widget>>,
     ) {
@@ -180,40 +193,38 @@ impl ModuleConfig {
             Mouse::ScrollDown(_) => return,
             Mouse::LeftClick(_, y) => y,
             Mouse::RightClick(_, y) => y,
-            Mouse::Hold(_, y) => y,
-            Mouse::Release(_, y) => y,
+            Mouse::Hold(_, _) => return,
+            Mouse::Release(_, _) => return,
             Mouse::Hover(_, _) => return,
         };
 
-        let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
-            format!(
-                "{}{}",
-                acc,
-                part.format_string_with_widgets(&widget_map, &state)
-            )
-        });
+        let tabs_in = self.tabs_section();
+        let (mut output_left, mut output_center, mut output_right) =
+            (String::new(), String::new(), String::new());
 
-        let output_center = self
-            .center_parts
-            .iter_mut()
-            .fold("".to_owned(), |acc, part| {
-                format!(
-                    "{}{}",
-                    acc,
-                    part.format_string_with_widgets(&widget_map, &state)
-                )
-            });
+        if tabs_in != Part::Left {
+            output_left = render_parts(&mut self.left_parts, &widget_map, &state);
+        }
+        if tabs_in != Part::Center {
+            output_center = render_parts(&mut self.center_parts, &widget_map, &state);
+        }
+        if tabs_in != Part::Right {
+            output_right = render_parts(&mut self.right_parts, &widget_map, &state);
+        }
 
-        let output_right = self
-            .right_parts
-            .iter_mut()
-            .fold("".to_owned(), |acc, part| {
-                format!(
-                    "{}{}",
-                    acc,
-                    part.format_string_with_widgets(&widget_map, &state)
-                )
-            });
+        state.reserved_cols = console::measure_text_width(&output_left)
+            + console::measure_text_width(&output_center)
+            + console::measure_text_width(&output_right);
+
+        match tabs_in {
+            Part::Left => output_left = render_parts(&mut self.left_parts, &widget_map, &state),
+            Part::Center => {
+                output_center = render_parts(&mut self.center_parts, &widget_map, &state)
+            }
+            Part::Right => {
+                output_right = render_parts(&mut self.right_parts, &widget_map, &state)
+            }
+        }
 
         let (output_left, output_center, output_right) = match self.hide_on_overlength {
             true => self.trim_output(&output_left, &output_center, &output_right, state.cols),
@@ -326,7 +337,7 @@ impl ModuleConfig {
 
     pub fn render_bar(
         &mut self,
-        state: ZellijState,
+        mut state: ZellijState,
         widget_map: BTreeMap<String, Arc<dyn Widget>>,
     ) -> String {
         if self.left_parts.is_empty() && self.center_parts.is_empty() && self.right_parts.is_empty()
@@ -334,32 +345,35 @@ impl ModuleConfig {
             return "No configuration found. See https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration for more info".to_string();
         }
 
-        let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
-            format!(
-                "{acc}{}",
-                part.format_string_with_widgets(&widget_map, &state)
-            )
-        });
+        // Render sections without tabs first to measure their width,
+        // then render the tabs section with the remaining width budget.
+        let tabs_in = self.tabs_section();
+        let (mut output_left, mut output_center, mut output_right) =
+            (String::new(), String::new(), String::new());
 
-        let output_center = self
-            .center_parts
-            .iter_mut()
-            .fold("".to_owned(), |acc, part| {
-                format!(
-                    "{acc}{}",
-                    part.format_string_with_widgets(&widget_map, &state)
-                )
-            });
+        if tabs_in != Part::Left {
+            output_left = render_parts(&mut self.left_parts, &widget_map, &state);
+        }
+        if tabs_in != Part::Center {
+            output_center = render_parts(&mut self.center_parts, &widget_map, &state);
+        }
+        if tabs_in != Part::Right {
+            output_right = render_parts(&mut self.right_parts, &widget_map, &state);
+        }
 
-        let output_right = self
-            .right_parts
-            .iter_mut()
-            .fold("".to_owned(), |acc, part| {
-                format!(
-                    "{acc}{}",
-                    part.format_string_with_widgets(&widget_map, &state)
-                )
-            });
+        state.reserved_cols = console::measure_text_width(&output_left)
+            + console::measure_text_width(&output_center)
+            + console::measure_text_width(&output_right);
+
+        match tabs_in {
+            Part::Left => output_left = render_parts(&mut self.left_parts, &widget_map, &state),
+            Part::Center => {
+                output_center = render_parts(&mut self.center_parts, &widget_map, &state)
+            }
+            Part::Right => {
+                output_right = render_parts(&mut self.right_parts, &widget_map, &state)
+            }
+        }
 
         let (output_left, output_center, output_right) = match self.hide_on_overlength {
             true => self.trim_output(&output_left, &output_center, &output_right, state.cols),
@@ -507,6 +521,16 @@ impl ModuleConfig {
 
         self.format_space.format_string(&" ".repeat(space_count))
     }
+}
+
+fn render_parts(
+    parts: &mut [FormattedPart],
+    widget_map: &BTreeMap<String, Arc<dyn Widget>>,
+    state: &ZellijState,
+) -> String {
+    parts.iter_mut().fold(String::new(), |acc, part| {
+        format!("{acc}{}", part.format_string_with_widgets(widget_map, state))
+    })
 }
 
 fn parts_from_config(

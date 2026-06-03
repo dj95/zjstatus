@@ -191,6 +191,17 @@ The following widgets are available:
 - [swap layout](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#swap-layout)
 - [tabs](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#tabs)
 
+## 📐 Dynamic Tab Truncation
+
+When `tab_display_count` is not set, tabs are automatically fitted to the available width. The section containing `{tabs}` is detected and rendered last so the widget knows exactly how much space the other sections consume.
+
+- Tabs are added around the active tab (right-first) until the budget is exhausted
+- Boundary tabs that don't fully fit are partially shown with a `…` suffix, but only when 2+ tabs are hidden on that side (so the `+N` indicator always remains visible alongside the boundary tab)
+- The minimum width for a boundary tab matches the truncation indicator format width on that side
+- `tab_truncate_start_format` and `tab_truncate_end_format` are used for the `+N` indicators at each edge
+- Works with tabs in `format_left`, `format_center`, or `format_right`
+- Fully backward compatible: setting `tab_display_count` uses the existing fixed-count windowing
+
 ## 🚧 Development
 
 Make sure you have rust and the `wasm32-wasi` target installed. If using nix, you could utilize the nix-shell

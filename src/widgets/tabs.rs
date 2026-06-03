@@ -294,6 +294,19 @@ impl TabsWidget {
                 );
             }
 
+            if content.contains("{focused_pane_title}") {
+                let panes_for_tab: Vec<PaneInfo> =
+                    panes.panes.get(&tab.position).cloned().unwrap_or_default();
+
+                let focused_pane_title = panes_for_tab
+                    .iter()
+                    .find(|pane| pane.is_focused)
+                    .map(|pane| pane.title.clone())
+                    .unwrap_or_default();
+
+                content = content.replace("{focused_pane_title}", &focused_pane_title);
+            }
+
             content = self.replace_indicators(content, tab, panes);
 
             output = format!("{}{}", output, f.format_string(&content));

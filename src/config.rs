@@ -24,6 +24,8 @@ pub struct ZellijState {
     pub start_time: DateTime<Local>,
     pub incoming_notification: Option<notification::Message>,
     pub cache_mask: u8,
+    pub focused_pane_id: Option<PaneId>,
+    pub focused_pane_cwd: Option<std::path::PathBuf>,
 }
 
 #[derive(Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Copy)]

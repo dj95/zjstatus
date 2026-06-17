@@ -1,7 +1,7 @@
 use zellij_tile::prelude::*;
 
 use chrono::Local;
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 use uuid::Uuid;
 
 use zjstatus::{
@@ -31,6 +31,7 @@ struct State {
     userspace_configuration: BTreeMap<String, String>,
     module_config: config::ModuleConfig,
     widget_map: BTreeMap<String, Arc<dyn Widget>>,
+    focus_cwd_commands: Vec<String>,
     err: Option<anyhow::Error>,
 }
 
@@ -77,6 +78,7 @@ impl ZellijPlugin for State {
             EventType::TabUpdate,
             EventType::SessionUpdate,
             EventType::RunCommandResult,
+            EventType::CwdChanged,
         ]);
         set_timeout(REFRESH_INTERVAL_SECONDS);
 
@@ -88,6 +90,8 @@ impl ZellijPlugin for State {
             }
         };
         self.widget_map = register_widgets(&configuration);
+        self.focus_cwd_commands =
+            zjstatus::widgets::command::focus_cwd_command_names(&configuration);
         self.userspace_configuration = configuration;
         self.pending_events = Vec::new();
         self.got_permissions = false;
@@ -105,6 +109,8 @@ impl ZellijPlugin for State {
             start_time: Local::now(),
             cache_mask: 0,
             incoming_notification: None,
+            focused_pane_id: None,
+            focused_pane_cwd: None,
         };
     }
 
@@ -180,6 +186,55 @@ impl ZellijPlugin for State {
 }
 
 impl State {
+    fn update_focused_pane(&mut self) {
+        let active_tab = self.state.tabs.iter().find(|t| t.active);
+
+        let new_id = active_tab
+            .and_then(|tab| self.state.panes.panes.get(&tab.position))
+            .and_then(|panes| panes.iter().find(|p| p.is_focused && !p.is_plugin))
+            .map(|p| PaneId::Terminal(p.id));
+
+        if new_id == self.state.focused_pane_id {
+            return;
+        }
+
+        self.state.focused_pane_id = new_id;
+
+        let new_cwd = match new_id {
+            Some(pane_id) => match get_pane_cwd(pane_id) {
+                Ok(cwd) => Some(cwd),
+                Err(e) => {
+                    tracing::debug!("could not get pane cwd: {e}");
+                    None
+                }
+            },
+            None => None,
+        };
+
+        self.set_focused_pane_cwd(new_cwd);
+    }
+
+    fn set_focused_pane_cwd(&mut self, new_cwd: Option<PathBuf>) -> bool {
+        if new_cwd == self.state.focused_pane_cwd {
+            return false;
+        }
+
+        self.state.focused_pane_cwd = new_cwd;
+
+        if self.focus_cwd_commands.is_empty() {
+            return false;
+        }
+
+        self.invalidate_focus_cwd_commands();
+        true
+    }
+
+    fn invalidate_focus_cwd_commands(&mut self) {
+        for name in &self.focus_cwd_commands {
+            pipe::invalidate_command_result(&mut self.state, name);
+        }
+    }
+
     fn handle_event(&mut self, event: Event) -> bool {
         let mut should_render = false;
         match event {
@@ -224,7 +279,20 @@ impl State {
                 self.state.panes = pane_info;
                 self.state.cache_mask = UpdateEventMask::Tab as u8;
 
+                self.update_focused_pane();
+
                 should_render = true;
+            }
+            Event::CwdChanged(pane_id, cwd, _clients) => {
+                tracing::Span::current().record("event_type", "Event::CwdChanged");
+                tracing::debug!(pane_id = ?pane_id, cwd = ?cwd);
+
+                if Some(pane_id) == self.state.focused_pane_id
+                    && self.set_focused_pane_cwd(Some(cwd))
+                {
+                    self.state.cache_mask = UpdateEventMask::Command as u8;
+                    should_render = true;
+                }
             }
             Event::PermissionRequestResult(result) => {
                 tracing::Span::current().record("event_type", "Event::PermissionRequestResult");
@@ -243,6 +311,13 @@ impl State {
                 self.state.cache_mask = UpdateEventMask::Command as u8;
 
                 if let Some(name) = context.get("name") {
+                    if self.focus_cwd_commands.iter().any(|n| n == name)
+                        && context.get("cwd").map(PathBuf::from) != self.state.focused_pane_cwd
+                    {
+                        tracing::debug!("discarding stale command result for {name}");
+                        return false;
+                    }
+
                     let stdout = match String::from_utf8(stdout) {
                         Ok(s) => s,
                         Err(_) => "".to_owned(),
@@ -342,4 +417,46 @@ fn register_widgets(configuration: &BTreeMap<String, String>) -> BTreeMap<String
     tracing::debug!("registered widgets: {:?}", widget_map.keys());
 
     widget_map
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn set_focused_pane_cwd_only_invalidates_on_change() {
+        let mut state = State {
+            focus_cwd_commands: vec!["command_branch".to_owned()],
+            ..State::default()
+        };
+        state.state.focused_pane_cwd = Some(PathBuf::from("/tmp"));
+        state.state.command_results.insert(
+            "command_branch".to_owned(),
+            CommandResult {
+                context: BTreeMap::from([(
+                    "timestamp".to_owned(),
+                    Local::now()
+                        .format(zjstatus::widgets::command::TIMESTAMP_FORMAT)
+                        .to_string(),
+                )]),
+                ..CommandResult::default()
+            },
+        );
+
+        let original_timestamp =
+            state.state.command_results["command_branch"].context["timestamp"].clone();
+
+        assert!(!state.set_focused_pane_cwd(Some(PathBuf::from("/tmp"))));
+        assert_eq!(
+            state.state.command_results["command_branch"].context["timestamp"],
+            original_timestamp
+        );
+
+        assert!(state.set_focused_pane_cwd(Some(PathBuf::from("/var"))));
+        assert_eq!(state.state.focused_pane_cwd, Some(PathBuf::from("/var")));
+        assert_ne!(
+            state.state.command_results["command_branch"].context["timestamp"],
+            original_timestamp
+        );
+    }
 }

@@ -97,6 +97,12 @@ fn notify(state: &mut ZellijState, message: &str) {
 }
 
 fn rerun_command(state: &mut ZellijState, command_name: &str) {
+    invalidate_command_result(state, command_name);
+}
+
+/// Backdates the stored timestamp of a command result so the next render
+/// re-runs the command.
+pub fn invalidate_command_result(state: &mut ZellijState, command_name: &str) {
     let command_result = state.command_results.get(command_name);
 
     if command_result.is_none() {

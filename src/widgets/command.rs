@@ -22,6 +22,8 @@ lazy_static! {
     static ref COMMAND_REGEX: Regex = Regex::new("_[a-zA-Z0-9]+$").unwrap();
 }
 
+const FOCUSED_PANE_CWD: &str = "{focused_pane_cwd}";
+
 #[derive(Clone, Debug, PartialEq)]
 enum RenderMode {
     Static,
@@ -35,6 +37,7 @@ struct CommandConfig {
     format: Vec<FormattedPart>,
     env: Option<BTreeMap<String, String>>,
     cwd: Option<PathBuf>,
+    follow_focus_cwd: bool,
     interval: i64,
     render_mode: RenderMode,
     click_action: String,
@@ -183,6 +186,15 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &Zell
     let last_run = get_timestamp_from_event_or_default(name, state, command_config.interval);
 
     if ts.timestamp() - last_run.timestamp() >= command_config.interval {
+        let cwd = if command_config.follow_focus_cwd {
+            match &state.focused_pane_cwd {
+                Some(cwd) => Some(cwd.clone()),
+                None => return false,
+            }
+        } else {
+            command_config.cwd.clone()
+        };
+
         let mut context = BTreeMap::new();
         context.insert("name".to_owned(), name.to_owned());
         context.insert(
@@ -190,16 +202,20 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &Zell
             ts.format(TIMESTAMP_FORMAT).to_string(),
         );
 
+        if let Some(cwd) = &cwd {
+            context.insert("cwd".to_owned(), cwd.to_string_lossy().into_owned());
+        }
+
         #[allow(unused_variables)]
         let command = commandline_parser(&command_config.command);
         tracing::debug!("Running command: {:?}", command);
 
-        if command_config.env.is_some() || command_config.cwd.is_some() {
+        if command_config.env.is_some() || cwd.is_some() {
             #[cfg(all(not(feature = "bench"), not(test)))]
             run_command_with_env_variables_and_cwd(
                 &command.iter().map(|x| x.as_str()).collect::<Vec<&str>>(),
-                command_config.env.unwrap(),
-                command_config.cwd.unwrap(),
+                command_config.env.unwrap_or_default(),
+                cwd.unwrap_or_default(),
                 context,
             );
 
@@ -216,6 +232,14 @@ fn run_command_if_needed(command_config: CommandConfig, name: &str, state: &Zell
     }
 
     false
+}
+
+pub fn focus_cwd_command_names(zj_conf: &BTreeMap<String, String>) -> Vec<String> {
+    parse_config(zj_conf)
+        .into_iter()
+        .filter(|(_, conf)| conf.follow_focus_cwd)
+        .map(|(name, _)| name)
+        .collect()
 }
 
 fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandConfig> {
@@ -235,6 +259,7 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandC
             command: "".to_owned(),
             format: Vec::new(),
             cwd: None,
+            follow_focus_cwd: false,
             env: None,
             interval: 1,
             render_mode: RenderMode::Static,
@@ -267,10 +292,18 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, CommandC
         }
 
         if key.ends_with("cwd") {
-            let mut cwd = PathBuf::new();
-            cwd.push(zj_conf.get(&key).unwrap().to_owned().clone());
+            let value = zj_conf.get(&key).unwrap().to_owned();
 
-            command_conf.cwd = Some(cwd);
+            if value == FOCUSED_PANE_CWD {
+                command_conf.follow_focus_cwd = true;
+                command_conf.cwd = None;
+            } else {
+                let mut cwd = PathBuf::new();
+                cwd.push(value);
+
+                command_conf.cwd = Some(cwd);
+                command_conf.follow_focus_cwd = false;
+            }
         }
 
         if key.ends_with("format") {
@@ -436,6 +469,30 @@ mod test {
     use rstest::rstest;
 
     #[test]
+    pub fn test_focused_pane_cwd_parsing() {
+        let conf = BTreeMap::from([
+            ("command_branch_command".to_owned(), "git branch".to_owned()),
+            (
+                "command_branch_cwd".to_owned(),
+                "{focused_pane_cwd}".to_owned(),
+            ),
+            ("command_static_command".to_owned(), "ls".to_owned()),
+            ("command_static_cwd".to_owned(), "/tmp".to_owned()),
+        ]);
+
+        let config = parse_config(&conf);
+        assert!(config.get("command_branch").unwrap().follow_focus_cwd);
+        assert_eq!(config.get("command_branch").unwrap().cwd, None);
+        assert!(!config.get("command_static").unwrap().follow_focus_cwd);
+        assert_eq!(
+            config.get("command_static").unwrap().cwd,
+            Some(PathBuf::from("/tmp"))
+        );
+
+        assert_eq!(focus_cwd_command_names(&conf), vec!["command_branch"]);
+    }
+
+    #[test]
     pub fn test_commandline_parser() {
         let input = "pwd";
         let result = commandline_parser(input);
@@ -499,6 +556,7 @@ mod test {
                 format: Vec::new(),
                 env: None,
                 cwd: None,
+                follow_focus_cwd: false,
                 interval,
                 render_mode: RenderMode::Static,
                 click_action: "".to_owned(),

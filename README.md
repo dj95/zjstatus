@@ -146,6 +146,7 @@ layout {
                 command_git_branch_format      "#[fg=blue] {stdout} "
                 command_git_branch_interval    "10"
                 command_git_branch_rendermode  "static"
+                command_git_branch_cwd         "{focused_pane_cwd}"
 
                 datetime        "#[fg=#6C7086,bold] {format} "
                 datetime_format "%A, %d %b %Y %H:%M"

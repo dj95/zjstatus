@@ -53,7 +53,7 @@ fn bench_moduleconfig_render_bar(c: &mut Criterion) {
     };
 
     c.bench_function("ModuleConfig::render_bar", |b| {
-        b.iter(|| module_config.render_bar(state.clone(), widgets.clone()))
+        b.iter(|| module_config.render_bar(&state, widgets.clone()))
     });
 }
 

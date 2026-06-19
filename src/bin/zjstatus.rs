@@ -92,6 +92,8 @@ impl ZellijPlugin for State {
         self.widget_map = register_widgets(&configuration);
         self.focus_cwd_commands =
             zjstatus::widgets::command::focus_cwd_command_names(&configuration);
+        let pipe_output_limit_bytes = pipe::pipe_output_limit_from_config(&configuration);
+        let pipe_output_limits_bytes = pipe::pipe_output_limits_from_config(&configuration);
         self.userspace_configuration = configuration;
         self.pending_events = Vec::new();
         self.got_permissions = false;
@@ -101,6 +103,8 @@ impl ZellijPlugin for State {
             cols: 0,
             command_results: BTreeMap::new(),
             pipe_results: BTreeMap::new(),
+            pipe_output_limit_bytes,
+            pipe_output_limits_bytes,
             pipe_scroll_offsets: BTreeMap::new(),
             mode: ModeInfo::default(),
             panes: PaneManifest::default(),
@@ -180,7 +184,7 @@ impl ZellijPlugin for State {
 
         let output = self
             .module_config
-            .render_bar(self.state.clone(), self.widget_map.clone());
+            .render_bar(&self.state, self.widget_map.clone());
 
         print!("{}", output);
     }

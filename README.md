@@ -192,6 +192,46 @@ The following widgets are available:
 - [swap layout](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#swap-layout)
 - [tabs](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets#tabs)
 
+### Pipe truncation & scrolling
+
+When piped content (`zjstatus::pipe::<name>::<content>`) is longer than the
+available width, a `pipe` widget can be truncated instead of pushing other
+parts off the bar, and optionally scrolled with the mouse wheel to reveal the
+hidden portion. Higher-precedence parts (see `format_precedence`) stay visible;
+the lowest-precedence pipes are truncated first.
+
+Per-pipe options (replace `<name>` with the pipe name, e.g. `pipe_hints`):
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `<name>_truncate` | `false` | Truncate this pipe when the bar overflows. |
+| `<name>_overflow` | `...` | Indicator inserted where content is cut. |
+| `<name>_scrollable` | `false` | Allow mouse-wheel panning of the content. Implies `truncate`. |
+| `<name>_scroll_step` | `4` | Cells moved per scroll tick (minimum `1`). |
+| `<name>_max_bytes` | _(global)_ | Per-pipe override of the stored-content byte cap. |
+
+Module-level options:
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `pipe_scroll_target` | _(unset)_ | Restrict scroll events to a single pipe by name. Zellij mouse-scroll events carry no x/y coordinates, so without this the first scrollable pipe in format order receives them. |
+| `pipe_output_limit_bytes` | `65536` | Global cap on stored bytes per pipe message (keeps the tail). `0` disables the cap. |
+
+```kdl
+plugin location="zjstatus" {
+    format_right "{pipe_hints} {datetime}"
+
+    pipe_hints_format     "{output}"
+    pipe_hints_truncate   "true"
+    pipe_hints_scrollable "true"
+    pipe_hints_overflow   "…"
+    pipe_hints_scroll_step "2"
+
+    pipe_scroll_target       "pipe_hints"
+    pipe_output_limit_bytes  "65536"
+}
+```
+
 ## 🚧 Development
 
 Make sure you have rust and the `wasm32-wasi` target installed. If using nix, you could utilize the nix-shell

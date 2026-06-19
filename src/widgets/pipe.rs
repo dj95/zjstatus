@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::render::{
-    FormattedPart, formatted_parts_from_string_cached, truncate_ansi_string_to_width_from,
+    FormattedPart, formatted_parts_from_string_cached, measure_ansi_text_width,
+    truncate_ansi_string_to_width_from,
 };
 
 use super::widget::Widget;
@@ -88,9 +89,11 @@ impl Widget for PipeWidget {
     fn process_click(&self, _name: &str, _state: &crate::config::ZellijState, _pos: usize) {}
 
     fn is_truncatable(&self, name: &str) -> bool {
+        // `scrollable` implies truncatable: a scrollable pipe must take part in
+        // width budgeting so that scrolling can actually pan its visible window.
         self.config
             .get(name)
-            .map(|pipe_config| pipe_config.truncate)
+            .map(|pipe_config| pipe_config.truncate || pipe_config.scrollable)
             .unwrap_or(false)
     }
 
@@ -108,7 +111,15 @@ impl Widget for PipeWidget {
         }
 
         let current_offset = state.pipe_scroll_offsets.get(name).copied().unwrap_or(0);
-        let max_offset = console::measure_text_width(&self.process(name, state)).saturating_sub(1);
+        // Clamp to the content width as a coarse upper bound only. The exact
+        // "last full view" offset depends on the column budget allocated to this
+        // pipe, which is known only at render time, where
+        // `truncate_ansi_string_to_width_from` re-clamps via `max_start_offset`.
+        // Consequently there can be a small scroll "dead zone" near the end: a
+        // few scroll-down ticks past the last full view store a larger offset
+        // without changing the rendered output (and the same number of
+        // scroll-up ticks are absorbed before panning resumes).
+        let max_offset = measure_ansi_text_width(&self.process(name, state)).saturating_sub(1);
         let step = pipe_config.scroll_step * delta.unsigned_abs().max(1);
         let next_offset = if delta.is_negative() {
             current_offset.saturating_sub(step)
@@ -225,6 +236,8 @@ fn parse_config(zj_conf: &BTreeMap<String, String>) -> BTreeMap<String, PipeConf
 }
 
 fn split_pipe_key(key: &str) -> Option<(&str, &str)> {
+    // Keep this ordered most-specific first; "format" should stay last so future
+    // longer suffixes ending in "_format" get a chance to match first.
     for suffix in [
         "scroll_step",
         "rendermode",

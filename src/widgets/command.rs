@@ -382,7 +382,7 @@ fn get_timestamp_from_event_or_default(
     let ts_context = ts_context.unwrap();
 
     if Local::now().timestamp() - state.start_time.timestamp() < interval {
-        release(name, state.clone());
+        release_command_lock(state, name);
     }
 
     match DateTime::parse_from_str(ts_context, TIMESTAMP_FORMAT) {
@@ -403,7 +403,7 @@ fn lock(name: &str, state: ZellijState) -> bool {
     true
 }
 
-fn release(name: &str, state: ZellijState) {
+pub fn release_command_lock(state: &ZellijState, name: &str) {
     let path = format!("/tmp/{}.{}.lock", state.plugin_uuid, name);
 
     if Path::new(&path).exists() {
@@ -508,6 +508,48 @@ mod test {
         let result = commandline_parser(input);
         let expected = Vec::from(["bash", "-c", "pwd | base64 -c 'bla' | xxd"]);
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    pub fn test_release_command_lock_allows_rerun_without_result() {
+        let state = ZellijState {
+            plugin_uuid: "release_command_lock_test".to_owned(),
+            ..ZellijState::default()
+        };
+        let command_config = CommandConfig {
+            command: "echo test".to_owned(),
+            format: Vec::new(),
+            env: None,
+            cwd: None,
+            follow_focus_cwd: false,
+            interval: 1,
+            render_mode: RenderMode::Static,
+            click_action: "".to_owned(),
+            hide_on_empty_stdout: false,
+        };
+
+        release_command_lock(&state, "test_release");
+
+        assert!(run_command_if_needed(
+            command_config.clone(),
+            "test_release",
+            &state
+        ));
+        assert!(!run_command_if_needed(
+            command_config.clone(),
+            "test_release",
+            &state
+        ));
+
+        release_command_lock(&state, "test_release");
+
+        assert!(run_command_if_needed(
+            command_config,
+            "test_release",
+            &state
+        ));
+
+        release_command_lock(&state, "test_release");
     }
 
     #[rstest]

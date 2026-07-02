@@ -232,6 +232,7 @@ impl State {
     fn invalidate_focus_cwd_commands(&mut self) {
         for name in &self.focus_cwd_commands {
             pipe::invalidate_command_result(&mut self.state, name);
+            zjstatus::widgets::command::release_command_lock(&self.state, name);
         }
     }
 

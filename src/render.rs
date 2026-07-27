@@ -1,6 +1,6 @@
 use cached::{LruCache, macros::cached};
 use lazy_static::lazy_static;
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, iter::Peekable, str::Chars, sync::Arc};
 
 use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor, Style};
 use regex::Regex;
@@ -374,6 +374,216 @@ fn color_by_name(color: &str) -> Option<AnsiColor> {
     }
 }
 
+pub fn truncate_ansi_string_to_width_from(
+    text: &str,
+    overflow_str: &str,
+    max_width: usize,
+    offset: usize,
+) -> String {
+    let visible_width = measure_ansi_text_width(text);
+    let overflow_width = measure_ansi_text_width(overflow_str);
+
+    if visible_width <= max_width {
+        return text.to_owned();
+    }
+
+    if offset == 0 {
+        return truncate_ansi_string_to_width_head(text, overflow_str, max_width);
+    }
+
+    if max_width == 0 {
+        return String::new();
+    }
+
+    if max_width <= overflow_width {
+        return take_string_width(overflow_str, max_width);
+    }
+
+    let prefix_width = overflow_width;
+    let max_start_offset = visible_width.saturating_sub(max_width.saturating_sub(prefix_width));
+    let start_offset = offset.min(max_start_offset);
+    let remaining_width = visible_width.saturating_sub(start_offset);
+    let mut suffix_width = 0usize;
+    let mut content_width_limit = max_width.saturating_sub(prefix_width);
+
+    if remaining_width > content_width_limit {
+        if max_width
+            < prefix_width
+                .saturating_add(overflow_width)
+                .saturating_add(1)
+        {
+            return truncate_ansi_string_to_width_head(text, overflow_str, max_width);
+        }
+        suffix_width = overflow_width;
+        content_width_limit = max_width.saturating_sub(prefix_width + suffix_width);
+    }
+
+    let mut result = String::new();
+    let mut skipped_width = 0usize;
+    let mut content_width = 0usize;
+    let mut chars = text.chars().peekable();
+    let mut added_prefix = false;
+
+    while let Some(ch) = chars.next() {
+        if ch == '\x1b' {
+            scan_ansi_escape(&mut chars, Some(&mut result));
+            continue;
+        }
+
+        let char_width = console::measure_text_width(&ch.to_string());
+        if skipped_width + char_width <= start_offset {
+            skipped_width += char_width;
+            continue;
+        }
+
+        if !added_prefix {
+            result.push_str(overflow_str);
+            added_prefix = true;
+        }
+
+        if content_width + char_width > content_width_limit {
+            break;
+        }
+
+        result.push(ch);
+        content_width += char_width;
+    }
+
+    if suffix_width > 0 {
+        result.push_str(overflow_str);
+    }
+
+    result
+}
+
+fn truncate_ansi_string_to_width_head(text: &str, overflow_str: &str, max_width: usize) -> String {
+    let visible_width = measure_ansi_text_width(text);
+    let overflow_width = measure_ansi_text_width(overflow_str);
+
+    if visible_width <= max_width {
+        return text.to_owned();
+    }
+
+    if max_width == 0 {
+        return String::new();
+    }
+
+    if max_width <= overflow_width {
+        return take_string_width(overflow_str, max_width);
+    }
+
+    let target_width = max_width - overflow_width;
+    let mut result = String::new();
+    let mut visible_width = 0usize;
+    let mut chars = text.chars().peekable();
+    let mut add_visible = true;
+
+    while let Some(ch) = chars.next() {
+        if ch == '\x1b' {
+            scan_ansi_escape(&mut chars, Some(&mut result));
+            continue;
+        }
+
+        if !add_visible {
+            continue;
+        }
+
+        let char_width = console::measure_text_width(&ch.to_string());
+        if visible_width + char_width > target_width {
+            add_visible = false;
+            continue;
+        }
+
+        result.push(ch);
+        visible_width += char_width;
+    }
+
+    result.push_str(overflow_str);
+    result
+}
+
+/// Walks a single ANSI escape sequence (the leading `\x1b` is assumed already
+/// consumed by the caller). When `out` is `Some`, the sequence is copied into
+/// it verbatim; when `None`, it is skipped (used for width measurement).
+fn scan_ansi_escape(chars: &mut Peekable<Chars<'_>>, mut out: Option<&mut String>) {
+    if let Some(out) = out.as_mut() {
+        out.push('\x1b');
+    }
+    let Some(first) = chars.next() else {
+        return;
+    };
+    if let Some(out) = out.as_mut() {
+        out.push(first);
+    }
+
+    match first {
+        '[' => {
+            for escape_ch in chars.by_ref() {
+                if let Some(out) = out.as_mut() {
+                    out.push(escape_ch);
+                }
+                if ('\u{40}'..='\u{7e}').contains(&escape_ch) {
+                    break;
+                }
+            }
+        }
+        ']' | 'P' | '^' | '_' | 'X' => {
+            while let Some(escape_ch) = chars.next() {
+                if let Some(out) = out.as_mut() {
+                    out.push(escape_ch);
+                }
+                if escape_ch == '\x07' || escape_ch == '\u{9c}' {
+                    break;
+                }
+                if escape_ch == '\x1b' {
+                    let Some(st_ch) = chars.next() else {
+                        break;
+                    };
+                    if let Some(out) = out.as_mut() {
+                        out.push(st_ch);
+                    }
+                    if st_ch == '\\' {
+                        break;
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+pub fn measure_ansi_text_width(text: &str) -> usize {
+    let mut width = 0usize;
+    let mut chars = text.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if ch == '\x1b' {
+            scan_ansi_escape(&mut chars, None);
+            continue;
+        }
+
+        width += console::measure_text_width(&ch.to_string());
+    }
+
+    width
+}
+
+fn take_string_width(text: &str, max_width: usize) -> String {
+    let mut result = String::new();
+    let mut width = 0usize;
+
+    for ch in text.chars() {
+        let char_width = console::measure_text_width(&ch.to_string());
+        if width + char_width > max_width {
+            break;
+        }
+        result.push(ch);
+        width += char_width;
+    }
+
+    result
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -423,5 +633,54 @@ mod test {
 
         let result = parse_color("$blue", &config);
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn truncate_from_does_not_exceed_width_when_only_one_cell_fits_between_overflows() {
+        let result = truncate_ansi_string_to_width_from("abcdefghijklmnopqrstuvwxyz", "...", 4, 1);
+
+        assert_eq!(measure_ansi_text_width(&result), 4);
+        assert_eq!(result, "a...");
+    }
+
+    #[test]
+    fn truncate_from_clamps_offset_to_last_full_view() {
+        let result = truncate_ansi_string_to_width_from("abcdef", ".", 4, 100);
+
+        assert_eq!(measure_ansi_text_width(&result), 4);
+        assert_eq!(result, ".def");
+    }
+
+    #[test]
+    fn truncate_from_can_scroll_to_end_without_suffix_overflow() {
+        let result =
+            truncate_ansi_string_to_width_from("abcdefghijklmnopqrstuvwxyz", "...", 10, 100);
+
+        assert_eq!(measure_ansi_text_width(&result), 10);
+        assert_eq!(result, "...tuvwxyz");
+    }
+
+    #[test]
+    fn truncate_preserves_non_sgr_csi_without_swallowing_visible_text() {
+        let result = truncate_ansi_string_to_width_from("abc\x1b[Kdefgh", "...", 6, 0);
+
+        assert_eq!(measure_ansi_text_width(&result), 6);
+        assert_eq!(result, "abc\x1b[K...");
+    }
+
+    #[test]
+    fn truncate_preserves_osc_without_swallowing_visible_text() {
+        let result = truncate_ansi_string_to_width_from("ab\x1b]0;title\x07cdef", "...", 5, 0);
+
+        assert_eq!(measure_ansi_text_width(&result), 5);
+        assert_eq!(result, "ab\x1b]0;title\x07...");
+    }
+
+    #[test]
+    fn truncate_handles_wide_chars_and_escape_sequences() {
+        let result = truncate_ansi_string_to_width_from("a\x1b[31m界\x1b[0mbc", "...", 4, 0);
+
+        assert_eq!(measure_ansi_text_width(&result), 4);
+        assert_eq!(result, "a\x1b[31m\x1b[0m...");
     }
 }

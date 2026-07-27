@@ -92,6 +92,8 @@ impl ZellijPlugin for State {
         self.widget_map = register_widgets(&configuration);
         self.focus_cwd_commands =
             zjstatus::widgets::command::focus_cwd_command_names(&configuration);
+        let pipe_output_limit_bytes = pipe::pipe_output_limit_from_config(&configuration);
+        let pipe_output_limits_bytes = pipe::pipe_output_limits_from_config(&configuration);
         self.userspace_configuration = configuration;
         self.pending_events = Vec::new();
         self.got_permissions = false;
@@ -101,6 +103,9 @@ impl ZellijPlugin for State {
             cols: 0,
             command_results: BTreeMap::new(),
             pipe_results: BTreeMap::new(),
+            pipe_output_limit_bytes,
+            pipe_output_limits_bytes,
+            pipe_scroll_offsets: BTreeMap::new(),
             mode: ModeInfo::default(),
             panes: PaneManifest::default(),
             plugin_uuid: uid.to_string(),
@@ -179,7 +184,7 @@ impl ZellijPlugin for State {
 
         let output = self
             .module_config
-            .render_bar(self.state.clone(), self.widget_map.clone());
+            .render_bar(&self.state, self.widget_map.clone());
 
         print!("{}", output);
     }
@@ -243,8 +248,8 @@ impl State {
                 tracing::Span::current().record("event_type", "Event::Mouse");
                 tracing::debug!(mouse = ?mouse_info);
 
-                self.module_config.handle_mouse_action(
-                    self.state.clone(),
+                should_render = self.module_config.handle_mouse_action(
+                    &mut self.state,
                     mouse_info,
                     self.widget_map.clone(),
                 );

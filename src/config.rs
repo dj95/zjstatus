@@ -1,21 +1,29 @@
 use std::{collections::BTreeMap, str::FromStr, sync::Arc};
 
 use itertools::Itertools;
+use lazy_static::lazy_static;
 use regex::Regex;
 use zellij_tile::prelude::*;
 
 use crate::{
-    border::{parse_border_config, BorderConfig, BorderPosition},
-    render::FormattedPart,
+    border::{BorderConfig, BorderPosition, parse_border_config},
+    render::{FormattedPart, measure_ansi_text_width},
     widgets::{command::CommandResult, notification, widget::Widget},
 };
 use chrono::{DateTime, Local};
+
+lazy_static! {
+    static ref WIDGET_REGEX: Regex = Regex::new("(\\{[a-z_0-9]+\\})").unwrap();
+}
 
 #[derive(Default, Debug, Clone)]
 pub struct ZellijState {
     pub cols: usize,
     pub command_results: BTreeMap<String, CommandResult>,
     pub pipe_results: BTreeMap<String, String>,
+    pub pipe_output_limit_bytes: usize,
+    pub pipe_output_limits_bytes: BTreeMap<String, usize>,
+    pub pipe_scroll_offsets: BTreeMap<String, usize>,
     pub mode: ModeInfo,
     pub panes: PaneManifest,
     pub plugin_uuid: String,
@@ -33,6 +41,14 @@ pub enum Part {
     Left,
     Center,
     Right,
+}
+
+#[derive(Clone, Debug)]
+struct RenderedWidget {
+    part: Part,
+    widget_name: String,
+    name: String,
+    output: String,
 }
 
 impl FromStr for Part {
@@ -87,6 +103,7 @@ pub struct ModuleConfig {
     pub border: BorderConfig,
     pub format_precedence: Vec<Part>,
     pub hide_on_overlength: bool,
+    pub pipe_scroll_target: Option<String>,
 }
 
 impl ModuleConfig {
@@ -151,6 +168,8 @@ impl ModuleConfig {
             None => false,
         };
 
+        let pipe_scroll_target = config.get("pipe_scroll_target").cloned();
+
         let border_config = parse_border_config(config).unwrap_or_default();
 
         Ok(Self {
@@ -168,23 +187,38 @@ impl ModuleConfig {
             border: border_config,
             format_precedence,
             hide_on_overlength,
+            pipe_scroll_target,
         })
     }
 
     pub fn handle_mouse_action(
         &mut self,
-        state: ZellijState,
+        state: &mut ZellijState,
         mouse: Mouse,
         widget_map: BTreeMap<String, Arc<dyn Widget>>,
-    ) {
+    ) -> bool {
         let click_pos = match mouse {
-            Mouse::ScrollUp(_) => return,
-            Mouse::ScrollDown(_) => return,
+            Mouse::ScrollUp(lines) => {
+                return self.process_widget_scroll(
+                    &self.all_parts(),
+                    &widget_map,
+                    state,
+                    -(lines.max(1) as isize),
+                );
+            }
+            Mouse::ScrollDown(lines) => {
+                return self.process_widget_scroll(
+                    &self.all_parts(),
+                    &widget_map,
+                    state,
+                    lines.max(1) as isize,
+                );
+            }
             Mouse::LeftClick(_, y) => y,
             Mouse::RightClick(_, y) => y,
             Mouse::Hold(_, y) => y,
             Mouse::Release(_, y) => y,
-            Mouse::Hover(_, _) => return,
+            Mouse::Hover(_, _) => return false,
         };
 
         let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
@@ -224,10 +258,10 @@ impl ModuleConfig {
 
         let mut offset = console::measure_text_width(&output_left);
 
-        self.process_widget_click(click_pos, &self.left_parts, &widget_map, &state, 0);
+        self.process_widget_click(click_pos, &self.left_parts, &widget_map, state, 0);
 
         if click_pos <= offset {
-            return;
+            return false;
         }
 
         if !output_center.is_empty() {
@@ -238,16 +272,17 @@ impl ModuleConfig {
                 state.cols,
             ));
 
-            offset += self.process_widget_click(
+            let widget_width = self.process_widget_click(
                 click_pos,
                 &self.center_parts,
                 &widget_map,
-                &state,
+                state,
                 offset,
             );
+            offset += widget_width;
 
             if click_pos <= offset {
-                return;
+                return false;
             }
 
             offset += console::measure_text_width(&self.get_spacer_right(
@@ -263,7 +298,8 @@ impl ModuleConfig {
             ));
         }
 
-        self.process_widget_click(click_pos, &self.right_parts, &widget_map, &state, offset);
+        self.process_widget_click(click_pos, &self.right_parts, &widget_map, state, offset);
+        false
     }
 
     fn process_widget_click(
@@ -280,8 +316,7 @@ impl ModuleConfig {
 
         let tokens: Vec<String> = widget_map.keys().map(|k| k.to_owned()).collect();
 
-        let widgets_regex = Regex::new("(\\{[a-z_0-9]+\\})").unwrap();
-        for widget in widgets_regex.captures_iter(widget_string.as_str()) {
+        for widget in WIDGET_REGEX.captures_iter(widget_string.as_str()) {
             let match_name = widget.get(0).unwrap().as_str();
             let widget_key = match_name.trim_matches(|c| c == '{' || c == '}');
             let mut widget_key_name = widget_key;
@@ -326,9 +361,71 @@ impl ModuleConfig {
         console::measure_text_width(&rendered_output)
     }
 
+    fn process_widget_scroll(
+        &self,
+        widgets: &[FormattedPart],
+        widget_map: &BTreeMap<String, Arc<dyn Widget>>,
+        state: &mut ZellijState,
+        delta: isize,
+    ) -> bool {
+        for widget_key in Self::widget_keys(widgets) {
+            if let Some(target) = &self.pipe_scroll_target
+                && widget_key != *target
+            {
+                continue;
+            }
+
+            let mut widget_key_name = widget_key.as_str();
+
+            if widget_key.starts_with("command_") {
+                widget_key_name = "command";
+            }
+
+            if widget_key.starts_with("pipe_") {
+                widget_key_name = "pipe";
+            }
+
+            let Some(widget) = widget_map.get(widget_key_name) else {
+                continue;
+            };
+
+            if widget.process_scroll(&widget_key, state, delta) {
+                return true;
+            }
+        }
+
+        // Without pipe_scroll_target, scroll events affect the first scrollable pipe
+        // in format order because Zellij does not include x/y coordinates here.
+        false
+    }
+
+    fn all_parts(&self) -> Vec<FormattedPart> {
+        self.left_parts
+            .iter()
+            .chain(self.center_parts.iter())
+            .chain(self.right_parts.iter())
+            .cloned()
+            .collect()
+    }
+
+    fn widget_keys(widgets: &[FormattedPart]) -> Vec<String> {
+        let widget_string = widgets.iter().fold(String::new(), |a, b| a + &b.content);
+        WIDGET_REGEX
+            .captures_iter(widget_string.as_str())
+            .map(|widget| {
+                widget
+                    .get(0)
+                    .unwrap()
+                    .as_str()
+                    .trim_matches(|c| c == '{' || c == '}')
+                    .to_owned()
+            })
+            .collect()
+    }
+
     pub fn render_bar(
         &mut self,
-        state: ZellijState,
+        state: &ZellijState,
         widget_map: BTreeMap<String, Arc<dyn Widget>>,
     ) -> String {
         if self.left_parts.is_empty() && self.center_parts.is_empty() && self.right_parts.is_empty()
@@ -336,32 +433,26 @@ impl ModuleConfig {
             return "No configuration found. See https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration for more info".to_string();
         }
 
-        let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
-            format!(
-                "{acc}{}",
-                part.format_string_with_widgets(&widget_map, &state)
-            )
-        });
+        let (mut output_left, mut rendered_widgets) =
+            Self::render_parts(&mut self.left_parts, &widget_map, state, Part::Left);
 
-        let output_center = self
-            .center_parts
-            .iter_mut()
-            .fold("".to_owned(), |acc, part| {
-                format!(
-                    "{acc}{}",
-                    part.format_string_with_widgets(&widget_map, &state)
-                )
-            });
+        let (mut output_center, center_widgets) =
+            Self::render_parts(&mut self.center_parts, &widget_map, state, Part::Center);
+        rendered_widgets.extend(center_widgets);
 
-        let output_right = self
-            .right_parts
-            .iter_mut()
-            .fold("".to_owned(), |acc, part| {
-                format!(
-                    "{acc}{}",
-                    part.format_string_with_widgets(&widget_map, &state)
-                )
-            });
+        let (mut output_right, right_widgets) =
+            Self::render_parts(&mut self.right_parts, &widget_map, state, Part::Right);
+        rendered_widgets.extend(right_widgets);
+
+        self.truncate_outputs(
+            &mut output_left,
+            &mut output_center,
+            &mut output_right,
+            &rendered_widgets,
+            &widget_map,
+            state,
+            state.cols,
+        );
 
         let (output_left, output_center, output_right) = match self.hide_on_overlength {
             true => self.trim_output(&output_left, &output_center, &output_right, state.cols),
@@ -419,6 +510,134 @@ impl ModuleConfig {
             self.get_spacer(&output_left, &output_right, state.cols),
             output_right,
         )
+    }
+
+    fn render_parts(
+        parts: &mut [FormattedPart],
+        widget_map: &BTreeMap<String, Arc<dyn Widget>>,
+        state: &ZellijState,
+        part: Part,
+    ) -> (String, Vec<RenderedWidget>) {
+        let output = parts.iter_mut().fold("".to_owned(), |acc, format_part| {
+            format!(
+                "{acc}{}",
+                format_part.format_string_with_widgets(widget_map, state)
+            )
+        });
+        let widget_string = parts.iter().fold(String::new(), |a, b| a + &b.content);
+        let mut rendered_widgets = Vec::new();
+        for widget in WIDGET_REGEX.captures_iter(widget_string.as_str()) {
+            let match_name = widget.get(0).unwrap().as_str();
+            let widget_key = match_name.trim_matches(|c| c == '{' || c == '}');
+            let mut widget_key_name = widget_key;
+
+            if widget_key.starts_with("command_") {
+                widget_key_name = "command";
+            }
+
+            if widget_key.starts_with("pipe_") {
+                widget_key_name = "pipe";
+            }
+
+            let Some(widget) = widget_map.get(widget_key_name) else {
+                continue;
+            };
+            if !widget.is_truncatable(widget_key) {
+                continue;
+            }
+
+            rendered_widgets.push(RenderedWidget {
+                part,
+                widget_name: widget_key_name.to_owned(),
+                name: widget_key.to_owned(),
+                output: widget.process(widget_key, state),
+            });
+        }
+
+        (output, rendered_widgets)
+    }
+
+    fn truncate_outputs(
+        &self,
+        output_left: &mut String,
+        output_center: &mut String,
+        output_right: &mut String,
+        rendered_widgets: &[RenderedWidget],
+        widget_map: &BTreeMap<String, Arc<dyn Widget>>,
+        state: &ZellijState,
+        cols: usize,
+    ) {
+        let mut overflow = self
+            .output_width(output_left, output_center, output_right, cols)
+            .saturating_sub(cols);
+        if overflow == 0 {
+            return;
+        }
+
+        for part in self.format_precedence.iter().rev() {
+            for rendered_widget in rendered_widgets
+                .iter()
+                .filter(|widget| widget.part == *part)
+            {
+                if overflow == 0 {
+                    return;
+                }
+
+                let Some(widget) = widget_map.get(&rendered_widget.widget_name) else {
+                    continue;
+                };
+                let current_width = measure_ansi_text_width(&rendered_widget.output);
+                if current_width == 0 {
+                    continue;
+                }
+
+                let max_width = current_width.saturating_sub(overflow);
+                let truncated = widget.truncate(
+                    &rendered_widget.name,
+                    &rendered_widget.output,
+                    max_width,
+                    state,
+                );
+                let truncated_width = measure_ansi_text_width(&truncated);
+                let reduced_by = current_width.saturating_sub(truncated_width);
+                if reduced_by == 0 {
+                    continue;
+                }
+
+                match rendered_widget.part {
+                    Part::Left => {
+                        *output_left = output_left.replacen(&rendered_widget.output, &truncated, 1)
+                    }
+                    Part::Center => {
+                        *output_center =
+                            output_center.replacen(&rendered_widget.output, &truncated, 1)
+                    }
+                    Part::Right => {
+                        *output_right =
+                            output_right.replacen(&rendered_widget.output, &truncated, 1)
+                    }
+                }
+                overflow = overflow.saturating_sub(reduced_by);
+            }
+        }
+    }
+
+    fn output_width(
+        &self,
+        output_left: &str,
+        output_center: &str,
+        output_right: &str,
+        cols: usize,
+    ) -> usize {
+        if output_center.is_empty() {
+            return measure_ansi_text_width(output_left) + measure_ansi_text_width(output_right);
+        }
+
+        measure_ansi_text_width(output_left)
+            + measure_ansi_text_width(&self.get_spacer_left(output_left, output_center, cols))
+            + measure_ansi_text_width(output_center)
+            + measure_ansi_text_width(&self.get_spacer_right(output_right, output_center, cols))
+            + measure_ansi_text_width(output_right)
     }
 
     fn trim_output(
@@ -530,6 +749,7 @@ fn parts_from_config(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::widgets::pipe::PipeWidget;
     use anstyle::{Effects, RgbColor};
 
     #[test]
@@ -548,5 +768,230 @@ mod test {
                 ..Default::default()
             },
         )
+    }
+
+    #[test]
+    fn truncates_configured_pipe_to_keep_static_status_text_visible() {
+        let mut config = BTreeMap::new();
+        config.insert("format_left".to_owned(), "L".to_owned());
+        config.insert("format_right".to_owned(), "{pipe_hints} CLOCK".to_owned());
+        config.insert("pipe_hints_format".to_owned(), "{output}".to_owned());
+        config.insert("pipe_hints_truncate".to_owned(), "true".to_owned());
+        config.insert("pipe_hints_overflow".to_owned(), "...".to_owned());
+
+        let mut module_config = ModuleConfig::new(&config).unwrap();
+        let mut state = ZellijState {
+            cols: 16,
+            ..Default::default()
+        };
+        state.pipe_results.insert(
+            "pipe_hints".to_owned(),
+            "abcdefghijklmnopqrstuvwxyz".to_owned(),
+        );
+
+        let widget_map: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::from([(
+            "pipe".to_owned(),
+            Arc::new(PipeWidget::new(&config)) as Arc<dyn Widget>,
+        )]);
+
+        let output = module_config.render_bar(&state, widget_map);
+
+        assert_eq!(console::measure_text_width(&output), 16);
+        assert!(output.ends_with(" CLOCK"));
+        assert!(output.contains("..."));
+    }
+
+    #[test]
+    fn truncates_configured_pipe_to_empty_when_no_width_remains() {
+        let mut config = BTreeMap::new();
+        config.insert("format_left".to_owned(), "L".to_owned());
+        config.insert("format_right".to_owned(), "{pipe_hints} CLOCK".to_owned());
+        config.insert("pipe_hints_format".to_owned(), "{output}".to_owned());
+        config.insert("pipe_hints_truncate".to_owned(), "true".to_owned());
+        config.insert("pipe_hints_overflow".to_owned(), "...".to_owned());
+
+        let mut module_config = ModuleConfig::new(&config).unwrap();
+        let mut state = ZellijState {
+            cols: 7,
+            ..Default::default()
+        };
+        state.pipe_results.insert(
+            "pipe_hints".to_owned(),
+            "abcdefghijklmnopqrstuvwxyz".to_owned(),
+        );
+
+        let widget_map: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::from([(
+            "pipe".to_owned(),
+            Arc::new(PipeWidget::new(&config)) as Arc<dyn Widget>,
+        )]);
+
+        let output = module_config.render_bar(&state, widget_map);
+
+        assert_eq!(console::measure_text_width(&output), 7);
+        assert_eq!(output, "L CLOCK");
+    }
+
+    #[test]
+    fn scrolling_pipe_pans_truncated_output() {
+        let mut config = BTreeMap::new();
+        config.insert("format_right".to_owned(), "{pipe_hints} CLOCK".to_owned());
+        config.insert("pipe_hints_format".to_owned(), "{output}".to_owned());
+        config.insert("pipe_hints_truncate".to_owned(), "true".to_owned());
+        config.insert("pipe_hints_scrollable".to_owned(), "true".to_owned());
+        config.insert("pipe_hints_overflow".to_owned(), "...".to_owned());
+
+        let mut module_config = ModuleConfig::new(&config).unwrap();
+        let mut state = ZellijState {
+            cols: 16,
+            ..Default::default()
+        };
+        state.pipe_results.insert(
+            "pipe_hints".to_owned(),
+            "abcdefghijklmnopqrstuvwxyz".to_owned(),
+        );
+
+        let widget_map: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::from([(
+            "pipe".to_owned(),
+            Arc::new(PipeWidget::new(&config)) as Arc<dyn Widget>,
+        )]);
+
+        let initial = module_config.render_bar(&state, widget_map.clone());
+        assert_eq!(initial, "abcdefg... CLOCK");
+
+        assert!(module_config.handle_mouse_action(
+            &mut state,
+            Mouse::ScrollDown(1),
+            widget_map.clone(),
+        ));
+
+        let scrolled = module_config.render_bar(&state, widget_map);
+        assert_eq!(scrolled, "...efgh... CLOCK");
+    }
+
+    #[test]
+    fn scrollable_pipe_truncates_without_explicit_truncate_flag() {
+        let mut config = BTreeMap::new();
+        config.insert("format_right".to_owned(), "{pipe_hints} CLOCK".to_owned());
+        config.insert("pipe_hints_format".to_owned(), "{output}".to_owned());
+        // Note: no `pipe_hints_truncate` here; `scrollable` must imply it.
+        config.insert("pipe_hints_scrollable".to_owned(), "true".to_owned());
+        config.insert("pipe_hints_overflow".to_owned(), "...".to_owned());
+
+        let mut module_config = ModuleConfig::new(&config).unwrap();
+        let mut state = ZellijState {
+            cols: 16,
+            ..Default::default()
+        };
+        state.pipe_results.insert(
+            "pipe_hints".to_owned(),
+            "abcdefghijklmnopqrstuvwxyz".to_owned(),
+        );
+
+        let widget_map: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::from([(
+            "pipe".to_owned(),
+            Arc::new(PipeWidget::new(&config)) as Arc<dyn Widget>,
+        )]);
+
+        let initial = module_config.render_bar(&state, widget_map.clone());
+        assert_eq!(initial, "abcdefg... CLOCK");
+
+        assert!(module_config.handle_mouse_action(
+            &mut state,
+            Mouse::ScrollDown(1),
+            widget_map.clone(),
+        ));
+
+        let scrolled = module_config.render_bar(&state, widget_map);
+        assert_eq!(scrolled, "...efgh... CLOCK");
+    }
+
+    #[test]
+    fn scrolling_pipe_offset_is_clamped_to_content_width() {
+        let mut config = BTreeMap::new();
+        config.insert("format_right".to_owned(), "{pipe_hints} CLOCK".to_owned());
+        config.insert("pipe_hints_format".to_owned(), "{output}".to_owned());
+        config.insert("pipe_hints_truncate".to_owned(), "true".to_owned());
+        config.insert("pipe_hints_scrollable".to_owned(), "true".to_owned());
+
+        let mut module_config = ModuleConfig::new(&config).unwrap();
+        let mut state = ZellijState {
+            cols: 16,
+            ..Default::default()
+        };
+        state.pipe_results.insert(
+            "pipe_hints".to_owned(),
+            "abcdefghijklmnopqrstuvwxyz".to_owned(),
+        );
+
+        let widget_map: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::from([(
+            "pipe".to_owned(),
+            Arc::new(PipeWidget::new(&config)) as Arc<dyn Widget>,
+        )]);
+
+        assert!(module_config.handle_mouse_action(&mut state, Mouse::ScrollDown(100), widget_map,));
+
+        assert_eq!(state.pipe_scroll_offsets.get("pipe_hints"), Some(&25));
+    }
+
+    #[test]
+    fn pipe_scroll_target_selects_which_scrollable_pipe_moves() {
+        let mut config = BTreeMap::new();
+        config.insert(
+            "format_right".to_owned(),
+            "{pipe_left} {pipe_right}".to_owned(),
+        );
+        config.insert("pipe_left_format".to_owned(), "{output}".to_owned());
+        config.insert("pipe_left_scrollable".to_owned(), "true".to_owned());
+        config.insert("pipe_right_format".to_owned(), "{output}".to_owned());
+        config.insert("pipe_right_scrollable".to_owned(), "true".to_owned());
+        config.insert("pipe_scroll_target".to_owned(), "pipe_right".to_owned());
+
+        let mut module_config = ModuleConfig::new(&config).unwrap();
+        let mut state = ZellijState {
+            cols: 16,
+            ..Default::default()
+        };
+        state
+            .pipe_results
+            .insert("pipe_left".to_owned(), "left".to_owned());
+        state
+            .pipe_results
+            .insert("pipe_right".to_owned(), "right".to_owned());
+
+        let widget_map: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::from([(
+            "pipe".to_owned(),
+            Arc::new(PipeWidget::new(&config)) as Arc<dyn Widget>,
+        )]);
+
+        assert!(module_config.handle_mouse_action(&mut state, Mouse::ScrollDown(1), widget_map,));
+
+        assert_eq!(state.pipe_scroll_offsets.get("pipe_left"), None);
+        assert_eq!(state.pipe_scroll_offsets.get("pipe_right"), Some(&4));
+    }
+
+    #[test]
+    fn pipe_scroll_target_miss_is_noop() {
+        let mut config = BTreeMap::new();
+        config.insert("format_right".to_owned(), "{pipe_hints}".to_owned());
+        config.insert("pipe_hints_format".to_owned(), "{output}".to_owned());
+        config.insert("pipe_hints_scrollable".to_owned(), "true".to_owned());
+        config.insert("pipe_scroll_target".to_owned(), "pipe_missing".to_owned());
+
+        let mut module_config = ModuleConfig::new(&config).unwrap();
+        let mut state = ZellijState {
+            cols: 16,
+            ..Default::default()
+        };
+        state
+            .pipe_results
+            .insert("pipe_hints".to_owned(), "hints".to_owned());
+
+        let widget_map: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::from([(
+            "pipe".to_owned(),
+            Arc::new(PipeWidget::new(&config)) as Arc<dyn Widget>,
+        )]);
+
+        assert!(!module_config.handle_mouse_action(&mut state, Mouse::ScrollDown(1), widget_map,));
+        assert!(state.pipe_scroll_offsets.is_empty());
     }
 }

@@ -199,15 +199,7 @@ impl FormattedPart {
         for widget in WIDGET_REGEX.captures_iter(&self.content) {
             let match_name = widget.get(0).unwrap().as_str();
             let widget_key = match_name.trim_matches(|c| c == '{' || c == '}');
-            let mut widget_key_name = widget_key;
-
-            if widget_key.starts_with("command_") {
-                widget_key_name = "command";
-            }
-
-            if widget_key.starts_with("pipe_") {
-                widget_key_name = "pipe";
-            }
+            let widget_key_name = normalize_widget_key(widget_key);
 
             let widget_mask = event_mask_from_widget_name(widget_key_name);
             let skip_widget_cache = widget_mask & UpdateEventMask::Always as u8 != 0;
@@ -272,24 +264,43 @@ impl Default for FormattedPart {
     }
 }
 
-fn cache_mask_from_content(content: &str) -> u8 {
-    let mut output = 0;
-    for widget in WIDGET_REGEX.captures_iter(content) {
-        let match_name = widget.get(0).unwrap().as_str();
-        let widget_key = match_name.trim_matches(|c| c == '{' || c == '}');
-        let mut widget_key_name = widget_key;
-
-        if widget_key.starts_with("command_") {
-            widget_key_name = "command";
-        }
-
-        if widget_key.starts_with("pipe_") {
-            widget_key_name = "pipe";
-        }
-
-        output |= event_mask_from_widget_name(widget_key_name);
+/// Maps an indexed widget key (`command_foo`, `pipe_bar`) onto the name its
+/// widget is registered under.
+fn normalize_widget_key(widget_key: &str) -> &str {
+    if widget_key.starts_with("command_") {
+        return "command";
     }
-    output
+
+    if widget_key.starts_with("pipe_") {
+        return "pipe";
+    }
+
+    widget_key
+}
+
+/// Yields the registered widget name of every widget referenced in a format
+/// string.
+fn widget_key_names<'a>(content: &'a str) -> impl Iterator<Item = &'a str> + 'a {
+    WIDGET_REGEX.captures_iter(content).map(|widget| {
+        let match_name = widget.get(0).unwrap().as_str();
+        normalize_widget_key(match_name.trim_matches(|c| c == '{' || c == '}'))
+    })
+}
+
+/// Whether a widget's output can change without Zellij sending us an event.
+/// These are the only widgets that need the periodic timer to stay current;
+/// everything else is driven by an event that already triggers a render.
+fn widget_is_timer_driven(widget_key_name: &str) -> bool {
+    matches!(widget_key_name, "command" | "datetime" | "notifications")
+}
+
+/// Whether a format string contains a widget that needs the periodic timer.
+pub fn content_needs_timer(content: &str) -> bool {
+    widget_key_names(content).any(widget_is_timer_driven)
+}
+
+fn cache_mask_from_content(content: &str) -> u8 {
+    widget_key_names(content).fold(0, |mask, name| mask | event_mask_from_widget_name(name))
 }
 
 fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {
@@ -377,6 +388,30 @@ fn color_by_name(color: &str) -> Option<AnsiColor> {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_content_needs_timer() {
+        // Widgets that move on their own need the periodic timer.
+        assert!(content_needs_timer("{datetime}"));
+        assert!(content_needs_timer("{command_git}"));
+        assert!(content_needs_timer("{notifications}"));
+        assert!(content_needs_timer("#[fg=#000000] {session} {datetime} "));
+
+        // Everything else is driven by an event that already renders, so an
+        // idle instance must not keep a timer armed.
+        assert!(!content_needs_timer("{mode}{session}{tabs}"));
+        assert!(!content_needs_timer("{pipe_sysload}"));
+        assert!(!content_needs_timer("{swap_layout}"));
+        assert!(!content_needs_timer("#[bg=#282a36]"));
+        assert!(!content_needs_timer(""));
+    }
+
+    #[test]
+    fn test_normalize_widget_key() {
+        assert_eq!(normalize_widget_key("command_git"), "command");
+        assert_eq!(normalize_widget_key("pipe_sysload"), "pipe");
+        assert_eq!(normalize_widget_key("tabs"), "tabs");
+    }
 
     #[test]
     fn test_hex_to_rgb() {

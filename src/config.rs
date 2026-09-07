@@ -91,6 +91,16 @@ pub struct ModuleConfig {
 }
 
 impl ModuleConfig {
+    /// Whether any frame-hiding option is enabled. These are the only features
+    /// that read Zellij's periodic session updates, so when they are all off
+    /// the plugin does not need to subscribe to them at all.
+    pub fn needs_session_updates(&self) -> bool {
+        self.hide_frame_for_single_pane
+            || self.hide_frame_except_for_search
+            || self.hide_frame_except_for_fullscreen
+            || self.hide_frame_except_for_scroll
+    }
+
     pub fn new(config: &BTreeMap<String, String>) -> anyhow::Result<Self> {
         let format_space_config = match config.get("format_space") {
             Some(space_config) => space_config,
@@ -537,6 +547,21 @@ fn parts_from_config(
 
 #[cfg(test)]
 mod test {
+    use super::*;
+
+    #[test]
+    fn test_needs_session_updates() {
+        let mut mc = ModuleConfig::default();
+        assert!(!mc.needs_session_updates());
+
+        mc.hide_frame_for_single_pane = true;
+        assert!(mc.needs_session_updates());
+
+        mc = ModuleConfig::default();
+        mc.hide_frame_except_for_scroll = true;
+        assert!(mc.needs_session_updates());
+    }
+
     use super::*;
     use anstyle::{Effects, RgbColor};
 

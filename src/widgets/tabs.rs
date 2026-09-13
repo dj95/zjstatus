@@ -134,6 +134,7 @@ impl Widget for TabsWidget {
     fn process(&self, _name: &str, state: &ZellijState) -> String {
         let mut output = "".to_owned();
         let mut counter = 0;
+        let dim = state.dim_amount();
 
         let (truncated_start, truncated_end, tabs) =
             get_tab_window(&state.tabs, self.tab_display_count);
@@ -146,12 +147,12 @@ impl Widget for TabsWidget {
                     content = content.replace("{count}", (truncated_start).to_string().as_str());
                 }
 
-                output = format!("{output}{}", f.format_string(&content));
+                output = format!("{output}{}", f.format_string(&content, dim));
             }
         }
 
         for tab in &tabs {
-            let content = self.render_tab(tab, &state.panes, &state.mode);
+            let content = self.render_tab(tab, &state.panes, &state.mode, dim);
             counter += 1;
 
             output = format!("{}{}", output, content);
@@ -159,7 +160,7 @@ impl Widget for TabsWidget {
             if counter < tabs.len()
                 && let Some(sep) = &self.separator
             {
-                output = format!("{}{}", output, sep.format_string(&sep.content));
+                output = format!("{}{}", output, sep.format_string(&sep.content, dim));
             }
         }
 
@@ -171,7 +172,7 @@ impl Widget for TabsWidget {
                     content = content.replace("{count}", (truncated_end).to_string().as_str());
                 }
 
-                output = format!("{output}{}", f.format_string(&content));
+                output = format!("{output}{}", f.format_string(&content, dim));
             }
         }
 
@@ -181,6 +182,7 @@ impl Widget for TabsWidget {
     fn process_click(&self, _name: &str, state: &ZellijState, pos: usize) {
         let mut offset = 0;
         let mut counter = 0;
+        let dim = state.dim_amount();
 
         let (truncated_start, truncated_end, tabs) =
             get_tab_window(&state.tabs, self.tab_display_count);
@@ -201,7 +203,7 @@ impl Widget for TabsWidget {
                     content = content.replace("{count}", (truncated_end).to_string().as_str());
                 }
 
-                offset += console::measure_text_width(&f.format_string(&content));
+                offset += console::measure_text_width(&f.format_string(&content, dim));
 
                 if pos <= offset {
                     switch_tab_to(active_pos.saturating_sub(1) as u32);
@@ -212,13 +214,16 @@ impl Widget for TabsWidget {
         for tab in &tabs {
             counter += 1;
 
-            let mut rendered_content = self.render_tab(tab, &state.panes, &state.mode);
+            let mut rendered_content = self.render_tab(tab, &state.panes, &state.mode, dim);
 
             if counter < tabs.len()
                 && let Some(sep) = &self.separator
             {
-                rendered_content =
-                    format!("{}{}", rendered_content, sep.format_string(&sep.content));
+                rendered_content = format!(
+                    "{}{}",
+                    rendered_content,
+                    sep.format_string(&sep.content, dim)
+                );
             }
 
             let content_len = console::measure_text_width(&rendered_content);
@@ -240,7 +245,7 @@ impl Widget for TabsWidget {
                     content = content.replace("{count}", (truncated_end).to_string().as_str());
                 }
 
-                offset += console::measure_text_width(&f.format_string(&content));
+                offset += console::measure_text_width(&f.format_string(&content, dim));
 
                 if pos <= offset {
                     switch_tab_to(cmp::min(active_pos + 1, state.tabs.len()) as u32);
@@ -296,7 +301,7 @@ impl TabsWidget {
         &self.normal_tab_format
     }
 
-    fn render_tab(&self, tab: &TabInfo, panes: &PaneManifest, mode: &ModeInfo) -> String {
+    fn render_tab(&self, tab: &TabInfo, panes: &PaneManifest, mode: &ModeInfo, dim: f32) -> String {
         let formatters = self.select_format(tab, mode);
         let mut output = "".to_owned();
 
@@ -348,7 +353,7 @@ impl TabsWidget {
 
             content = self.replace_indicators(content, tab, panes);
 
-            output = format!("{}{}", output, f.format_string(&content));
+            output = format!("{}{}", output, f.format_string(&content, dim));
         }
 
         output.to_owned()

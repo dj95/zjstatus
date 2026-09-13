@@ -177,6 +177,52 @@ load_plugins {
 }
 ```
 
+## 🪆 Nested sessions
+
+This fork adds dimming and host/nested role awareness for Zellij 0.45's
+[nested session handling](https://zellij.dev/news/nested-sessions-kitty-graphics-new-ui/).
+
+- `dim_when_unfocused` (default `true`): when this session is not the one
+  currently receiving input (a host that has descended into a nested child,
+  or a nested session not currently ascended into), every rendered segment
+  is drawn with a muted palette instead of the normal theme colors, the same
+  signal core uses to dim pane chrome in the same situation.
+- `dim_strength` (default `0.5`, clamped to `0.0` to `1.0`): how strongly to
+  dim. `0.0` leaves colors unchanged, `1.0` blends them fully to neutral
+  gray. Only true RGB colors can be dimmed this way; named ANSI and
+  256-color palette entries render unchanged.
+- `dim_scope` (default `all`): which side of a nested-session pair
+  `dim_when_unfocused` applies to. `all` dims both a descended host and an
+  unascended nested session; `nested` leaves a descended host's own chrome
+  at full brightness and only dims nested sessions.
+- `only_when=host` / `only_when=nested`: a per-segment attribute, set
+  alongside `fg=`/`bg=` inside a `#[...]` prefix in `format_left`,
+  `format_center`, or `format_right`, that renders that segment only for a
+  host session or only for a nested one. A segment with no `only_when`
+  always renders. This lets one shared layout serve both roles instead of
+  maintaining two. It is not evaluated inside a widget's own per-item
+  format (`tab_normal`, `notification_format_unread`, and similar), only in
+  the three top-level format strings. A nested session that is currently
+  fullscreen within its host (covering the host's entire screen) counts as
+  a host for this check, since visually it is indistinguishable from one.
+
+```javascript
+format_left   "{mode} #[fg=#89B4FA,bold]{session}"
+format_right  "#[only_when=host]{command_weather} #[only_when=host]{datetime} #[]{command_resources}"
+
+dim_when_unfocused "true"
+dim_strength       "0.5"
+dim_scope          "all"
+```
+
+The empty `#[]` before `{command_resources}` matters: without it, that
+token would be swallowed into the preceding `only_when=host` segment's
+content and inherit its condition, rather than rendering unconditionally
+as intended here.
+
+In this example, both a host and a nested session show mode, session name,
+and a resources widget, but only the host also shows weather and the clock.
+
 ## 🧱 Widgets
 
 The documentation for the widgets can be found in the [wiki](https://github.com/dj95/zjstatus/wiki/4-%E2%80%90-Widgets).

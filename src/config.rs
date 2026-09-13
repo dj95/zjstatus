@@ -11,6 +11,19 @@ use crate::{
 };
 use chrono::{DateTime, Local};
 
+/// Which sessions `dim_when_unfocused` applies to. Parsed from the
+/// `dim_scope` config option.
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DimScope {
+    /// Dim both a host that has descended into a nested child and a nested
+    /// session not currently ascended into.
+    #[default]
+    All,
+    /// Dim only a nested session not currently ascended into; leave a
+    /// descended host's own chrome at full brightness.
+    NestedOnly,
+}
+
 #[derive(Default, Debug, Clone)]
 pub struct ZellijState {
     pub cols: usize,
@@ -26,6 +39,44 @@ pub struct ZellijState {
     pub cache_mask: u8,
     pub focused_pane_id: Option<PaneId>,
     pub focused_pane_cwd: Option<std::path::PathBuf>,
+    /// Config-time toggle for nested-session dimming (`dim_when_unfocused`,
+    /// default `true`). Lives on state, not just `ModuleConfig`, so that
+    /// every render-time call site that already has a `&ZellijState` (most
+    /// of them, since it's the shared render context) can call
+    /// `dim_amount()` without also needing the module config threaded in.
+    pub dim_when_unfocused: bool,
+    /// How strongly to dim, in `render::dim_color`'s `0.0..=1.0` scale.
+    /// Parsed from the `dim_strength` config option.
+    pub dim_strength: f32,
+    /// Which sessions dimming applies to. Parsed from the `dim_scope`
+    /// config option.
+    pub dim_scope: DimScope,
+}
+
+impl ZellijState {
+    /// The dim strength to render with right now: `0.0` (no change) unless
+    /// `dim_when_unfocused` is enabled, this session is currently the
+    /// dimmed side of a nested-session pair (a host that has descended
+    /// into a child, or a nested session not currently ascended into),
+    /// and `dim_scope` includes it. `session_ascended`/`session_dimmed`
+    /// are the same fields core's own bundled tab-bar/compact-bar plugins
+    /// use for this exact purpose.
+    pub fn dim_amount(&self) -> f32 {
+        let is_dimmed =
+            self.mode.session_ascended == Some(true) || self.mode.session_dimmed == Some(true);
+        let in_scope = match self.dim_scope {
+            DimScope::All => true,
+            // `session_ancestry` is only non-empty for a nested session,
+            // so this excludes a host that has merely descended.
+            DimScope::NestedOnly => !self.mode.session_ancestry.is_empty(),
+        };
+
+        if self.dim_when_unfocused && is_dimmed && in_scope {
+            self.dim_strength
+        } else {
+            0.0
+        }
+    }
 }
 
 #[derive(Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Copy)]
@@ -194,6 +245,7 @@ impl ModuleConfig {
             Mouse::Release(_, y) => y,
             Mouse::Hover(_, _) => return,
         };
+        let dim = state.dim_amount();
 
         let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
             format!(
@@ -244,6 +296,7 @@ impl ModuleConfig {
                 &output_left,
                 &output_center,
                 state.cols,
+                dim,
             ));
 
             offset += self.process_widget_click(
@@ -262,12 +315,14 @@ impl ModuleConfig {
                 &output_right,
                 &output_center,
                 state.cols,
+                dim,
             ));
         } else {
             offset += console::measure_text_width(&self.get_spacer(
                 &output_left,
                 &output_right,
                 state.cols,
+                dim,
             ));
         }
 
@@ -376,15 +431,17 @@ impl ModuleConfig {
             false => (output_left, output_center, output_right),
         };
 
+        let dim = state.dim_amount();
+
         if self.border.enabled {
             let mut border_top = "".to_owned();
             if self.border.enabled && self.border.position == BorderPosition::Top {
-                border_top = format!("{}\n", self.border.draw(state.cols));
+                border_top = format!("{}\n", self.border.draw(state.cols, dim));
             }
 
             let mut border_bottom = "".to_owned();
             if self.border.enabled && self.border.position == BorderPosition::Bottom {
-                border_bottom = format!("\n{}", self.border.draw(state.cols));
+                border_bottom = format!("\n{}", self.border.draw(state.cols, dim));
             }
 
             if !output_center.is_empty() {
@@ -392,9 +449,9 @@ impl ModuleConfig {
                     "{}{}{}{}{}{}{}",
                     border_top,
                     output_left,
-                    self.get_spacer_left(&output_left, &output_center, state.cols),
+                    self.get_spacer_left(&output_left, &output_center, state.cols, dim),
                     output_center,
-                    self.get_spacer_right(&output_right, &output_center, state.cols),
+                    self.get_spacer_right(&output_right, &output_center, state.cols, dim),
                     output_right,
                     border_bottom,
                 );
@@ -404,7 +461,7 @@ impl ModuleConfig {
                 "{}{}{}{}{}",
                 border_top,
                 output_left,
-                self.get_spacer(&output_left, &output_right, state.cols),
+                self.get_spacer(&output_left, &output_right, state.cols, dim),
                 output_right,
                 border_bottom,
             );
@@ -414,9 +471,9 @@ impl ModuleConfig {
             return format!(
                 "{}{}{}{}{}",
                 output_left,
-                self.get_spacer_left(&output_left, &output_center, state.cols),
+                self.get_spacer_left(&output_left, &output_center, state.cols, dim),
                 output_center,
-                self.get_spacer_right(&output_right, &output_center, state.cols),
+                self.get_spacer_right(&output_right, &output_center, state.cols, dim),
                 output_right,
             );
         }
@@ -424,7 +481,7 @@ impl ModuleConfig {
         format!(
             "{}{}{}",
             output_left,
-            self.get_spacer(&output_left, &output_right, state.cols),
+            self.get_spacer(&output_left, &output_right, state.cols, dim),
             output_right,
         )
     }
@@ -478,7 +535,13 @@ impl ModuleConfig {
     }
 
     #[tracing::instrument(skip_all)]
-    fn get_spacer_left(&self, output_left: &str, output_center: &str, cols: usize) -> String {
+    fn get_spacer_left(
+        &self,
+        output_left: &str,
+        output_center: &str,
+        cols: usize,
+        dim: f32,
+    ) -> String {
         let text_count = console::measure_text_width(output_left)
             + (console::measure_text_width(output_center) as f32 / 2.0).floor() as usize;
 
@@ -489,11 +552,18 @@ impl ModuleConfig {
         let space_count = center_pos.saturating_sub(text_count);
 
         tracing::debug!("space_count: {:?}", space_count);
-        self.format_space.format_string(&" ".repeat(space_count))
+        self.format_space
+            .format_string(&" ".repeat(space_count), dim)
     }
 
     #[tracing::instrument(skip_all)]
-    fn get_spacer_right(&self, output_right: &str, output_center: &str, cols: usize) -> String {
+    fn get_spacer_right(
+        &self,
+        output_right: &str,
+        output_center: &str,
+        cols: usize,
+        dim: f32,
+    ) -> String {
         let text_count = console::measure_text_width(output_right)
             + (console::measure_text_width(output_center) as f32 / 2.0).ceil() as usize;
 
@@ -504,10 +574,11 @@ impl ModuleConfig {
         let space_count = center_pos.saturating_sub(text_count);
 
         tracing::debug!("space_count: {:?}", space_count);
-        self.format_space.format_string(&" ".repeat(space_count))
+        self.format_space
+            .format_string(&" ".repeat(space_count), dim)
     }
 
-    fn get_spacer(&self, output_left: &str, output_right: &str, cols: usize) -> String {
+    fn get_spacer(&self, output_left: &str, output_right: &str, cols: usize, dim: f32) -> String {
         let text_count =
             console::measure_text_width(output_left) + console::measure_text_width(output_right);
 
@@ -515,7 +586,8 @@ impl ModuleConfig {
         // count of 0 on tab creation
         let space_count = cols.saturating_sub(text_count);
 
-        self.format_space.format_string(&" ".repeat(space_count))
+        self.format_space
+            .format_string(&" ".repeat(space_count), dim)
     }
 }
 
@@ -556,5 +628,87 @@ mod test {
                 ..Default::default()
             },
         )
+    }
+
+    fn state_with(
+        dim_when_unfocused: bool,
+        dim_strength: f32,
+        dim_scope: DimScope,
+        session_ancestry: Vec<String>,
+        session_ascended: Option<bool>,
+        session_dimmed: Option<bool>,
+    ) -> ZellijState {
+        ZellijState {
+            mode: ModeInfo {
+                session_ascended,
+                session_dimmed,
+                session_ancestry,
+                ..Default::default()
+            },
+            dim_when_unfocused,
+            dim_strength,
+            dim_scope,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_dim_amount_when_not_dimmed() {
+        let state = state_with(true, 0.5, DimScope::All, vec![], Some(false), None);
+        assert_eq!(state.dim_amount(), 0.0);
+    }
+
+    #[test]
+    fn test_dim_amount_when_session_ascended() {
+        let state = state_with(
+            true,
+            0.5,
+            DimScope::All,
+            vec!["main".to_owned()],
+            Some(true),
+            None,
+        );
+        assert_eq!(state.dim_amount(), 0.5);
+    }
+
+    #[test]
+    fn test_dim_amount_when_session_dimmed() {
+        let state = state_with(true, 0.7, DimScope::All, vec![], None, Some(true));
+        assert_eq!(state.dim_amount(), 0.7);
+    }
+
+    #[test]
+    fn test_dim_amount_respects_config_toggle() {
+        // Dimmed by the session, but the user has turned the feature off.
+        let state = state_with(
+            false,
+            0.5,
+            DimScope::All,
+            vec!["main".to_owned()],
+            Some(true),
+            Some(true),
+        );
+        assert_eq!(state.dim_amount(), 0.0);
+    }
+
+    #[test]
+    fn test_dim_amount_nested_only_dims_nested_session() {
+        let state = state_with(
+            true,
+            0.5,
+            DimScope::NestedOnly,
+            vec!["main".to_owned()],
+            Some(true),
+            None,
+        );
+        assert_eq!(state.dim_amount(), 0.5);
+    }
+
+    #[test]
+    fn test_dim_amount_nested_only_ignores_descended_host() {
+        // A host that has descended has no ancestry of its own, so
+        // NestedOnly should leave its chrome at full brightness.
+        let state = state_with(true, 0.5, DimScope::NestedOnly, vec![], None, Some(true));
+        assert_eq!(state.dim_amount(), 0.0);
     }
 }

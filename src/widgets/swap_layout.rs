@@ -60,7 +60,11 @@ impl Widget for SwapLayoutWidget {
                 content = content.replace("{name}", &name);
             }
 
-            output = format!("{}{}", output, f.format_string(&content));
+            output = format!(
+                "{}{}",
+                output,
+                f.format_string(&content, state.dim_amount())
+            );
         }
 
         output

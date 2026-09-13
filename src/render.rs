@@ -15,6 +15,24 @@ lazy_static! {
     static ref WIDGET_REGEX: Regex = Regex::new("(\\{[a-z_0-9]+\\})").unwrap();
 }
 
+/// Which session role a segment configured with `only_when=` renders for.
+/// A segment with no `only_when` attribute renders for both.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Role {
+    Host,
+    Nested,
+}
+
+impl Role {
+    fn from_config_value(value: &str) -> Option<Self> {
+        match value {
+            "host" => Some(Role::Host),
+            "nested" => Some(Role::Nested),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct FormattedPart {
     pub fg: Option<Color>,
@@ -33,6 +51,7 @@ pub struct FormattedPart {
     pub curly_underscore: bool,
     pub dotted_underscore: bool,
     pub dashed_underscore: bool,
+    pub only_when: Option<Role>,
     pub content: String,
     pub cache_mask: u8,
     pub cached_content: String,
@@ -111,6 +130,10 @@ impl FormattedPart {
                 result.us = parse_color(part.strip_prefix("us=").unwrap(), config);
             }
 
+            if let Some(role) = part.strip_prefix("only_when=") {
+                result.only_when = Role::from_config_value(role);
+            }
+
             if part.eq("reverse") {
                 result.reverse = true;
             }
@@ -163,12 +186,28 @@ impl FormattedPart {
         }
     }
 
-    pub fn format_string(&self, text: &str) -> String {
+    /// Renders `text` with this part's configured styling. `dim` is a
+    /// strength in `0.0..=1.0`; `0.0` renders normally, anything above that
+    /// blends `fg`/`bg`/`us` toward neutral gray by that fraction (see
+    /// `dim_color`). Callers derive it from `ZellijState::dim_amount`, which
+    /// is `0.0` unless this session is currently the dimmed side of a
+    /// nested-session pair.
+    pub fn format_string(&self, text: &str, dim: f32) -> String {
         let mut style = Style::new();
 
-        style = style.fg_color(self.fg);
-        style = style.bg_color(self.bg);
-        style = style.underline_color(self.us);
+        let (fg, bg, us) = if dim > 0.0 {
+            (
+                self.fg.map(|c| dim_color(c, dim)),
+                self.bg.map(|c| dim_color(c, dim)),
+                self.us.map(|c| dim_color(c, dim)),
+            )
+        } else {
+            (self.fg, self.bg, self.us)
+        };
+
+        style = style.fg_color(fg);
+        style = style.bg_color(bg);
+        style = style.underline_color(us);
         style = style.effects(self.effects);
 
         format!(
@@ -180,12 +219,34 @@ impl FormattedPart {
         )
     }
 
+    /// Whether this part should render at all given the session's current
+    /// host/nested role. A part with no `only_when` attribute always
+    /// matches; `session_ancestry` being non-empty means this session is
+    /// nested inside another one. A nested session whose pane currently
+    /// fills its host's entire screen (`host_fullscreen`) is treated as a
+    /// host too: it covers the whole outer session, so it renders the
+    /// same as a standalone one rather than showing nested-only chrome.
+    fn role_matches(&self, state: &ZellijState) -> bool {
+        let is_host =
+            state.mode.session_ancestry.is_empty() || state.mode.host_fullscreen == Some(true);
+
+        match self.only_when {
+            None => true,
+            Some(Role::Host) => is_host,
+            Some(Role::Nested) => !is_host,
+        }
+    }
+
     #[tracing::instrument(skip_all)]
     pub fn format_string_with_widgets(
         &mut self,
         widgets: &BTreeMap<String, Arc<dyn Widget>>,
         state: &ZellijState,
     ) -> String {
+        if !self.role_matches(state) {
+            return String::new();
+        }
+
         let skip_cache = self.cache_mask & UpdateEventMask::Always as u8 != 0;
 
         if !skip_cache && self.cache_mask & state.cache_mask == 0 && !self.cache.is_empty() {
@@ -238,7 +299,7 @@ impl FormattedPart {
             output = output.replace(match_name, &result);
         }
 
-        let res = self.format_string(&output);
+        let res = self.format_string(&output, state.dim_amount());
         self.cached_content.clone_from(&res);
 
         res
@@ -264,6 +325,7 @@ impl Default for FormattedPart {
             curly_underscore: false,
             dotted_underscore: false,
             dashed_underscore: false,
+            only_when: None,
             content: "".to_owned(),
             cache_mask: 0,
             cached_content: "".to_owned(),
@@ -290,6 +352,45 @@ fn cache_mask_from_content(content: &str) -> u8 {
         output |= event_mask_from_widget_name(widget_key_name);
     }
     output
+}
+
+/// A fully dimmed color sits at this fraction of its own brightness: dimmed
+/// chrome should read as visibly darker, not just the same brightness with
+/// the hue washed out.
+const DIM_BRIGHTNESS: f32 = 0.3;
+
+/// Fades an RGB color toward a dark, desaturated gray by `strength` (`0.0` =
+/// unchanged, `1.0` = fully dimmed). Each channel moves toward
+/// `DIM_BRIGHTNESS` of the color's own perceived luminance, rather than
+/// toward a fixed midpoint or toward the color's own unchanged brightness:
+/// the former reads as a contrast/brightness shift more than a fade for
+/// colors far from that midpoint, and the latter fades out hue without
+/// getting any darker, so dimmed chrome doesn't visually recede the way
+/// core's own dimmed pane chrome does. This blends both at once: a color
+/// fades out its hue while also darkening, ending at a dim neutral gray
+/// rather than just getting flatter. Named ANSI colors and 256-color
+/// palette entries pass through unchanged: they're indices into a
+/// terminal-defined palette, not RGB triples, so there's no well-defined
+/// "dimmed version" of one to compute without also assuming a specific
+/// palette.
+fn dim_color(color: Color, strength: f32) -> Color {
+    match color {
+        Color::Rgb(RgbColor(r, g, b)) => {
+            // ITU-R BT.601 luma weights: the standard "how bright does this
+            // color look" formula used by most grayscale conversions.
+            let luminance = 0.299 * r as f32 + 0.587 * g as f32 + 0.114 * b as f32;
+            let target = luminance * DIM_BRIGHTNESS;
+
+            let blend = |channel: u8| -> u8 {
+                let channel = channel as f32;
+                (channel + (target - channel) * strength)
+                    .round()
+                    .clamp(0.0, 255.0) as u8
+            };
+            Color::Rgb(RgbColor(blend(r), blend(g), blend(b)))
+        }
+        other => other,
+    }
 }
 
 fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {
@@ -423,5 +524,93 @@ mod test {
 
         let result = parse_color("$blue", &config);
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_dim_color_blends_rgb_toward_gray() {
+        // Pure red's BT.601 luminance is 0.299*255 = 76.245; the dim target
+        // is 30% of that (~22.9), so full strength converges there on all
+        // three channels: darker than the color's own brightness, not just
+        // desaturated to it.
+        let red = Color::Rgb(RgbColor(255, 0, 0));
+        assert_eq!(dim_color(red, 0.0), red);
+        assert_eq!(dim_color(red, 1.0), Color::Rgb(RgbColor(23, 23, 23)));
+        assert_eq!(dim_color(red, 0.5), Color::Rgb(RgbColor(139, 11, 11)));
+
+        // A color that's already gray has nothing to desaturate, but still
+        // darkens: its luminance equals every channel already, but the dim
+        // target is a fraction of that.
+        let white = Color::Rgb(RgbColor(255, 255, 255));
+        assert_eq!(dim_color(white, 1.0), Color::Rgb(RgbColor(77, 77, 77)));
+    }
+
+    #[test]
+    fn test_dim_color_passes_through_indexed_colors() {
+        let ansi = Color::Ansi(AnsiColor::Red);
+        let ansi256 = Color::Ansi256(Ansi256Color(200));
+        assert_eq!(dim_color(ansi, 0.8), ansi);
+        assert_eq!(dim_color(ansi256, 0.8), ansi256);
+    }
+
+    #[test]
+    fn test_only_when_parses_from_format_string() {
+        let host = FormattedPart::from_format_string("#[only_when=host]foo", &BTreeMap::new());
+        assert_eq!(host.only_when, Some(Role::Host));
+
+        let nested = FormattedPart::from_format_string("#[only_when=nested]foo", &BTreeMap::new());
+        assert_eq!(nested.only_when, Some(Role::Nested));
+
+        let unset = FormattedPart::from_format_string("#[fg=#ff0000]foo", &BTreeMap::new());
+        assert_eq!(unset.only_when, None);
+
+        let invalid = FormattedPart::from_format_string("#[only_when=bogus]foo", &BTreeMap::new());
+        assert_eq!(invalid.only_when, None);
+    }
+
+    #[test]
+    fn test_role_matches() {
+        let host_part = FormattedPart {
+            only_when: Some(Role::Host),
+            ..Default::default()
+        };
+        let nested_part = FormattedPart {
+            only_when: Some(Role::Nested),
+            ..Default::default()
+        };
+        let unconditional_part = FormattedPart::default();
+
+        let mut host_state = ZellijState::default();
+        host_state.mode.session_ancestry = vec![];
+
+        let mut nested_state = ZellijState::default();
+        nested_state.mode.session_ancestry = vec!["outer".to_owned()];
+
+        assert!(host_part.role_matches(&host_state));
+        assert!(!host_part.role_matches(&nested_state));
+
+        assert!(!nested_part.role_matches(&host_state));
+        assert!(nested_part.role_matches(&nested_state));
+
+        assert!(unconditional_part.role_matches(&host_state));
+        assert!(unconditional_part.role_matches(&nested_state));
+    }
+
+    #[test]
+    fn test_role_matches_treats_fullscreen_nested_session_as_host() {
+        let host_part = FormattedPart {
+            only_when: Some(Role::Host),
+            ..Default::default()
+        };
+        let nested_part = FormattedPart {
+            only_when: Some(Role::Nested),
+            ..Default::default()
+        };
+
+        let mut fullscreen_nested_state = ZellijState::default();
+        fullscreen_nested_state.mode.session_ancestry = vec!["outer".to_owned()];
+        fullscreen_nested_state.mode.host_fullscreen = Some(true);
+
+        assert!(host_part.role_matches(&fullscreen_nested_state));
+        assert!(!nested_part.role_matches(&fullscreen_nested_state));
     }
 }

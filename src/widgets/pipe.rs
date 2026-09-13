@@ -72,7 +72,7 @@ impl Widget for PipeWidget {
             })
             .fold("".to_owned(), |acc, (f, content)| {
                 if pipe_config.render_mode == RenderMode::Static {
-                    return format!("{acc}{}", f.format_string(&content));
+                    return format!("{acc}{}", f.format_string(&content, state.dim_amount()));
                 }
 
                 format!("{acc}{}", content)
@@ -80,7 +80,9 @@ impl Widget for PipeWidget {
 
         match pipe_config.render_mode {
             RenderMode::Static => content,
-            RenderMode::Dynamic => render_dynamic_formatted_content(&content, &self.zj_conf),
+            RenderMode::Dynamic => {
+                render_dynamic_formatted_content(&content, &self.zj_conf, state.dim_amount())
+            }
             RenderMode::Raw => pipe_result.to_owned(),
         }
     }
@@ -88,10 +90,14 @@ impl Widget for PipeWidget {
     fn process_click(&self, _name: &str, _state: &crate::config::ZellijState, _pos: usize) {}
 }
 
-fn render_dynamic_formatted_content(content: &str, config: &BTreeMap<String, String>) -> String {
+fn render_dynamic_formatted_content(
+    content: &str,
+    config: &BTreeMap<String, String>,
+    dim: f32,
+) -> String {
     formatted_parts_from_string_cached(content, config)
         .iter()
-        .map(|fp| fp.format_string(&fp.content))
+        .map(|fp| fp.format_string(&fp.content, dim))
         .collect::<Vec<String>>()
         .join("")
 }

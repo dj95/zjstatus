@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use zjstatus::{
     config::{self, ModuleConfig, UpdateEventMask, ZellijState},
-    frames, pipe,
+    frames, pipe, render,
     widgets::{
         command::{CommandResult, CommandWidget},
         datetime::DateTimeWidget,
@@ -32,6 +32,7 @@ struct State {
     module_config: config::ModuleConfig,
     widget_map: BTreeMap<String, Arc<dyn Widget>>,
     focus_cwd_commands: Vec<String>,
+    needs_timer: bool,
     err: Option<anyhow::Error>,
 }
 
@@ -69,26 +70,37 @@ impl ZellijPlugin for State {
             PermissionType::RunCommands,
         ]);
 
-        subscribe(&[
-            EventType::Mouse,
-            EventType::ModeUpdate,
-            EventType::PaneUpdate,
-            EventType::PermissionRequestResult,
-            EventType::Timer,
-            EventType::TabUpdate,
-            EventType::SessionUpdate,
-            EventType::RunCommandResult,
-            EventType::CwdChanged,
-        ]);
-        set_timeout(REFRESH_INTERVAL_SECONDS);
-
         self.module_config = match ModuleConfig::new(&configuration) {
             Ok(mc) => mc,
             Err(e) => {
                 self.err = Some(e);
+                // Still subscribe, otherwise render() is never called and the
+                // error never reaches the bar.
+                subscribe(&base_events());
                 return;
             }
         };
+
+        let mut events = base_events();
+        // Zellij pushes SessionUpdate roughly once a second, forever, and its
+        // payload carries the panes and tabs of *every* session on the machine.
+        // Only the frame-hiding options read any of it, so subscribing
+        // unconditionally wakes every instance once a second to deserialize
+        // that payload and re-render, in every session, attached or not.
+        if self.module_config.needs_session_updates() {
+            events.push(EventType::SessionUpdate);
+        }
+        subscribe(&events);
+
+        // Same reasoning for the refresh timer: an armed instance re-renders
+        // once a second for as long as it lives, whether or not anyone is
+        // looking, and each render costs more as tabs and panes pile up.
+        self.needs_timer = configuration
+            .values()
+            .any(|value| render::content_needs_timer(value));
+        if self.needs_timer {
+            set_timeout(REFRESH_INTERVAL_SECONDS);
+        }
         self.widget_map = register_widgets(&configuration);
         self.focus_cwd_commands =
             zjstatus::widgets::command::focus_cwd_command_names(&configuration);
@@ -379,7 +391,9 @@ impl State {
             }
             Event::Timer(_) => {
                 tracing::Span::current().record("event_type", "Event::Timer");
-                set_timeout(REFRESH_INTERVAL_SECONDS);
+                if self.needs_timer {
+                    set_timeout(REFRESH_INTERVAL_SECONDS);
+                }
                 self.state.cache_mask = 0;
 
                 should_render = true;
@@ -388,6 +402,21 @@ impl State {
         };
         should_render
     }
+}
+
+/// Events zjstatus always needs. `EventType::SessionUpdate` is subscribed on
+/// top of these only when something actually reads session info.
+fn base_events() -> Vec<EventType> {
+    vec![
+        EventType::Mouse,
+        EventType::ModeUpdate,
+        EventType::PaneUpdate,
+        EventType::PermissionRequestResult,
+        EventType::Timer,
+        EventType::TabUpdate,
+        EventType::RunCommandResult,
+        EventType::CwdChanged,
+    ]
 }
 
 fn register_widgets(configuration: &BTreeMap<String, String>) -> BTreeMap<String, Arc<dyn Widget>> {

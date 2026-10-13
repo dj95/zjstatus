@@ -1,0 +1,27 @@
+name: Render snapshots
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+
+jobs:
+  snapshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96 # stable
+        with:
+          toolchain: "1.95.0"
+          targets: wasm32-wasip1
+
+      - name: Build zjstatus wasm
+        run: cargo build --release --target wasm32-wasip1 --bin zjstatus
+
+      - name: Install Zellij Plugin Snapshot
+        run: cargo install zellij-plugin-snapshot --version 0.2.3 --locked
+
+      - name: Compare renders to tests/snapshots/out
+        run: sh tests/snapshots.sh

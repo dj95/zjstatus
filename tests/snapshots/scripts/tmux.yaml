@@ -1,0 +1,34 @@
+# tmux bar from examples/tmux.kdl.
+# datetime_fixed replaces the clock so the ANSI bytes stay the same on every run.
+name: tmux
+plugin: ../../../target/wasm32-wasip1/release/zjstatus.wasm
+geometry:
+  rows: 1
+  cols: 120
+config:
+  format_left: "#[fg=0,bg=10][{session}]  {tabs}"
+  format_right: "#[fg=0,bg=10]{datetime}"
+  format_space: "#[bg=10]"
+  hide_frame_for_single_pane: "true"
+  tab_normal: "{index}:{name}  "
+  tab_active: "{index}:{name}* "
+  datetime: " {format} "
+  datetime_format: "%H:%M %d-%b-%y"
+  datetime_timezone: "Europe/Berlin"
+  datetime_fixed: "21:00 12-Oct-26"
+steps:
+  - action: grant_permissions
+  - action: mode_update
+    mode: normal
+    session: dev
+  - action: tab_update
+    tabs:
+      - name: shell
+        active: true
+        tiled: 1
+      - name: nvim
+        active: false
+        tiled: 1
+      - name: logs
+        active: false
+        tiled: 1

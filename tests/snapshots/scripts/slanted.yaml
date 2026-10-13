@@ -1,0 +1,39 @@
+# slanted bar from examples/slanted.kdl.
+# datetime_fixed replaces the clock so the ANSI bytes stay the same on every run.
+name: slanted
+plugin: ../../../target/wasm32-wasip1/release/zjstatus.wasm
+geometry:
+  rows: 1
+  cols: 120
+config:
+  format_left: "{mode}#[fg=black,bg=blue,bold]{session}  #[fg=blue,bg=#181825]{tabs}"
+  format_right: "#[fg=#181825,bg=#b1bbfa]{datetime}"
+  format_space: "#[bg=#181825]"
+  hide_frame_for_single_pane: "true"
+  mode_normal: "#[bg=blue] "
+  tab_normal: "#[fg=#181825,bg=#4C4C59] #[fg=#000000,bg=#4C4C59]{index}  {name} #[fg=#4C4C59,bg=#181825]"
+  tab_normal_fullscreen: "#[fg=#6C7086,bg=#181825] {index} {name} [] "
+  tab_normal_sync: "#[fg=#6C7086,bg=#181825] {index} {name} <> "
+  tab_active: "#[fg=#181825,bg=#ffffff,bold,italic] {index}  {name} #[fg=#ffffff,bg=#181825]"
+  tab_active_fullscreen: "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} [] "
+  tab_active_sync: "#[fg=#9399B2,bg=#181825,bold,italic] {index} {name} <> "
+  datetime: "#[fg=#6C7086,bg=#b1bbfa,bold] {format} "
+  datetime_format: "%A, %d %b %Y %H:%M"
+  datetime_timezone: "Europe/Berlin"
+  datetime_fixed: "Monday, 12 Oct 2026 21:00"
+steps:
+  - action: grant_permissions
+  - action: mode_update
+    mode: normal
+    session: dev
+  - action: tab_update
+    tabs:
+      - name: shell
+        active: true
+        tiled: 1
+      - name: nvim
+        active: false
+        tiled: 1
+      - name: logs
+        active: false
+        tiled: 1

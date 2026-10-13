@@ -13,6 +13,9 @@ pub struct DateTimeWidget {
     date_format: String,
     color_format: Vec<FormattedPart>,
     time_zone: Option<Tz>,
+    /// Replaces `{format}` when set. Render snapshots set this because
+    /// `Local::now()` would change the ANSI bytes on every run.
+    fixed: Option<String>,
 }
 
 impl DateTimeWidget {
@@ -50,6 +53,7 @@ impl DateTimeWidget {
             time_format: time_format.to_owned(),
             color_format: FormattedPart::multiple_from_format_string(color_format, config),
             time_zone,
+            fixed: config.get("datetime_fixed").cloned(),
         }
     }
 }
@@ -69,11 +73,11 @@ impl Widget for DateTimeWidget {
                 let mut content = f.content.clone();
 
                 if content.contains("{format}") {
-                    content = content.replace(
-                        "{format}",
-                        format!("{}", date.with_timezone(&tz).format(self.format.as_str()))
-                            .as_str(),
-                    );
+                    let formatted = match &self.fixed {
+                        Some(fixed) => fixed.clone(),
+                        None => format!("{}", date.with_timezone(&tz).format(self.format.as_str())),
+                    };
+                    content = content.replace("{format}", formatted.as_str());
                 }
 
                 if content.contains("{date}") {
@@ -106,4 +110,22 @@ impl Widget for DateTimeWidget {
     }
 
     fn process_click(&self, _name: &str, _state: &ZellijState, _pos: usize) {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn datetime_fixed_replaces_the_clock() {
+        let config = BTreeMap::from([
+            ("datetime".to_owned(), "{format}".to_owned()),
+            ("datetime_format".to_owned(), "%H:%M".to_owned()),
+            ("datetime_fixed".to_owned(), "21:00 12-Oct-26".to_owned()),
+        ]);
+        let widget = DateTimeWidget::new(&config);
+        let rendered = widget.process("datetime", &ZellijState::default());
+
+        assert!(rendered.contains("21:00 12-Oct-26"));
+    }
 }

@@ -28,23 +28,23 @@
 <details>
 <summary><h3>Examples</h3></summary>
 <b><a href="./examples/tmux.kdl">tmux style</a></b>
-<img src="./examples/tmux.png" alt="tmux style bar" />
+<img src="./tests/snapshots/out/tmux.svg" alt="tmux style bar" />
 <br>
 <b><a href="./examples/simple.kdl">simple style</a></b>
-<img src="./examples/simple.png" alt="simple style bar" />
+<img src="./tests/snapshots/out/simple.svg" alt="simple style bar" />
 <br>
 <b><a href="./examples/slanted.kdl">slanted style</a></b>
-<img src="./examples/slanted.png" alt="slanted style bar" />
+<img src="./tests/snapshots/out/slanted.svg" alt="slanted style bar" />
 <br>
 <b><a href="./examples/swap-layouts.kdl">example for swapping layouts with zjstatus</a></b>
-<img src="./examples/swap-layouts.png" alt="example for swapping layouts with zjstatus" />
+<img src="./tests/snapshots/out/swap-layouts.svg" alt="example for swapping layouts with zjstatus" />
 <br>
 <b><a href="./examples/compact.kdl">compact style (thanks to @segaja)</a></b>
-<img src="./examples/compact.png" alt="compact style bar" />
+<img src="./tests/snapshots/out/compact.svg" alt="compact style bar" />
 <br>
 <b><a href="./examples/conky.kdl">conky status (thanks to @benzwt)</a></b>
 <a href="./examples/conky.conf">conky.conf</a>
-<img src="./examples/conky.png" alt="conky status" />
+<img src="./tests/snapshots/out/conky.svg" alt="conky status" />
 <br>
 <b>Demo GIF</b>
 <img src="./assets/demo.gif" alt="Demo GIF of zellij with zjstatus" />
@@ -200,6 +200,17 @@ in this repo for obtaining `cargo` and `rustup`. Then you'll only need to add th
 
 With the toolchain, simply build `zjstatus` with `cargo build`. Then you are able to run the example configuration
 with `zellij -l plugin-dev-workspace.kdl` from the root of the repository.
+
+The pictures in the examples above are the SVG files in `tests/snapshots/out`. Each file is one render of `zjstatus.wasm` driven by the matching script in `tests/snapshots/scripts`. `tests/snapshots.sh` builds nothing itself: it runs [Zellij Plugin Snapshot](https://github.com/fulldecent/zellij-plugin-snapshot) 0.2.3 and exits non-zero when either the ANSI bytes or the SVG differ from that directory.
+
+```sh
+rustup target add wasm32-wasip1
+cargo build --release --target wasm32-wasip1 --bin zjstatus
+cargo install zellij-plugin-snapshot --version 0.2.3 --locked
+sh tests/snapshots.sh
+```
+
+`datetime_fixed` is read only by those scripts. A live layout that omits it still formats the clock with `datetime_format`. Command widgets in the simple and conky scripts receive a `RunCommandResult` event, because this host does not execute the shell command named in the layout.
 
 ## 🤝 Contributing
 

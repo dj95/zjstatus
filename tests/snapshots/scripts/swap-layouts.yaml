@@ -1,0 +1,28 @@
+# swap-layouts bar from examples/swap-layouts.kdl.
+# tab_update cannot set active_swap_layout_name, so this script sends TabUpdate
+# as event_json. The active tab's layout name is vertical.
+name: swap-layouts
+plugin: ../../../target/wasm32-wasip1/release/zjstatus.wasm
+geometry:
+  rows: 1
+  cols: 120
+config:
+  format_left: "{mode}{tabs}"
+  format_right: "#[fg=#83a598,bold]{session} #[fg=#b8bb26,bold]{swap_layout}"
+  mode_normal: "#[fg=#b8bb26,bold]{name}"
+  mode_locked: "#[fg=#fb4934,bold]{name}"
+  mode_resize: "#[fg=#fabd2f,bold]{name}"
+  mode_pane: "#[fg=#d3869b,bold]{name}"
+  mode_tab: "#[fg=#83a598,bold]{name}"
+  mode_scroll: "#[fg=#8ec07c,bold]{name}"
+  mode_session: "#[fg=#fe8019,bold]{name}"
+  mode_move: "#[fg=#a89984,bold]{name}"
+  tab_normal: "#[fg=#a89984,bold] {name}"
+  tab_active: "#[fg=#83a598,bold] {name}"
+steps:
+  - action: grant_permissions
+  - action: mode_update
+    mode: normal
+    session: dev
+  - action: event_json
+    json: "{\"TabUpdate\":[{\"position\":0,\"name\":\"code\",\"active\":true,\"panes_to_hide\":0,\"is_fullscreen_active\":false,\"is_sync_panes_active\":false,\"are_floating_panes_visible\":false,\"other_focused_clients\":[],\"active_swap_layout_name\":\"vertical\",\"is_swap_layout_dirty\":false,\"viewport_rows\":40,\"viewport_columns\":80,\"display_area_rows\":42,\"display_area_columns\":80,\"selectable_tiled_panes_count\":2,\"selectable_floating_panes_count\":0,\"tab_id\":0,\"has_bell_notification\":false,\"is_flashing_bell\":false},{\"position\":1,\"name\":\"logs\",\"active\":false,\"panes_to_hide\":0,\"is_fullscreen_active\":false,\"is_sync_panes_active\":false,\"are_floating_panes_visible\":false,\"other_focused_clients\":[],\"active_swap_layout_name\":null,\"is_swap_layout_dirty\":false,\"viewport_rows\":40,\"viewport_columns\":80,\"display_area_rows\":42,\"display_area_columns\":80,\"selectable_tiled_panes_count\":1,\"selectable_floating_panes_count\":0,\"tab_id\":1,\"has_bell_notification\":false,\"is_flashing_bell\":false}]}"

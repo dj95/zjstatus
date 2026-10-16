@@ -151,7 +151,7 @@ impl Widget for TabsWidget {
         }
 
         for tab in &tabs {
-            let content = self.render_tab(tab, &state.panes, &state.mode);
+            let content = self.render_tab(tab, &state.panes, &state.mode, state.tab_name_max_width);
             counter += 1;
 
             output = format!("{}{}", output, content);
@@ -212,7 +212,8 @@ impl Widget for TabsWidget {
         for tab in &tabs {
             counter += 1;
 
-            let mut rendered_content = self.render_tab(tab, &state.panes, &state.mode);
+            let mut rendered_content =
+                self.render_tab(tab, &state.panes, &state.mode, state.tab_name_max_width);
 
             if counter < tabs.len()
                 && let Some(sep) = &self.separator
@@ -296,7 +297,13 @@ impl TabsWidget {
         &self.normal_tab_format
     }
 
-    fn render_tab(&self, tab: &TabInfo, panes: &PaneManifest, mode: &ModeInfo) -> String {
+    fn render_tab(
+        &self,
+        tab: &TabInfo,
+        panes: &PaneManifest,
+        mode: &ModeInfo,
+        max_name_width: Option<usize>,
+    ) -> String {
         let formatters = self.select_format(tab, mode);
         let mut output = "".to_owned();
 
@@ -311,8 +318,15 @@ impl TabsWidget {
                 _name => tab.name.as_str(),
             };
 
+            let tab_name = match max_name_width {
+                Some(max) if !(mode.mode == InputMode::RenameTab && tab.active) => {
+                    console::truncate_str(tab_name, max, "…")
+                }
+                _ => tab_name.into(),
+            };
+
             if content.contains("{name}") {
-                content = content.replace("{name}", tab_name);
+                content = content.replace("{name}", &tab_name);
             }
 
             if content.contains("{index}") {
@@ -460,10 +474,49 @@ pub fn get_tab_window(
 
 #[cfg(test)]
 mod test {
-    use zellij_tile::prelude::TabInfo;
+    use std::collections::BTreeMap;
 
-    use super::get_tab_window;
+    use zellij_tile::prelude::{InputMode, ModeInfo, TabInfo};
+
+    use super::{TabsWidget, get_tab_window};
+    use crate::{config::ZellijState, widgets::widget::Widget};
     use rstest::rstest;
+
+    #[rstest]
+    #[case(None, InputMode::Normal, "<abcdefgh><xy>")]
+    #[case(Some(4), InputMode::Normal, "<abc…><xy>")]
+    #[case(Some(4), InputMode::RenameTab, "<abcdefgh><xy>")]
+    fn test_process_tab_name_max_width(
+        #[case] max: Option<usize>,
+        #[case] mode: InputMode,
+        #[case] expected: &str,
+    ) {
+        let config = BTreeMap::from([("tab_normal".to_owned(), "<{name}>".to_owned())]);
+        let state = ZellijState {
+            tabs: vec![
+                TabInfo {
+                    active: true,
+                    name: "abcdefgh".to_owned(),
+                    ..TabInfo::default()
+                },
+                TabInfo {
+                    position: 1,
+                    name: "xy".to_owned(),
+                    ..TabInfo::default()
+                },
+            ],
+            mode: ModeInfo {
+                mode,
+                ..ModeInfo::default()
+            },
+            tab_name_max_width: max,
+            ..ZellijState::default()
+        };
+
+        let out = TabsWidget::new(&config).process("tabs", &state);
+
+        assert_eq!(console::strip_ansi_codes(&out), expected);
+    }
 
     #[rstest]
     #[case(

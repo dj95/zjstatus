@@ -26,6 +26,7 @@ pub struct ZellijState {
     pub cache_mask: u8,
     pub focused_pane_id: Option<PaneId>,
     pub focused_pane_cwd: Option<std::path::PathBuf>,
+    pub tab_name_max_width: Option<usize>,
 }
 
 #[derive(Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Copy)]
@@ -88,6 +89,7 @@ pub struct ModuleConfig {
     pub border: BorderConfig,
     pub format_precedence: Vec<Part>,
     pub hide_on_overlength: bool,
+    pub tab_name_shrink_on_overlength: bool,
 }
 
 impl ModuleConfig {
@@ -156,6 +158,11 @@ impl ModuleConfig {
             None => false,
         };
 
+        let tab_name_shrink_on_overlength = match config.get("tab_name_shrink_on_overlength") {
+            Some(opt) => opt == "true",
+            None => false,
+        };
+
         let border_config = parse_border_config(config).unwrap_or_default();
 
         Ok(Self {
@@ -174,6 +181,7 @@ impl ModuleConfig {
             border: border_config,
             format_precedence,
             hide_on_overlength,
+            tab_name_shrink_on_overlength,
         })
     }
 
@@ -195,35 +203,8 @@ impl ModuleConfig {
             Mouse::Hover(_, _) => return,
         };
 
-        let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
-            format!(
-                "{}{}",
-                acc,
-                part.format_string_with_widgets(&widget_map, &state)
-            )
-        });
-
-        let output_center = self
-            .center_parts
-            .iter_mut()
-            .fold("".to_owned(), |acc, part| {
-                format!(
-                    "{}{}",
-                    acc,
-                    part.format_string_with_widgets(&widget_map, &state)
-                )
-            });
-
-        let output_right = self
-            .right_parts
-            .iter_mut()
-            .fold("".to_owned(), |acc, part| {
-                format!(
-                    "{}{}",
-                    acc,
-                    part.format_string_with_widgets(&widget_map, &state)
-                )
-            });
+        let mut state = state;
+        let (output_left, output_center, output_right) = self.render_parts(&mut state, &widget_map);
 
         let (output_left, output_center, output_right) = match self.hide_on_overlength {
             true => self.trim_output(&output_left, &output_center, &output_right, state.cols),
@@ -344,32 +325,8 @@ impl ModuleConfig {
             return "No configuration found. See https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration for more info".to_string();
         }
 
-        let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
-            format!(
-                "{acc}{}",
-                part.format_string_with_widgets(&widget_map, &state)
-            )
-        });
-
-        let output_center = self
-            .center_parts
-            .iter_mut()
-            .fold("".to_owned(), |acc, part| {
-                format!(
-                    "{acc}{}",
-                    part.format_string_with_widgets(&widget_map, &state)
-                )
-            });
-
-        let output_right = self
-            .right_parts
-            .iter_mut()
-            .fold("".to_owned(), |acc, part| {
-                format!(
-                    "{acc}{}",
-                    part.format_string_with_widgets(&widget_map, &state)
-                )
-            });
+        let mut state = state;
+        let (output_left, output_center, output_right) = self.render_parts(&mut state, &widget_map);
 
         let (output_left, output_center, output_right) = match self.hide_on_overlength {
             true => self.trim_output(&output_left, &output_center, &output_right, state.cols),
@@ -429,6 +386,87 @@ impl ModuleConfig {
         )
     }
 
+    fn render_parts(
+        &mut self,
+        state: &mut ZellijState,
+        widget_map: &BTreeMap<String, Arc<dyn Widget>>,
+    ) -> (String, String, String) {
+        let render = |parts: &mut Vec<FormattedPart>, state: &ZellijState| {
+            parts.iter_mut().fold("".to_owned(), |acc, part| {
+                format!(
+                    "{acc}{}",
+                    part.format_string_with_widgets(widget_map, state)
+                )
+            })
+        };
+
+        let tabs_part = [Part::Left, Part::Center, Part::Right]
+            .into_iter()
+            .find(|p| {
+                self.parts_mut(*p)
+                    .iter()
+                    .any(|f| f.content.contains("{tabs}"))
+            });
+
+        let shrink = match (
+            self.tab_name_shrink_on_overlength,
+            tabs_part,
+            widget_map.get("tabs"),
+        ) {
+            (true, Some(part), Some(widget)) => Some((part, widget)),
+            _ => None,
+        };
+
+        if shrink.is_some() {
+            // Bypass the widget cache, it may hold the names shrunk for a previous width.
+            state.cache_mask |= UpdateEventMask::Tab as u8;
+        }
+
+        let mut output = BTreeMap::from([
+            (Part::Left, render(&mut self.left_parts, state)),
+            (Part::Center, render(&mut self.center_parts, state)),
+            (Part::Right, render(&mut self.right_parts, state)),
+        ]);
+
+        if let Some((tabs_part, tabs_widget)) = shrink {
+            // Only the tabs widget is re-rendered while searching the width. The part itself is
+            // rendered once, other widgets in it (e.g. commands) must not run again.
+            let width = console::measure_text_width;
+            let full_tabs = tabs_widget.process("tabs", state);
+            let rest_width = width(&output[&tabs_part]).saturating_sub(width(&full_tabs));
+            let mut tabs = full_tabs.clone();
+
+            let mut max = state.tabs.iter().map(|t| width(&t.name)).max().unwrap_or(0);
+
+            while max > 1 && tabs_overlap(tabs_part, rest_width + width(&tabs), &output, state.cols)
+            {
+                max -= 1;
+                state.tab_name_max_width = Some(max);
+                tabs = tabs_widget.process("tabs", state);
+            }
+
+            if tabs_overlap(tabs_part, rest_width + width(&tabs), &output, state.cols) {
+                // Shrinking did not resolve the overlap, keep the names readable and
+                // leave hiding to trim_output.
+                state.tab_name_max_width = None;
+            } else if state.tab_name_max_width.is_some() && !full_tabs.is_empty() {
+                // The part embeds the widget output verbatim, so swap the shrunk tabs in place.
+                let part = output[&tabs_part].replace(&full_tabs, &tabs);
+                output.insert(tabs_part, part);
+            }
+        }
+
+        output.into_values().collect_tuple().unwrap()
+    }
+
+    fn parts_mut(&mut self, part: Part) -> &mut Vec<FormattedPart> {
+        match part {
+            Part::Left => &mut self.left_parts,
+            Part::Center => &mut self.center_parts,
+            Part::Right => &mut self.right_parts,
+        }
+    }
+
     fn trim_output(
         &self,
         output_left: &str,
@@ -436,8 +474,6 @@ impl ModuleConfig {
         output_right: &str,
         cols: usize,
     ) -> (String, String, String) {
-        let center_pos = (cols as f32 / 2.0).floor() as usize;
-
         let mut output = BTreeMap::from([
             (Part::Left, output_left.to_owned()),
             (Part::Center, output_center.to_owned()),
@@ -459,17 +495,7 @@ impl ModuleConfig {
             let a_count = console::measure_text_width(part_a);
             let b_count = console::measure_text_width(part_b);
 
-            let overlap = match (a, b) {
-                (Part::Left, Part::Right) => a_count + b_count > cols,
-                (Part::Right, Part::Left) => a_count + b_count > cols,
-                (Part::Left, Part::Center) => a_count > center_pos - (b_count / 2),
-                (Part::Center, Part::Left) => b_count > center_pos - (a_count / 2),
-                (Part::Right, Part::Center) => a_count > center_pos - (b_count / 2),
-                (Part::Center, Part::Right) => b_count > center_pos - (a_count / 2),
-                _ => false,
-            };
-
-            if overlap {
+            if parts_overlap(*a, a_count, *b, b_count, cols) {
                 output.insert(*a, "".to_owned());
             }
         }
@@ -519,6 +545,34 @@ impl ModuleConfig {
     }
 }
 
+fn parts_overlap(a: Part, a_count: usize, b: Part, b_count: usize, cols: usize) -> bool {
+    let center_pos = (cols as f32 / 2.0).floor() as usize;
+
+    match (a, b) {
+        (Part::Left, Part::Right) | (Part::Right, Part::Left) => a_count + b_count > cols,
+        (Part::Left | Part::Right, Part::Center) => {
+            a_count > center_pos.saturating_sub(b_count / 2)
+        }
+        (Part::Center, Part::Left | Part::Right) => {
+            b_count > center_pos.saturating_sub(a_count / 2)
+        }
+        _ => false,
+    }
+}
+
+// Whether the part holding the tabs overlaps any other visible part.
+fn tabs_overlap(
+    tabs_part: Part,
+    tabs_count: usize,
+    output: &BTreeMap<Part, String>,
+    cols: usize,
+) -> bool {
+    output.iter().any(|(part, content)| {
+        let count = console::measure_text_width(content);
+        *part != tabs_part && count > 0 && parts_overlap(tabs_part, tabs_count, *part, count, cols)
+    })
+}
+
 fn parts_from_config(
     format: Option<&String>,
     config: &BTreeMap<String, String>,
@@ -539,6 +593,157 @@ fn parts_from_config(
 mod test {
     use super::*;
     use anstyle::{Effects, RgbColor};
+    use rstest::rstest;
+
+    // Stands in for the tabs widget, whose click handler needs the zellij host.
+    struct TabNamesWidget;
+
+    impl Widget for TabNamesWidget {
+        fn process(&self, _name: &str, state: &ZellijState) -> String {
+            let max = state.tab_name_max_width.unwrap_or(usize::MAX);
+            state
+                .tabs
+                .iter()
+                .map(|t| format!("<{}>", console::truncate_str(&t.name, max, "…")))
+                .collect()
+        }
+
+        fn process_click(&self, _name: &str, _state: &ZellijState, _pos: usize) {}
+    }
+
+    // Counts how often it is rendered, like a command widget that runs a process.
+    struct CountingWidget(Arc<std::sync::atomic::AtomicUsize>);
+
+    impl Widget for CountingWidget {
+        fn process(&self, _name: &str, _state: &ZellijState) -> String {
+            self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            "".to_owned()
+        }
+
+        fn process_click(&self, _name: &str, _state: &ZellijState, _pos: usize) {}
+    }
+
+    fn shrink_module(left: &str, right: &str) -> ModuleConfig {
+        ModuleConfig::new(&BTreeMap::from([
+            ("format_left".to_owned(), left.to_owned()),
+            ("format_right".to_owned(), right.to_owned()),
+            ("format_hide_on_overlength".to_owned(), "true".to_owned()),
+            (
+                "tab_name_shrink_on_overlength".to_owned(),
+                "true".to_owned(),
+            ),
+        ]))
+        .unwrap()
+    }
+
+    fn shrink_state(cols: usize) -> ZellijState {
+        let tab = |position: usize, name: &str| TabInfo {
+            position,
+            name: name.to_owned(),
+            ..Default::default()
+        };
+        ZellijState {
+            cols,
+            tabs: vec![tab(0, "abcdefgh"), tab(1, "xy")],
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_render_bar_tab_name_shrink_keeps_names_when_overlap_remains() {
+        let widget_map: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::from([(
+            "tabs".to_owned(),
+            Arc::new(TabNamesWidget) as Arc<dyn Widget>,
+        )]);
+        let mut module = shrink_module("{tabs}", &"R".repeat(30));
+
+        let out = module.render_bar(shrink_state(20), widget_map);
+
+        assert_eq!(console::strip_ansi_codes(&out).trim_end(), "<abcdefgh><xy>");
+    }
+
+    #[test]
+    fn test_render_bar_tab_name_shrink_renders_part_once() {
+        let count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let widget_map: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::from([
+            (
+                "tabs".to_owned(),
+                Arc::new(TabNamesWidget) as Arc<dyn Widget>,
+            ),
+            (
+                "command".to_owned(),
+                Arc::new(CountingWidget(count.clone())) as Arc<dyn Widget>,
+            ),
+        ]);
+        let mut module = shrink_module("{tabs}{command_x}", "RIGHT");
+
+        module.render_bar(shrink_state(14), widget_map);
+
+        assert_eq!(count.load(std::sync::atomic::Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn test_render_bar_tab_name_shrink_restores_names_on_wider_frame() {
+        let widget_map: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::from([(
+            "tabs".to_owned(),
+            Arc::new(TabNamesWidget) as Arc<dyn Widget>,
+        )]);
+        let mut module = shrink_module("{tabs}", "RIGHT");
+
+        module.render_bar(shrink_state(14), widget_map.clone());
+        let out = module.render_bar(shrink_state(40), widget_map);
+
+        assert_eq!(
+            console::strip_ansi_codes(&out).trim_end(),
+            format!("<abcdefgh><xy>{}RIGHT", " ".repeat(21))
+        );
+    }
+
+    #[rstest]
+    #[case::tabs_left_shrink("{tabs}", "", "RIGHT", "true", 14, "<ab…><xy>RIGHT")]
+    #[case::tabs_center_shrink("LEFT", "{tabs}", "", "true", 20, "LEFT<abcdef…><xy>   ")]
+    #[case::disabled("{tabs}", "", "RIGHT", "false", 14, "<abcdefgh><xy>")]
+    fn test_render_bar_tab_name_shrink(
+        #[case] left: &str,
+        #[case] center: &str,
+        #[case] right: &str,
+        #[case] shrink: &str,
+        #[case] cols: usize,
+        #[case] expected: &str,
+    ) {
+        let config = BTreeMap::from([
+            ("format_left".to_owned(), left.to_owned()),
+            ("format_center".to_owned(), center.to_owned()),
+            ("format_right".to_owned(), right.to_owned()),
+            ("format_hide_on_overlength".to_owned(), "true".to_owned()),
+            (
+                "tab_name_shrink_on_overlength".to_owned(),
+                shrink.to_owned(),
+            ),
+        ]);
+        let widget_map: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::from([(
+            "tabs".to_owned(),
+            Arc::new(TabNamesWidget) as Arc<dyn Widget>,
+        )]);
+        let tab = |position: usize, name: &str| TabInfo {
+            position,
+            name: name.to_owned(),
+            ..Default::default()
+        };
+        let state = ZellijState {
+            cols,
+            tabs: vec![tab(0, "abcdefgh"), tab(1, "xy")],
+            ..Default::default()
+        };
+
+        let mut module = ModuleConfig::new(&config).unwrap();
+        let out = module.render_bar(state, widget_map);
+
+        assert_eq!(
+            console::strip_ansi_codes(&out).trim_end(),
+            expected.trim_end()
+        );
+    }
 
     #[test]
     fn test_formatted_part_from_string() {

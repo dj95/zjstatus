@@ -334,16 +334,26 @@ impl TabsWidget {
             }
 
             if content.contains("{focused_pane_title}") {
-                let panes_for_tab: Vec<PaneInfo> =
-                    panes.panes.get(&tab.position).cloned().unwrap_or_default();
+                let focused_pane = panes
+                    .panes
+                    .get(&tab.position)
+                    .and_then(|panes| panes.iter().find(|pane| pane.is_focused));
 
-                let focused_pane_title = panes_for_tab
-                    .iter()
-                    .find(|pane| pane.is_focused)
-                    .map(|pane| pane.title.clone())
-                    .unwrap_or_default();
+                let focused_pane_title =
+                    focused_pane.map(|pane| pane.title.as_str()).unwrap_or("?");
+                content = content.replace("{focused_pane_title}", focused_pane_title);
+            }
 
-                content = content.replace("{focused_pane_title}", &focused_pane_title);
+            if content.contains("{focused_pane_id}") {
+                let focused_pane = panes
+                    .panes
+                    .get(&tab.position)
+                    .and_then(|panes| panes.iter().find(|pane| pane.is_focused));
+
+                let focused_pane_id = focused_pane
+                    .map(|pane| pane.id.to_string())
+                    .unwrap_or_else(|| String::from("?"));
+                content = content.replace("{focused_pane_id}", &focused_pane_id);
             }
 
             content = self.replace_indicators(content, tab, panes);
@@ -460,10 +470,73 @@ pub fn get_tab_window(
 
 #[cfg(test)]
 mod test {
-    use zellij_tile::prelude::TabInfo;
+    use std::collections::{BTreeMap, HashMap};
 
-    use super::get_tab_window;
     use rstest::rstest;
+    use zellij_tile::prelude::{ModeInfo, PaneInfo, PaneManifest, TabInfo};
+
+    use super::{TabsWidget, get_tab_window};
+
+    #[rstest]
+    #[case(true, "42")]
+    #[case(false, "?")]
+    fn focused_pane_id_replaces_with_the_focused_pane_id(
+        #[case] is_focused: bool,
+        #[case] expected: &str,
+    ) {
+        let config = BTreeMap::from([("tab_active".to_owned(), "{focused_pane_id}".to_owned())]);
+        let widget = TabsWidget::new(&config);
+        let tab = TabInfo {
+            active: true,
+            ..TabInfo::default()
+        };
+        let panes = PaneManifest {
+            panes: HashMap::from([(
+                tab.position,
+                vec![PaneInfo {
+                    id: 42,
+                    is_focused,
+                    ..PaneInfo::default()
+                }],
+            )]),
+        };
+
+        assert_eq!(
+            widget.render_tab(&tab, &panes, &ModeInfo::default()),
+            expected
+        );
+    }
+
+    #[rstest]
+    #[case(true, "Terminal", "Terminal")]
+    #[case(false, "Terminal", "?")]
+    fn focused_pane_title_replaces_with_the_focused_pane_title(
+        #[case] is_focused: bool,
+        #[case] title: &str,
+        #[case] expected: &str,
+    ) {
+        let config = BTreeMap::from([("tab_active".to_owned(), "{focused_pane_title}".to_owned())]);
+        let widget = TabsWidget::new(&config);
+        let tab = TabInfo {
+            active: true,
+            ..TabInfo::default()
+        };
+        let panes = PaneManifest {
+            panes: HashMap::from([(
+                tab.position,
+                vec![PaneInfo {
+                    is_focused,
+                    title: title.to_owned(),
+                    ..PaneInfo::default()
+                }],
+            )]),
+        };
+
+        assert_eq!(
+            widget.render_tab(&tab, &panes, &ModeInfo::default()),
+            expected
+        );
+    }
 
     #[rstest]
     #[case(

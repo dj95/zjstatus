@@ -105,6 +105,22 @@ is also available in case you only want to use *zjframes*.
 
 For configuring, please follow the [documentation](https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration).
 
+### 🎨 Colors
+
+Inside `#[fg=...]`, `#[bg=...]`, and `#[us=...]` segments, you can use:
+
+- **Hex**: `#89B4FA`
+- **Named ANSI**: `red`, `bright_cyan`, etc.
+- **256-color palette**: `123` or `colour123`
+- **User-defined aliases**: `$primary` (resolved against `color_primary "..."` in the plugin config)
+- **Zellij theme palette references**: `category.field` from your current Zellij theme. Categories are `text_unselected`, `text_selected`, `ribbon_unselected`, `ribbon_selected`, `table_title`, `table_cell_unselected`, `table_cell_selected`, `list_unselected`, `list_selected`, `frame_unselected`, `frame_selected`, `frame_highlight`, `exit_code_success`, `exit_code_error`. Fields are `base`, `background`, `emphasis_0`, `emphasis_1`, `emphasis_2`, `emphasis_3`.
+
+Theme palette references resolve at render time and update live when the Zellij theme changes, e.g. `format_left "#[fg=ribbon_selected.base,bg=ribbon_selected.background]{session}"`.
+
+Existing aliases can also point to palette references: define `color_accent "frame_selected.base"`
+and use `#[fg=$accent]` in your formats. If a theme omits `frame_unselected`, references to its
+colors leave the corresponding foreground, background, or underline color unset.
+
 ## 🏎️ Quick Start for zjstatus
 
 Place the following configuration in your default layout file, e.g. `~/.config/zellij/layouts/default.kdl`. Right after starting zellij, it will prompt for permissions, which need to be granted in order for zjstatus to work. Simply navigate to the pane or click on it and press `y`. This must be repeated on updates. For more details on permissions, please visit the [wiki](https://github.com/dj95/zjstatus/wiki/2-%E2%80%90-Permissions).

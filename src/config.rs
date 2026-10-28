@@ -244,6 +244,7 @@ impl ModuleConfig {
                 &output_left,
                 &output_center,
                 state.cols,
+                &state,
             ));
 
             offset += self.process_widget_click(
@@ -262,12 +263,14 @@ impl ModuleConfig {
                 &output_right,
                 &output_center,
                 state.cols,
+                &state,
             ));
         } else {
             offset += console::measure_text_width(&self.get_spacer(
                 &output_left,
                 &output_right,
                 state.cols,
+                &state,
             ));
         }
 
@@ -379,12 +382,12 @@ impl ModuleConfig {
         if self.border.enabled {
             let mut border_top = "".to_owned();
             if self.border.enabled && self.border.position == BorderPosition::Top {
-                border_top = format!("{}\n", self.border.draw(state.cols));
+                border_top = format!("{}\n", self.border.draw(state.cols, &state));
             }
 
             let mut border_bottom = "".to_owned();
             if self.border.enabled && self.border.position == BorderPosition::Bottom {
-                border_bottom = format!("\n{}", self.border.draw(state.cols));
+                border_bottom = format!("\n{}", self.border.draw(state.cols, &state));
             }
 
             if !output_center.is_empty() {
@@ -392,9 +395,9 @@ impl ModuleConfig {
                     "{}{}{}{}{}{}{}",
                     border_top,
                     output_left,
-                    self.get_spacer_left(&output_left, &output_center, state.cols),
+                    self.get_spacer_left(&output_left, &output_center, state.cols, &state),
                     output_center,
-                    self.get_spacer_right(&output_right, &output_center, state.cols),
+                    self.get_spacer_right(&output_right, &output_center, state.cols, &state),
                     output_right,
                     border_bottom,
                 );
@@ -404,7 +407,7 @@ impl ModuleConfig {
                 "{}{}{}{}{}",
                 border_top,
                 output_left,
-                self.get_spacer(&output_left, &output_right, state.cols),
+                self.get_spacer(&output_left, &output_right, state.cols, &state),
                 output_right,
                 border_bottom,
             );
@@ -414,9 +417,9 @@ impl ModuleConfig {
             return format!(
                 "{}{}{}{}{}",
                 output_left,
-                self.get_spacer_left(&output_left, &output_center, state.cols),
+                self.get_spacer_left(&output_left, &output_center, state.cols, &state),
                 output_center,
-                self.get_spacer_right(&output_right, &output_center, state.cols),
+                self.get_spacer_right(&output_right, &output_center, state.cols, &state),
                 output_right,
             );
         }
@@ -424,7 +427,7 @@ impl ModuleConfig {
         format!(
             "{}{}{}",
             output_left,
-            self.get_spacer(&output_left, &output_right, state.cols),
+            self.get_spacer(&output_left, &output_right, state.cols, &state),
             output_right,
         )
     }
@@ -478,7 +481,13 @@ impl ModuleConfig {
     }
 
     #[tracing::instrument(skip_all)]
-    fn get_spacer_left(&self, output_left: &str, output_center: &str, cols: usize) -> String {
+    fn get_spacer_left(
+        &self,
+        output_left: &str,
+        output_center: &str,
+        cols: usize,
+        state: &ZellijState,
+    ) -> String {
         let text_count = console::measure_text_width(output_left)
             + (console::measure_text_width(output_center) as f32 / 2.0).floor() as usize;
 
@@ -489,11 +498,18 @@ impl ModuleConfig {
         let space_count = center_pos.saturating_sub(text_count);
 
         tracing::debug!("space_count: {:?}", space_count);
-        self.format_space.format_string(&" ".repeat(space_count))
+        self.format_space
+            .format_string(&" ".repeat(space_count), state)
     }
 
     #[tracing::instrument(skip_all)]
-    fn get_spacer_right(&self, output_right: &str, output_center: &str, cols: usize) -> String {
+    fn get_spacer_right(
+        &self,
+        output_right: &str,
+        output_center: &str,
+        cols: usize,
+        state: &ZellijState,
+    ) -> String {
         let text_count = console::measure_text_width(output_right)
             + (console::measure_text_width(output_center) as f32 / 2.0).ceil() as usize;
 
@@ -504,10 +520,17 @@ impl ModuleConfig {
         let space_count = center_pos.saturating_sub(text_count);
 
         tracing::debug!("space_count: {:?}", space_count);
-        self.format_space.format_string(&" ".repeat(space_count))
+        self.format_space
+            .format_string(&" ".repeat(space_count), state)
     }
 
-    fn get_spacer(&self, output_left: &str, output_right: &str, cols: usize) -> String {
+    fn get_spacer(
+        &self,
+        output_left: &str,
+        output_right: &str,
+        cols: usize,
+        state: &ZellijState,
+    ) -> String {
         let text_count =
             console::measure_text_width(output_left) + console::measure_text_width(output_right);
 
@@ -515,7 +538,8 @@ impl ModuleConfig {
         // count of 0 on tab creation
         let space_count = cols.saturating_sub(text_count);
 
-        self.format_space.format_string(&" ".repeat(space_count))
+        self.format_space
+            .format_string(&" ".repeat(space_count), state)
     }
 }
 
@@ -538,6 +562,7 @@ fn parts_from_config(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::render::ColorSource;
     use anstyle::{Effects, RgbColor};
 
     #[test]
@@ -549,8 +574,8 @@ mod test {
         assert_eq!(
             part,
             FormattedPart {
-                fg: Some(RgbColor(255, 0, 0).into()),
-                bg: Some(RgbColor(0, 255, 0).into()),
+                fg: Some(ColorSource::Static(RgbColor(255, 0, 0).into())),
+                bg: Some(ColorSource::Static(RgbColor(0, 255, 0).into())),
                 effects: Effects::BOLD | Effects::ITALIC,
                 content: "foo".to_owned(),
                 ..Default::default()

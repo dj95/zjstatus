@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use crate::config::ZellijState;
 use crate::render::FormattedPart;
 
 const DEFAULT_CHAR: &str = "─";
@@ -31,8 +32,8 @@ impl Default for BorderConfig {
 }
 
 impl BorderConfig {
-    pub fn draw(&self, cols: usize) -> String {
-        self.format.format_string(&self.char.repeat(cols))
+    pub fn draw(&self, cols: usize, state: &ZellijState) -> String {
+        self.format.format_string(&self.char.repeat(cols), state)
     }
 }
 

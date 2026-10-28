@@ -68,7 +68,7 @@ impl Widget for NotificationWidget {
                 content = content.replace("{message}", message.body.as_str());
             }
 
-            output = format!("{}{}", output, f.format_string(&content));
+            output = format!("{}{}", output, f.format_string(&content, state));
         }
 
         output.to_owned()

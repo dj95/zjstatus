@@ -146,12 +146,12 @@ impl Widget for TabsWidget {
                     content = content.replace("{count}", (truncated_start).to_string().as_str());
                 }
 
-                output = format!("{output}{}", f.format_string(&content));
+                output = format!("{output}{}", f.format_string(&content, state));
             }
         }
 
         for tab in &tabs {
-            let content = self.render_tab(tab, &state.panes, &state.mode);
+            let content = self.render_tab(tab, state);
             counter += 1;
 
             output = format!("{}{}", output, content);
@@ -159,7 +159,7 @@ impl Widget for TabsWidget {
             if counter < tabs.len()
                 && let Some(sep) = &self.separator
             {
-                output = format!("{}{}", output, sep.format_string(&sep.content));
+                output = format!("{}{}", output, sep.format_string(&sep.content, state));
             }
         }
 
@@ -171,7 +171,7 @@ impl Widget for TabsWidget {
                     content = content.replace("{count}", (truncated_end).to_string().as_str());
                 }
 
-                output = format!("{output}{}", f.format_string(&content));
+                output = format!("{output}{}", f.format_string(&content, state));
             }
         }
 
@@ -201,7 +201,7 @@ impl Widget for TabsWidget {
                     content = content.replace("{count}", (truncated_end).to_string().as_str());
                 }
 
-                offset += console::measure_text_width(&f.format_string(&content));
+                offset += console::measure_text_width(&f.format_string(&content, state));
 
                 if pos <= offset {
                     switch_tab_to(active_pos.saturating_sub(1) as u32);
@@ -212,13 +212,16 @@ impl Widget for TabsWidget {
         for tab in &tabs {
             counter += 1;
 
-            let mut rendered_content = self.render_tab(tab, &state.panes, &state.mode);
+            let mut rendered_content = self.render_tab(tab, state);
 
             if counter < tabs.len()
                 && let Some(sep) = &self.separator
             {
-                rendered_content =
-                    format!("{}{}", rendered_content, sep.format_string(&sep.content));
+                rendered_content = format!(
+                    "{}{}",
+                    rendered_content,
+                    sep.format_string(&sep.content, state)
+                );
             }
 
             let content_len = console::measure_text_width(&rendered_content);
@@ -240,7 +243,7 @@ impl Widget for TabsWidget {
                     content = content.replace("{count}", (truncated_end).to_string().as_str());
                 }
 
-                offset += console::measure_text_width(&f.format_string(&content));
+                offset += console::measure_text_width(&f.format_string(&content, state));
 
                 if pos <= offset {
                     switch_tab_to(cmp::min(active_pos + 1, state.tabs.len()) as u32);
@@ -296,14 +299,14 @@ impl TabsWidget {
         &self.normal_tab_format
     }
 
-    fn render_tab(&self, tab: &TabInfo, panes: &PaneManifest, mode: &ModeInfo) -> String {
-        let formatters = self.select_format(tab, mode);
+    fn render_tab(&self, tab: &TabInfo, state: &ZellijState) -> String {
+        let formatters = self.select_format(tab, &state.mode);
         let mut output = "".to_owned();
 
         for f in formatters.iter() {
             let mut content = f.content.clone();
 
-            let tab_name = match mode.mode {
+            let tab_name = match state.mode.mode {
                 InputMode::RenameTab => match tab.name.is_empty() {
                     true => "Enter name...",
                     false => tab.name.as_str(),
@@ -324,8 +327,12 @@ impl TabsWidget {
             }
 
             if content.contains("{floating_total_count}") {
-                let panes_for_tab: Vec<PaneInfo> =
-                    panes.panes.get(&tab.position).cloned().unwrap_or_default();
+                let panes_for_tab: Vec<PaneInfo> = state
+                    .panes
+                    .panes
+                    .get(&tab.position)
+                    .cloned()
+                    .unwrap_or_default();
 
                 content = content.replace(
                     "{floating_total_count}",
@@ -334,8 +341,12 @@ impl TabsWidget {
             }
 
             if content.contains("{focused_pane_title}") {
-                let panes_for_tab: Vec<PaneInfo> =
-                    panes.panes.get(&tab.position).cloned().unwrap_or_default();
+                let panes_for_tab: Vec<PaneInfo> = state
+                    .panes
+                    .panes
+                    .get(&tab.position)
+                    .cloned()
+                    .unwrap_or_default();
 
                 let focused_pane_title = panes_for_tab
                     .iter()
@@ -346,9 +357,9 @@ impl TabsWidget {
                 content = content.replace("{focused_pane_title}", &focused_pane_title);
             }
 
-            content = self.replace_indicators(content, tab, panes);
+            content = self.replace_indicators(content, tab, &state.panes);
 
-            output = format!("{}{}", output, f.format_string(&content));
+            output = format!("{}{}", output, f.format_string(&content, state));
         }
 
         output.to_owned()

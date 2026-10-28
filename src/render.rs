@@ -4,7 +4,7 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor, Style};
 use regex::Regex;
-use zellij_tile::prelude::bail;
+use zellij_tile::prelude::{PaletteColor, StyleDeclaration, Styling, bail};
 
 use crate::{
     config::{UpdateEventMask, ZellijState, event_mask_from_widget_name},
@@ -15,11 +15,21 @@ lazy_static! {
     static ref WIDGET_REGEX: Regex = Regex::new("(\\{[a-z_0-9]+\\})").unwrap();
 }
 
+/// Represents a color that may need runtime resolution
+#[derive(Clone, Debug, PartialEq)]
+pub enum ColorSource {
+    /// Static color resolved at parse time (hex, named ANSI colors, 256-color palette)
+    Static(Color),
+    /// Zellij palette color resolved at render time from mode.style.colors
+    /// Examples: "text_selected.base", "ribbon_unselected.emphasis_1"
+    Zellij(String),
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct FormattedPart {
-    pub fg: Option<Color>,
-    pub bg: Option<Color>,
-    pub us: Option<Color>,
+    pub fg: Option<ColorSource>,
+    pub bg: Option<ColorSource>,
+    pub us: Option<ColorSource>,
     pub effects: anstyle::Effects,
     pub bold: bool,
     pub italic: bool,
@@ -118,6 +128,16 @@ impl FormattedPart {
             result.parse_and_set_effect(part);
         }
 
+        // ModeUpdate carries theme changes, so invalidate cached formatting
+        // that depends on the Zellij palette.
+        let has_zellij_colors = [&result.fg, &result.bg, &result.us]
+            .iter()
+            .any(|color_opt| matches!(color_opt, Some(ColorSource::Zellij(_))));
+
+        if has_zellij_colors {
+            result.cache_mask |= UpdateEventMask::Mode as u8;
+        }
+
         result
     }
 
@@ -163,12 +183,12 @@ impl FormattedPart {
         }
     }
 
-    pub fn format_string(&self, text: &str) -> String {
+    pub fn format_string(&self, text: &str, state: &ZellijState) -> String {
         let mut style = Style::new();
 
-        style = style.fg_color(self.fg);
-        style = style.bg_color(self.bg);
-        style = style.underline_color(self.us);
+        style = style.fg_color(resolve_color_source(self.fg.as_ref(), state));
+        style = style.bg_color(resolve_color_source(self.bg.as_ref(), state));
+        style = style.underline_color(resolve_color_source(self.us.as_ref(), state));
         style = style.effects(self.effects);
 
         format!(
@@ -238,7 +258,7 @@ impl FormattedPart {
             output = output.replace(match_name, &result);
         }
 
-        let res = self.format_string(&output);
+        let res = self.format_string(&output, state);
         self.cached_content.clone_from(&res);
 
         res
@@ -303,17 +323,60 @@ fn hex_to_rgb(s: &str) -> anyhow::Result<Vec<u8>> {
         .collect()
 }
 
+/// Looks up the [`StyleDeclaration`] for a Zellij style category name. Returns:
+/// - `Some(Some(&decl))` when the category is recognized and present in the palette.
+/// - `Some(None)` for `frame_unselected` when the palette omits it (Zellij treats this
+///   as "no frame for unselected panes"; resolving a color against it yields `None`).
+/// - `None` when the category is not a recognized Zellij category at all.
+fn style_declaration_for_category<'a>(
+    styling: &'a Styling,
+    category: &str,
+) -> Option<Option<&'a StyleDeclaration>> {
+    Some(Some(match category {
+        "text_unselected" => &styling.text_unselected,
+        "text_selected" => &styling.text_selected,
+        "ribbon_unselected" => &styling.ribbon_unselected,
+        "ribbon_selected" => &styling.ribbon_selected,
+        "table_title" => &styling.table_title,
+        "table_cell_unselected" => &styling.table_cell_unselected,
+        "table_cell_selected" => &styling.table_cell_selected,
+        "list_unselected" => &styling.list_unselected,
+        "list_selected" => &styling.list_selected,
+        "frame_unselected" => return Some(styling.frame_unselected.as_ref()),
+        "frame_selected" => &styling.frame_selected,
+        "frame_highlight" => &styling.frame_highlight,
+        "exit_code_success" => &styling.exit_code_success,
+        "exit_code_error" => &styling.exit_code_error,
+        _ => return None,
+    }))
+}
+
+/// Checks for `category.field` references to Zellij's [`StyleDeclaration`] colors.
+fn is_zellij_color_name(name: &str) -> bool {
+    let Some((category, field)) = name.split_once('.') else {
+        return false;
+    };
+    style_declaration_for_category(&Styling::default(), category).is_some()
+        && get_style_field(&StyleDeclaration::default(), field).is_some()
+}
+
 #[cached(
-    ty = "LruCache<String, Color>",
+    ty = "LruCache<String, ColorSource>",
     create = "{ LruCache::builder().max_size(100).build().unwrap() }",
     convert = r#"{ (color.to_owned()) }"#
 )]
-fn parse_color(color: &str, config: &BTreeMap<String, String>) -> Option<Color> {
+fn parse_color(color: &str, config: &BTreeMap<String, String>) -> Option<ColorSource> {
     let mut color = color;
     if color.starts_with('$') {
         let alias_name = color.strip_prefix('$').unwrap();
 
         color = config.get(&format!("color_{alias_name}"))?;
+    }
+
+    // Check if this looks like a Zellij color name - keep dynamic for runtime resolution
+    // Examples: "text_selected.base", "ribbon_unselected.emphasis_1".
+    if is_zellij_color_name(color) {
+        return Some(ColorSource::Zellij(color.to_owned()));
     }
 
     if color.starts_with('#') {
@@ -326,18 +389,18 @@ fn parse_color(color: &str, config: &BTreeMap<String, String>) -> Option<Color> 
             return None;
         }
 
-        return Some(
+        return Some(ColorSource::Static(
             RgbColor(
                 *rgb.first().unwrap(),
                 *rgb.get(1).unwrap(),
                 *rgb.get(2).unwrap(),
             )
             .into(),
-        );
+        ));
     }
 
     if let Some(color) = color_by_name(color) {
-        return Some(color.into());
+        return Some(ColorSource::Static(color.into()));
     }
 
     if color.starts_with("colour") {
@@ -345,7 +408,7 @@ fn parse_color(color: &str, config: &BTreeMap<String, String>) -> Option<Color> 
     }
 
     if let Ok(result) = color.parse::<u8>() {
-        return Some(Ansi256Color(result).into());
+        return Some(ColorSource::Static(Ansi256Color(result).into()));
     }
 
     None
@@ -374,9 +437,129 @@ fn color_by_name(color: &str) -> Option<AnsiColor> {
     }
 }
 
+/// Resolves a ColorSource to an actual Color at render time
+fn resolve_color_source(source: Option<&ColorSource>, state: &ZellijState) -> Option<Color> {
+    match source? {
+        ColorSource::Static(color) => Some(*color),
+        ColorSource::Zellij(name) => resolve_zellij_color(name, &state.mode.style.colors),
+    }
+}
+
+/// Resolves a Zellij color name against the current palette. Returns `None` when the
+/// name is unrecognized or the referenced palette slot is absent (e.g. `frame_unselected`
+/// when the theme omits it); the caller then leaves the corresponding fg/bg/us unset.
+fn resolve_zellij_color(name: &str, styling: &Styling) -> Option<Color> {
+    let (category, field) = name.split_once('.')?;
+    let style_decl = style_declaration_for_category(styling, category)??;
+    let palette_color = get_style_field(style_decl, field)?;
+    Some(palette_color_to_anstyle(palette_color))
+}
+
+/// Extracts a specific field from a StyleDeclaration
+fn get_style_field(style: &StyleDeclaration, field: &str) -> Option<PaletteColor> {
+    match field {
+        "base" => Some(style.base),
+        "background" => Some(style.background),
+        "emphasis_0" => Some(style.emphasis_0),
+        "emphasis_1" => Some(style.emphasis_1),
+        "emphasis_2" => Some(style.emphasis_2),
+        "emphasis_3" => Some(style.emphasis_3),
+        _ => None,
+    }
+}
+
+/// Converts a Zellij PaletteColor to an anstyle Color
+fn palette_color_to_anstyle(palette_color: PaletteColor) -> Color {
+    match palette_color {
+        PaletteColor::Rgb((r, g, b)) => RgbColor(r, g, b).into(),
+        PaletteColor::EightBit(n) => Ansi256Color(n).into(),
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::widgets::{session::SessionWidget, tabs::TabsWidget};
+    use zellij_tile::prelude::TabInfo;
+
+    #[test]
+    fn test_theme_colors_refresh_cached_format() {
+        let config = BTreeMap::from([(
+            "color_format_accent".to_owned(),
+            "frame_selected.base".to_owned(),
+        )]);
+        let mut part = FormattedPart::from_format_string(
+            "#[fg=$format_accent,bg=text_unselected.background,us=text_selected.emphasis_0]{session}",
+            &config,
+        );
+        let widgets: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::from([(
+            "session".to_owned(),
+            Arc::new(SessionWidget::new(&config)) as Arc<dyn Widget>,
+        )]);
+        let mut state = ZellijState::default();
+        state.mode.session_name = Some("test".to_owned());
+        state.mode.style.colors.frame_selected.base = PaletteColor::Rgb((1, 2, 3));
+        state.mode.style.colors.text_unselected.background = PaletteColor::EightBit(4);
+        state.mode.style.colors.text_selected.emphasis_0 = PaletteColor::EightBit(5);
+
+        let initial = part.format_string_with_widgets(&widgets, &state);
+        assert!(initial.contains("\x1b[38;2;1;2;3m"));
+        assert!(initial.contains("\x1b[48;5;4m"));
+        assert!(initial.contains("\x1b[58;5;5m"));
+
+        state.mode.style.colors.frame_selected.base = PaletteColor::EightBit(6);
+        state.mode.style.colors.text_unselected.background = PaletteColor::Rgb((7, 8, 9));
+        state.mode.style.colors.text_selected.emphasis_0 = PaletteColor::EightBit(10);
+        // Without an update, the previously rendered format is cached.
+        assert_eq!(part.format_string_with_widgets(&widgets, &state), initial);
+
+        state.cache_mask = UpdateEventMask::Mode as u8;
+        let updated = part.format_string_with_widgets(&widgets, &state);
+        assert!(updated.contains("\x1b[38;5;6m"));
+        assert!(updated.contains("\x1b[48;2;7;8;9m"));
+        assert!(updated.contains("\x1b[58;5;10m"));
+        assert!(updated.contains("test"));
+    }
+
+    #[test]
+    fn test_theme_colors_refresh_cached_widget() {
+        let config = BTreeMap::from([
+            (
+                "color_tab_accent".to_owned(),
+                "frame_selected.base".to_owned(),
+            ),
+            (
+                "tab_active".to_owned(),
+                "#[fg=$tab_accent]{name}".to_owned(),
+            ),
+        ]);
+        let mut part = FormattedPart::from_format_string("{tabs}", &config);
+        let widgets: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::from([(
+            "tabs".to_owned(),
+            Arc::new(TabsWidget::new(&config)) as Arc<dyn Widget>,
+        )]);
+        let mut state = ZellijState {
+            tabs: vec![TabInfo {
+                name: "test".to_owned(),
+                active: true,
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        state.mode.style.colors.frame_selected.base = PaletteColor::EightBit(1);
+
+        let initial = part.format_string_with_widgets(&widgets, &state);
+        assert!(initial.contains("\x1b[38;5;1m"));
+
+        state.mode.style.colors.frame_selected.base = PaletteColor::EightBit(5);
+        assert_eq!(part.format_string_with_widgets(&widgets, &state), initial);
+
+        state.cache_mask = UpdateEventMask::Mode as u8;
+        let updated = part.format_string_with_widgets(&widgets, &state);
+        assert!(updated.contains("\x1b[38;5;5m"));
+        assert!(!updated.contains("\x1b[38;5;1m"));
+        assert!(updated.contains("test"));
+    }
 
     #[test]
     fn test_hex_to_rgb() {
@@ -404,12 +587,10 @@ mod test {
         config.insert("color_green".to_owned(), "#00ff00".to_owned());
 
         let result = parse_color("#010203", &config);
-        let expected = RgbColor(1, 2, 3);
-        assert_eq!(result, Some(expected.into()));
+        assert_eq!(result, Some(ColorSource::Static(RgbColor(1, 2, 3).into())));
 
         let result = parse_color("255", &config);
-        let expected = Ansi256Color(255);
-        assert_eq!(result, Some(expected.into()));
+        assert_eq!(result, Some(ColorSource::Static(Ansi256Color(255).into())));
 
         let result = parse_color("365", &config);
         assert_eq!(result, None);
@@ -418,10 +599,79 @@ mod test {
         assert_eq!(result, None);
 
         let result = parse_color("$green", &config);
-        let expected = RgbColor(0, 255, 0);
-        assert_eq!(result, Some(expected.into()));
+        assert_eq!(
+            result,
+            Some(ColorSource::Static(RgbColor(0, 255, 0).into()))
+        );
 
         let result = parse_color("$blue", &config);
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_parse_color_zellij_names() {
+        let config: BTreeMap<String, String> = BTreeMap::new();
+
+        assert_eq!(
+            parse_color("text_selected.base", &config),
+            Some(ColorSource::Zellij("text_selected.base".to_owned()))
+        );
+        assert_eq!(
+            parse_color("ribbon_unselected.emphasis_1", &config),
+            Some(ColorSource::Zellij(
+                "ribbon_unselected.emphasis_1".to_owned()
+            ))
+        );
+        assert_eq!(
+            parse_color("frame_highlight.emphasis_3", &config),
+            Some(ColorSource::Zellij("frame_highlight.emphasis_3".to_owned()))
+        );
+        assert_eq!(
+            parse_color("exit_code_error.background", &config),
+            Some(ColorSource::Zellij("exit_code_error.background".to_owned()))
+        );
+        assert_eq!(parse_color("player_1", &config), None);
+        assert_eq!(parse_color("not_a_category.base", &config), None);
+        assert_eq!(parse_color("text_selected.not_a_field", &config), None);
+        assert_eq!(parse_color("text_selected", &config), None);
+    }
+
+    #[test]
+    fn test_resolve_zellij_color_style_declaration() {
+        let mut styling = Styling::default();
+        styling.text_selected.base = PaletteColor::Rgb((1, 2, 3));
+        styling.ribbon_unselected.emphasis_1 = PaletteColor::EightBit(7);
+
+        assert_eq!(
+            resolve_zellij_color("text_selected.base", &styling),
+            Some(RgbColor(1, 2, 3).into())
+        );
+        assert_eq!(
+            resolve_zellij_color("ribbon_unselected.emphasis_1", &styling),
+            Some(Ansi256Color(7).into())
+        );
+        assert_eq!(resolve_zellij_color("bogus.base", &styling), None);
+    }
+
+    #[test]
+    fn test_optional_theme_color_appears_and_disappears() {
+        let part =
+            FormattedPart::from_format_string("#[fg=frame_unselected.base]test", &BTreeMap::new());
+        let mut state = ZellijState::default();
+        state.mode.style.colors.frame_unselected = None;
+        let unstyled = part.format_string("test", &state);
+        assert_eq!(unstyled, "test");
+
+        state.mode.style.colors.frame_unselected = Some(StyleDeclaration {
+            base: PaletteColor::Rgb((5, 6, 7)),
+            ..Default::default()
+        });
+        assert!(
+            part.format_string("test", &state)
+                .contains("\x1b[38;2;5;6;7m")
+        );
+
+        state.mode.style.colors.frame_unselected = None;
+        assert_eq!(part.format_string("test", &state), unstyled);
     }
 }

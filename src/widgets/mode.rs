@@ -135,7 +135,7 @@ impl Widget for ModeWidget {
                 (f, content)
             })
             .fold("".to_owned(), |acc, (f, content)| {
-                format!("{acc}{}", f.format_string(&content))
+                format!("{acc}{}", f.format_string(&content, state))
             })
     }
 

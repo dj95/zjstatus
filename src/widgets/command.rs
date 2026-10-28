@@ -125,7 +125,7 @@ impl Widget for CommandWidget {
             })
             .fold("".to_owned(), |acc, (f, content)| {
                 if command_config.render_mode == RenderMode::Static {
-                    return format!("{acc}{}", f.format_string(&content));
+                    return format!("{acc}{}", f.format_string(&content, state));
                 }
 
                 format!("{acc}{}", content)
@@ -133,7 +133,7 @@ impl Widget for CommandWidget {
 
         match command_config.render_mode {
             RenderMode::Static => content,
-            RenderMode::Dynamic => render_dynamic_formatted_content(&content, &self.zj_conf),
+            RenderMode::Dynamic => render_dynamic_formatted_content(&content, &self.zj_conf, state),
             RenderMode::Raw => command_result
                 .stdout
                 .strip_suffix('\n')
@@ -167,10 +167,14 @@ impl Widget for CommandWidget {
     }
 }
 
-fn render_dynamic_formatted_content(content: &str, config: &BTreeMap<String, String>) -> String {
+fn render_dynamic_formatted_content(
+    content: &str,
+    config: &BTreeMap<String, String>,
+    state: &ZellijState,
+) -> String {
     formatted_parts_from_string_cached(content, config)
         .iter()
-        .map(|fp| fp.format_string(&fp.content))
+        .map(|fp| fp.format_string(&fp.content, state))
         .collect::<Vec<String>>()
         .join("")
 }

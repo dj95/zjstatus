@@ -76,7 +76,6 @@ impl ZellijPlugin for State {
             EventType::PermissionRequestResult,
             EventType::Timer,
             EventType::TabUpdate,
-            EventType::SessionUpdate,
             EventType::RunCommandResult,
             EventType::CwdChanged,
         ]);
@@ -89,6 +88,20 @@ impl ZellijPlugin for State {
                 return;
             }
         };
+
+        // SessionUpdate describes every session on the machine and fires whenever
+        // any of them changes; only the frame hiding reads it.
+        let hides_frames = !frames::FrameConfig::new(
+            self.module_config.hide_frame_for_single_pane,
+            self.module_config.hide_frame_except_for_search,
+            self.module_config.hide_frame_except_for_fullscreen,
+            self.module_config.hide_frame_except_for_scroll,
+            &self.module_config.pane_frame_style,
+        )
+        .is_disabled();
+        if hides_frames {
+            subscribe(&[EventType::SessionUpdate]);
+        }
         self.widget_map = register_widgets(&configuration);
         self.focus_cwd_commands =
             zjstatus::widgets::command::focus_cwd_command_names(&configuration);

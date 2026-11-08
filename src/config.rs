@@ -14,6 +14,7 @@ use chrono::{DateTime, Local};
 #[derive(Default, Debug, Clone)]
 pub struct ZellijState {
     pub cols: usize,
+    pub max_tabs_width: Option<usize>,
     pub command_results: BTreeMap<String, CommandResult>,
     pub pipe_results: BTreeMap<String, String>,
     pub mode: ModeInfo,
@@ -195,6 +196,12 @@ impl ModuleConfig {
             Mouse::Hover(_, _) => return,
         };
 
+        let mut state = state;
+        state.max_tabs_width = self.compute_max_tabs_width(&state, &widget_map);
+        if state.max_tabs_width.is_some() {
+            state.cache_mask |= UpdateEventMask::Tab as u8;
+        }
+
         let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
             format!(
                 "{}{}",
@@ -243,6 +250,7 @@ impl ModuleConfig {
             offset += console::measure_text_width(&self.get_spacer_left(
                 &output_left,
                 &output_center,
+                &output_right,
                 state.cols,
             ));
 
@@ -259,8 +267,9 @@ impl ModuleConfig {
             }
 
             offset += console::measure_text_width(&self.get_spacer_right(
-                &output_right,
+                &output_left,
                 &output_center,
+                &output_right,
                 state.cols,
             ));
         } else {
@@ -344,6 +353,12 @@ impl ModuleConfig {
             return "No configuration found. See https://github.com/dj95/zjstatus/wiki/3-%E2%80%90-Configuration for more info".to_string();
         }
 
+        let mut state = state;
+        state.max_tabs_width = self.compute_max_tabs_width(&state, &widget_map);
+        if state.max_tabs_width.is_some() {
+            state.cache_mask |= UpdateEventMask::Tab as u8;
+        }
+
         let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {
             format!(
                 "{acc}{}",
@@ -376,6 +391,31 @@ impl ModuleConfig {
             false => (output_left, output_center, output_right),
         };
 
+        let mut bar_line = if !output_center.is_empty() {
+            format!(
+                "{}{}{}{}{}",
+                output_left,
+                self.get_spacer_left(&output_left, &output_center, &output_right, state.cols),
+                output_center,
+                self.get_spacer_right(&output_left, &output_center, &output_right, state.cols),
+                output_right,
+            )
+        } else {
+            format!(
+                "{}{}{}",
+                output_left,
+                self.get_spacer(&output_left, &output_right, state.cols),
+                output_right,
+            )
+        };
+
+        if state.cols > 0 && console::measure_text_width(&bar_line) > state.cols {
+            bar_line = format!(
+                "{}\u{1b}[0m",
+                console::truncate_str(&bar_line, state.cols, "")
+            );
+        }
+
         if self.border.enabled {
             let mut border_top = "".to_owned();
             if self.border.enabled && self.border.position == BorderPosition::Top {
@@ -387,46 +427,64 @@ impl ModuleConfig {
                 border_bottom = format!("\n{}", self.border.draw(state.cols));
             }
 
-            if !output_center.is_empty() {
-                return format!(
-                    "{}{}{}{}{}{}{}",
-                    border_top,
-                    output_left,
-                    self.get_spacer_left(&output_left, &output_center, state.cols),
-                    output_center,
-                    self.get_spacer_right(&output_right, &output_center, state.cols),
-                    output_right,
-                    border_bottom,
-                );
-            }
-
-            return format!(
-                "{}{}{}{}{}",
-                border_top,
-                output_left,
-                self.get_spacer(&output_left, &output_right, state.cols),
-                output_right,
-                border_bottom,
-            );
+            return format!("{border_top}{bar_line}{border_bottom}");
         }
 
-        if !output_center.is_empty() {
-            return format!(
-                "{}{}{}{}{}",
-                output_left,
-                self.get_spacer_left(&output_left, &output_center, state.cols),
-                output_center,
-                self.get_spacer_right(&output_right, &output_center, state.cols),
-                output_right,
-            );
+        bar_line
+    }
+
+    fn compute_max_tabs_width(
+        &mut self,
+        state: &ZellijState,
+        widget_map: &BTreeMap<String, Arc<dyn Widget>>,
+    ) -> Option<usize> {
+        if state.cols == 0 {
+            return None;
         }
 
-        format!(
-            "{}{}{}",
-            output_left,
-            self.get_spacer(&output_left, &output_right, state.cols),
-            output_right,
-        )
+        let has_tabs = self
+            .left_parts
+            .iter()
+            .chain(self.center_parts.iter())
+            .chain(self.right_parts.iter())
+            .any(|part| part.content.contains("{tabs}"));
+
+        if !has_tabs {
+            return None;
+        }
+
+        let left_without_tabs = self.left_parts.iter_mut().fold(String::new(), |acc, part| {
+            format!(
+                "{acc}{}",
+                part.format_string_without_tabs(widget_map, state)
+            )
+        });
+
+        let center_without_tabs = self
+            .center_parts
+            .iter_mut()
+            .fold(String::new(), |acc, part| {
+                format!(
+                    "{acc}{}",
+                    part.format_string_without_tabs(widget_map, state)
+                )
+            });
+
+        let right_without_tabs = self
+            .right_parts
+            .iter_mut()
+            .fold(String::new(), |acc, part| {
+                format!(
+                    "{acc}{}",
+                    part.format_string_without_tabs(widget_map, state)
+                )
+            });
+
+        let used_width = console::measure_text_width(&left_without_tabs)
+            + console::measure_text_width(&center_without_tabs)
+            + console::measure_text_width(&right_without_tabs);
+
+        Some(state.cols.saturating_sub(used_width))
     }
 
     fn trim_output(
@@ -478,30 +536,56 @@ impl ModuleConfig {
     }
 
     #[tracing::instrument(skip_all)]
-    fn get_spacer_left(&self, output_left: &str, output_center: &str, cols: usize) -> String {
-        let text_count = console::measure_text_width(output_left)
-            + (console::measure_text_width(output_center) as f32 / 2.0).floor() as usize;
+    fn get_spacer_left(
+        &self,
+        output_left: &str,
+        output_center: &str,
+        output_right: &str,
+        cols: usize,
+    ) -> String {
+        let left_width = console::measure_text_width(output_left);
+        let center_width = console::measure_text_width(output_center);
+        let right_width = console::measure_text_width(output_right);
 
-        let center_pos = (cols as f32 / 2.0).floor() as usize;
+        let center_left_half = center_width / 2;
+        let center_right_half = center_width - center_left_half;
+
+        let center_pos_left = cols / 2;
+        let center_pos_right = cols - center_pos_left;
 
         // verify we are able to count the difference, since zellij sometimes drops a col
         // count of 0 on tab creation
-        let space_count = center_pos.saturating_sub(text_count);
+        let ideal_spacer_left = center_pos_left.saturating_sub(left_width + center_left_half);
+        let right_overflow = (right_width + center_right_half).saturating_sub(center_pos_right);
+        let space_count = ideal_spacer_left.saturating_sub(right_overflow);
 
         tracing::debug!("space_count: {:?}", space_count);
         self.format_space.format_string(&" ".repeat(space_count))
     }
 
     #[tracing::instrument(skip_all)]
-    fn get_spacer_right(&self, output_right: &str, output_center: &str, cols: usize) -> String {
-        let text_count = console::measure_text_width(output_right)
-            + (console::measure_text_width(output_center) as f32 / 2.0).ceil() as usize;
+    fn get_spacer_right(
+        &self,
+        output_left: &str,
+        output_center: &str,
+        output_right: &str,
+        cols: usize,
+    ) -> String {
+        let left_width = console::measure_text_width(output_left);
+        let center_width = console::measure_text_width(output_center);
+        let right_width = console::measure_text_width(output_right);
 
-        let center_pos = (cols as f32 / 2.0).ceil() as usize;
+        let center_left_half = center_width / 2;
+        let center_right_half = center_width - center_left_half;
+
+        let center_pos_left = cols / 2;
+        let center_pos_right = cols - center_pos_left;
 
         // verify we are able to count the difference, since zellij sometimes drops a col
         // count of 0 on tab creation
-        let space_count = center_pos.saturating_sub(text_count);
+        let ideal_spacer_right = center_pos_right.saturating_sub(right_width + center_right_half);
+        let left_overflow = (left_width + center_left_half).saturating_sub(center_pos_left);
+        let space_count = ideal_spacer_right.saturating_sub(left_overflow);
 
         tracing::debug!("space_count: {:?}", space_count);
         self.format_space.format_string(&" ".repeat(space_count))
@@ -556,5 +640,78 @@ mod test {
                 ..Default::default()
             },
         )
+    }
+
+    #[test]
+    fn test_render_bar_never_exceeds_cols_on_tab_overflow() {
+        use crate::widgets::{
+            datetime::DateTimeWidget, mode::ModeWidget, session::SessionWidget, tabs::TabsWidget,
+        };
+
+        let config = BTreeMap::from([
+            (
+                "format_left".to_owned(),
+                "#[bold]{mode} [#[italic]{session}] {tabs}".to_owned(),
+            ),
+            ("format_right".to_owned(), " {datetime} ".to_owned()),
+            ("mode_normal".to_owned(), "#[fg=blue] ✓".to_owned()),
+            (
+                "tab_truncate_start_format".to_owned(),
+                "#[fg=red] < +{count} ...".to_owned(),
+            ),
+            (
+                "tab_truncate_end_format".to_owned(),
+                "#[fg=red] ... +{count} >".to_owned(),
+            ),
+            ("tab_normal".to_owned(), "#[fg=#6C7086] {name} ".to_owned()),
+            (
+                "tab_active".to_owned(),
+                "#[fg=#9399B2,bold,italic] {name} ".to_owned(),
+            ),
+            ("tab_separator".to_owned(), "#[fg=#6C7086] | ".to_owned()),
+            ("tab_display_count".to_owned(), "3".to_owned()),
+            (
+                "datetime".to_owned(),
+                "#[fg=#6C7086,bold] {format} ".to_owned(),
+            ),
+            ("datetime_format".to_owned(), "%Y %b %d %H:%M".to_owned()),
+            ("datetime_timezone".to_owned(), "Canada/Eastern".to_owned()),
+        ]);
+
+        let mut module_config = ModuleConfig::new(&config).unwrap();
+        let mut widget_map: BTreeMap<String, Arc<dyn Widget>> = BTreeMap::new();
+        widget_map.insert("mode".to_owned(), Arc::new(ModeWidget::new(&config)));
+        widget_map.insert("session".to_owned(), Arc::new(SessionWidget::new(&config)));
+        widget_map.insert("tabs".to_owned(), Arc::new(TabsWidget::new(&config)));
+        widget_map.insert(
+            "datetime".to_owned(),
+            Arc::new(DateTimeWidget::new(&config)),
+        );
+
+        let cols = 72;
+        for tab_count in 1..=6 {
+            let tabs: Vec<TabInfo> = (0..tab_count)
+                .map(|i| TabInfo {
+                    position: i,
+                    active: i == tab_count / 2,
+                    name: format!("Tab #{}", i + 1),
+                    ..TabInfo::default()
+                })
+                .collect();
+
+            let state = ZellijState {
+                cols,
+                tabs,
+                mode: ModeInfo {
+                    session_name: Some("my-session".to_owned()),
+                    ..ModeInfo::default()
+                },
+                cache_mask: 0xFF,
+                ..ZellijState::default()
+            };
+
+            let rendered = module_config.render_bar(state, widget_map.clone());
+            assert_eq!(console::measure_text_width(&rendered), cols);
+        }
     }
 }

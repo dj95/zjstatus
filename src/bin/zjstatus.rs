@@ -99,6 +99,7 @@ impl ZellijPlugin for State {
 
         self.state = ZellijState {
             cols: 0,
+            max_tabs_width: None,
             command_results: BTreeMap::new(),
             pipe_results: BTreeMap::new(),
             mode: ModeInfo::default(),
@@ -173,6 +174,9 @@ impl ZellijPlugin for State {
             return;
         }
 
+        if self.state.cols != cols {
+            self.state.cache_mask |= UpdateEventMask::Tab as u8;
+        }
         self.state.cols = cols;
 
         tracing::debug!("{:?}", self.state.mode.session_name);

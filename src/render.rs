@@ -243,6 +243,59 @@ impl FormattedPart {
 
         res
     }
+
+    pub fn format_string_without_tabs(
+        &mut self,
+        widgets: &BTreeMap<String, Arc<dyn Widget>>,
+        state: &ZellijState,
+    ) -> String {
+        if !self.content.contains("{tabs}") {
+            return self.format_string_with_widgets(widgets, state);
+        }
+
+        let mut output = self.content.clone();
+
+        for widget in WIDGET_REGEX.captures_iter(&self.content) {
+            let match_name = widget.get(0).unwrap().as_str();
+            let widget_key = match_name.trim_matches(|c| c == '{' || c == '}');
+            let mut widget_key_name = widget_key;
+
+            if widget_key_name == "tabs" {
+                self.cache.remove(widget_key);
+                output = output.replace(match_name, "");
+                continue;
+            }
+
+            if widget_key.starts_with("command_") {
+                widget_key_name = "command";
+            }
+
+            if widget_key.starts_with("pipe_") {
+                widget_key_name = "pipe";
+            }
+
+            let widget_mask = event_mask_from_widget_name(widget_key_name);
+            let skip_widget_cache = widget_mask & UpdateEventMask::Always as u8 != 0;
+            if !skip_widget_cache
+                && widget_mask & state.cache_mask == 0
+                && let Some(res) = self.cache.get(widget_key)
+            {
+                output = output.replace(match_name, res);
+                continue;
+            }
+
+            let result = match widgets.get(widget_key_name) {
+                Some(widget) => widget.process(widget_key, state),
+                None => "Use of uninitialized widget".to_owned(),
+            };
+
+            self.cache.insert(widget_key.to_owned(), result.to_owned());
+
+            output = output.replace(match_name, &result);
+        }
+
+        self.format_string(&output)
+    }
 }
 
 impl Default for FormattedPart {

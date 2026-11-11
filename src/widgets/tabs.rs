@@ -5,9 +5,11 @@ use zellij_tile::{
     shim::switch_tab_to,
 };
 
-use crate::{config::ZellijState, render::FormattedPart};
+use crate::{attention::AttentionConfig, config::ZellijState, render::FormattedPart};
 
 use super::widget::Widget;
+
+mod grouped;
 
 pub struct TabsWidget {
     active_tab_format: Vec<FormattedPart>,
@@ -29,6 +31,8 @@ pub struct TabsWidget {
     tab_truncate_start_format: Vec<FormattedPart>,
     tab_truncate_end_format: Vec<FormattedPart>,
     tab_zero_based_index: bool,
+    groups: Option<grouped::GroupFormats>,
+    attention: AttentionConfig,
 }
 
 impl TabsWidget {
@@ -126,12 +130,18 @@ impl TabsWidget {
             tab_truncate_start_format,
             tab_truncate_end_format,
             tab_zero_based_index,
+            groups: grouped::GroupFormats::new(config),
+            attention: AttentionConfig::new(config),
         }
     }
 }
 
 impl Widget for TabsWidget {
     fn process(&self, _name: &str, state: &ZellijState) -> String {
+        if let Some(groups) = &self.groups {
+            return self.process_grouped(groups, state);
+        }
+
         let mut output = "".to_owned();
         let mut counter = 0;
 
@@ -179,6 +189,10 @@ impl Widget for TabsWidget {
     }
 
     fn process_click(&self, _name: &str, state: &ZellijState, pos: usize) {
+        if let Some(groups) = &self.groups {
+            return self.process_click_grouped(groups, state, pos);
+        }
+
         let mut offset = 0;
         let mut counter = 0;
 
@@ -348,7 +362,10 @@ impl TabsWidget {
 
             content = self.replace_indicators(content, tab, panes);
 
-            output = format!("{}{}", output, f.format_string(&content));
+            let rendered = self
+                .attention
+                .render(f, &content, || self.attention.tab_counts(tab, panes));
+            output = format!("{}{}", output, rendered);
         }
 
         output.to_owned()

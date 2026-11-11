@@ -155,7 +155,7 @@ impl ModeWidget {
             InputMode::Search => &self.search_format,
             InputMode::RenameTab => &self.rename_tab_format,
             InputMode::RenamePane => &self.rename_pane_format,
-            InputMode::Session => &self.session_format,
+            InputMode::Session | InputMode::RenameSession => &self.session_format,
             InputMode::Move => &self.move_format,
             InputMode::Prompt => &self.prompt_format,
             InputMode::Tmux => &self.tmux_format,

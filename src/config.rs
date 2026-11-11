@@ -26,6 +26,7 @@ pub struct ZellijState {
     pub cache_mask: u8,
     pub focused_pane_id: Option<PaneId>,
     pub focused_pane_cwd: Option<std::path::PathBuf>,
+    pub tab_groups: crate::tab_groups::GroupsState,
 }
 
 #[derive(Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Copy)]
@@ -67,6 +68,7 @@ pub fn event_mask_from_widget_name(name: &str) -> u8 {
         "swap_layout" => UpdateEventMask::Tab as u8,
         "tabs" => UpdateEventMask::Tab as u8,
         "pipe" => UpdateEventMask::Always as u8,
+        "attention" => UpdateEventMask::Tab as u8,
         _ => UpdateEventMask::None as u8,
     }
 }
@@ -193,6 +195,8 @@ impl ModuleConfig {
             Mouse::Hold(_, y) => y,
             Mouse::Release(_, y) => y,
             Mouse::Hover(_, _) => return,
+            // The first click of a double click already arrived as a LeftClick.
+            Mouse::DoubleClick(_, _) => return,
         };
 
         let output_left = self.left_parts.iter_mut().fold("".to_owned(), |acc, part| {

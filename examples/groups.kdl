@@ -1,0 +1,51 @@
+// Agent status and tab groups (ade-zjstatus; needs Zellij 0.46 or newer). See FORK.md.
+//
+// Name tabs `group: name` to group them, e.g. `api: auth` and `api: billing`. Groups ask
+// for one more permission, to move a group's tabs next to each other. Icons are Nerd Font
+// glyphs in Catppuccin Mocha colours.
+//
+// From the repository root, after `cargo build`: zellij -l examples/groups.kdl
+layout {
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="file:target/wasm32-wasip1/debug/zjstatus.wasm" {
+                format_left   "{mode}{tabs}"
+                format_right  "{attention}"
+                format_space  ""
+
+                mode_normal  "#[fg=#f9e2af,bold] NORMAL "
+                mode_locked  "#[fg=#f38ba8,bold] LOCKED "
+                mode_tab     "#[fg=#f9e2af,bold] TAB "
+
+                // Agent status: icons for each status, and the session totals on the right.
+                attention_needs_you       "#[fg=#fab387] "
+                attention_failed          "#[fg=#f38ba8] "
+                attention_done            "#[fg=#a6e3a1] "
+                attention_working         "#[fg=#f9e2af]󰔟 "
+                attention_count_separator " "
+                attention_format          "{counts}"
+                // Only what programs report themselves (OSC 7501), not Zellij's guesses.
+                attention_source          "program_status"
+
+                tab_normal    "#[fg=#6c7086] {attention}{name} "
+                tab_active    "#[fg=#89b4fa,bold] {attention}{name} "
+                tab_separator "#[fg=#45475a]⋮"
+
+                // Tab groups.
+                tab_groups                 "true"
+                tab_group_expanded         "#[fg=#cba6f7,bold] {name}:"
+                tab_group_collapsed        "#[fg=#cba6f7] {name} +{count} {attention_counts}"
+                tab_group_collapsed_active "#[fg=#cba6f7,bold] {name}:"
+                tab_group_hidden           "#[fg=#6c7086]+{count} {attention_counts}"
+                tab_group_separator        "#[fg=#94e2d5,bold] ┃ "
+            }
+        }
+        children
+    }
+
+    tab name="notes" focus=true
+    tab name="api: auth"
+    tab name="api: billing"
+    tab name="web: ui"
+    tab name="web: docs"
+}

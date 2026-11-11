@@ -7,8 +7,11 @@ icons and tab groups.
 > [!WARNING]
 > Under development: none of this is released yet.
 
+![The tab bar with agent status icons and tab groups](./assets/tab-groups.png)
+
 Both features need **Zellij 0.46 or newer**. Existing configs work unchanged: everything below is off until you
-use it. See [examples/groups.kdl](./examples/groups.kdl) for a complete layout.
+use it. See [examples/groups.kdl](./examples/groups.kdl) for a complete layout: the screenshot is its bar, drawn
+by the plugin's own rendering code.
 
 ## Agent status
 
@@ -131,6 +134,7 @@ group of the active tab. They do nothing in `auto` mode.
 | `zjstatus::groups::expand[::NAME]` | expands it |
 | `zjstatus::groups::collapse_all` | collapses all groups |
 | `zjstatus::groups::expand_all` | expands all groups |
+| `zjstatus::groups::toggle_all` | collapses all groups if any is expanded, otherwise expands them all |
 
 A keybinding sends one with `MessagePlugin`; without a plugin URL it goes to every plugin, and the bar in the
 active tab acts on it. For example, in tab mode of Zellij's `config.kdl`:
@@ -139,8 +143,7 @@ active tab acts on it. For example, in tab mode of Zellij's `config.kdl`:
 keybinds {
     tab {
         bind "g" { MessagePlugin { name "zjstatus"; payload "zjstatus::groups::toggle"; }; }
-        bind "G" { MessagePlugin { name "zjstatus"; payload "zjstatus::groups::collapse_all"; }; }
-        bind "E" { MessagePlugin { name "zjstatus"; payload "zjstatus::groups::expand_all"; }; }
+        bind "G" { MessagePlugin { name "zjstatus"; payload "zjstatus::groups::toggle_all"; }; }
     }
 }
 ```
@@ -182,4 +185,5 @@ files.
 
 ## Development
 
-See [Development](./README.md#-development) in the README.
+See [Development](./README.md#-development) in the README. `examples/screenshot.sh` redraws the screenshot above
+from `examples/groups.kdl` (it needs wasmtime, Python 3, ImageMagick, Google Chrome and JetBrainsMono Nerd Font).

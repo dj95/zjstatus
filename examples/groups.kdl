@@ -23,7 +23,7 @@ layout {
                 attention_done            "#[fg=#a6e3a1] "
                 attention_working         "#[fg=#f9e2af]󰔟 "
                 attention_count_separator " "
-                attention_format          "{counts}"
+                attention_format          "{counts} "
                 // Only what programs report themselves (OSC 7501), not Zellij's guesses.
                 attention_source          "program_status"
 
@@ -34,10 +34,10 @@ layout {
                 // Tab groups.
                 tab_groups                 "true"
                 tab_group_expanded         "#[fg=#cba6f7,bold] {name}:"
-                tab_group_collapsed        "#[fg=#cba6f7] {name} +{count} {attention_counts}"
+                tab_group_collapsed        "#[fg=#cba6f7] {name} +{count} {attention_counts} "
                 tab_group_collapsed_active "#[fg=#cba6f7,bold] {name}:"
-                tab_group_hidden           "#[fg=#6c7086]+{count} {attention_counts}"
-                tab_group_separator        "#[fg=#94e2d5,bold] ┃ "
+                tab_group_hidden           "#[fg=#6c7086]+{count} {attention_counts} "
+                tab_group_separator        "#[fg=#94e2d5,bold]┃"
             }
         }
         children

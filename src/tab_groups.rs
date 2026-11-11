@@ -186,14 +186,25 @@ fn flush_run<'a>(
     run.clear();
 }
 
-/// The name of the shown group that holds the active tab.
-pub fn active_group(tabs: &[TabInfo], config: &GroupsConfig) -> Option<String> {
-    build_items(tabs, config)
-        .into_iter()
-        .find_map(|item| match item {
-            Item::Group(group) if group.active().is_some() => Some(group.name),
-            _ => None,
-        })
+/// The groups commands act on: the shown groups, and the one holding the
+/// active tab.
+#[derive(Debug, Default, PartialEq)]
+pub struct Shown {
+    pub groups: Vec<String>,
+    pub active: Option<String>,
+}
+
+pub fn shown_groups(tabs: &[TabInfo], config: &GroupsConfig) -> Shown {
+    let mut shown = Shown::default();
+    for item in build_items(tabs, config) {
+        if let Item::Group(group) = item {
+            if group.active().is_some() {
+                shown.active = Some(group.name.clone());
+            }
+            shown.groups.push(group.name);
+        }
+    }
+    shown
 }
 
 /// A move that brings the tabs of each group closer together.
@@ -317,6 +328,8 @@ pub enum Command {
     Expand(Option<String>),
     CollapseAll,
     ExpandAll,
+    /// Collapses all groups if any is expanded, else expands them all.
+    ToggleAll,
 }
 
 /// Parses `zjstatus::groups::<command>[::<group>]`. Without a group, a
@@ -333,6 +346,7 @@ pub fn parse_command(line: &str) -> Option<Command> {
         "expand" => Command::Expand(group),
         "collapse_all" => Command::CollapseAll,
         "expand_all" => Command::ExpandAll,
+        "toggle_all" => Command::ToggleAll,
         _ => return None,
     })
 }
@@ -341,11 +355,11 @@ pub fn parse_command(line: &str) -> Option<Command> {
 pub fn apply(
     state: &mut CollapseState,
     command: &Command,
-    active_group: Option<&str>,
+    shown: &Shown,
     config: &GroupsConfig,
 ) -> bool {
     let before = state.clone();
-    let target = |group: &Option<String>| group.clone().or_else(|| active_group.map(str::to_owned));
+    let target = |group: &Option<String>| group.clone().or_else(|| shown.active.clone());
     match command {
         Command::Toggle(group) => {
             if let Some(group) = target(group) {
@@ -365,6 +379,15 @@ pub fn apply(
         }
         Command::CollapseAll => state.set_all(true),
         Command::ExpandAll => state.set_all(false),
+        Command::ToggleAll => {
+            if !shown.groups.is_empty() {
+                let any_expanded = shown
+                    .groups
+                    .iter()
+                    .any(|group| !state.is_collapsed(group, config.start_collapsed));
+                state.set_all(any_expanded);
+            }
+        }
     }
     *state != before
 }
@@ -404,9 +427,15 @@ pub mod store {
             .unwrap_or_default()
     }
 
+    /// Writes the file atomically: other instances read it at any time, and
+    /// must never see it half written.
     pub fn write(path: &str, state: &CollapseState) {
-        if let Err(error) = std::fs::write(path, state.serialize()) {
+        let temporary = format!("{path}.{}.tmp", uuid::Uuid::new_v4());
+        let written = std::fs::write(&temporary, state.serialize())
+            .and_then(|_| std::fs::rename(&temporary, path));
+        if let Err(error) = written {
             tracing::debug!("could not write {path}: {error}");
+            let _ = std::fs::remove_file(&temporary);
         }
     }
 
@@ -502,11 +531,11 @@ impl Controller {
         let Some(path) = store::path(state.mode.session_name.as_deref()) else {
             return false;
         };
-        let active = active_group(&state.tabs, &config);
+        let shown = shown_groups(&state.tabs, &config);
         let mut collapse = store::read(&path);
         let mut changed = false;
         for command in &commands {
-            changed |= apply(&mut collapse, command, active.as_deref(), &config);
+            changed |= apply(&mut collapse, command, &shown, &config);
         }
         if changed {
             store::write(&path, &collapse);
@@ -644,13 +673,22 @@ mod test {
     }
 
     #[test]
-    fn finds_the_active_group() {
+    fn finds_the_shown_groups_and_the_active_one() {
         let config = config();
         assert_eq!(
-            active_group(&tabs(&["api: a", "api: b*"]), &config),
-            Some("api".to_owned())
+            shown_groups(
+                &tabs(&["api: a", "solo: x", "api: b*", "web: c", "web: d"]),
+                &config
+            ),
+            Shown {
+                groups: names(&["api", "web"]),
+                active: Some("api".to_owned()),
+            }
         );
-        assert_eq!(active_group(&tabs(&["api: a*", "web: b"]), &config), None);
+        assert_eq!(
+            shown_groups(&tabs(&["api: a*", "web: b"]), &config),
+            Shown::default()
+        );
     }
 
     fn names(names: &[&str]) -> Vec<String> {
@@ -735,6 +773,24 @@ mod test {
     }
 
     #[test]
+    fn the_file_is_replaced_whole() {
+        let folder = format!("/tmp/zjstatus-test-{}", uuid::Uuid::new_v4());
+        std::fs::create_dir(&folder).unwrap();
+        let path = format!("{folder}/tab-groups-main");
+        let mut state = CollapseState::default();
+        state.set("api", true);
+
+        store::write(&path, &state);
+        state.set("web", true);
+        store::write(&path, &state);
+
+        assert_eq!(store::read(&path), state);
+        let files: Vec<_> = std::fs::read_dir(&folder).unwrap().collect();
+        assert_eq!(files.len(), 1, "no temporary files are left");
+        std::fs::remove_dir_all(&folder).unwrap();
+    }
+
+    #[test]
     fn groups_use_the_default_unless_chosen() {
         let mut state = CollapseState::default();
         assert!(!state.is_collapsed("api", false));
@@ -774,6 +830,10 @@ mod test {
             parse_command("zjstatus::groups::expand_all\n"),
             Some(Command::ExpandAll)
         );
+        assert_eq!(
+            parse_command("zjstatus::groups::toggle_all"),
+            Some(Command::ToggleAll)
+        );
         assert_eq!(parse_command("zjstatus::groups::nope"), None);
         assert_eq!(parse_command("zjstatus::rerun::groups"), None);
         assert_eq!(parse_command("zjstatus::groups"), None);
@@ -783,30 +843,58 @@ mod test {
     fn applies_commands_to_the_named_or_active_group() {
         let config = config();
         let mut state = CollapseState::default();
+        let in_api = Shown {
+            groups: names(&["api", "web"]),
+            active: Some("api".to_owned()),
+        };
+        let elsewhere = Shown {
+            groups: names(&["api", "web"]),
+            active: None,
+        };
 
-        assert!(apply(
-            &mut state,
-            &Command::Toggle(None),
-            Some("api"),
-            &config
-        ));
+        assert!(apply(&mut state, &Command::Toggle(None), &in_api, &config));
         assert!(state.is_collapsed("api", false));
         assert!(apply(
             &mut state,
             &Command::Toggle(Some("api".into())),
-            None,
+            &elsewhere,
             &config
         ));
         assert!(!state.is_collapsed("api", false));
+        assert!(!apply(&mut state, &Command::Expand(None), &in_api, &config));
         assert!(!apply(
             &mut state,
-            &Command::Expand(None),
-            Some("api"),
+            &Command::Toggle(None),
+            &elsewhere,
             &config
         ));
-        assert!(!apply(&mut state, &Command::Toggle(None), None, &config));
-        assert!(apply(&mut state, &Command::CollapseAll, None, &config));
+        assert!(apply(
+            &mut state,
+            &Command::CollapseAll,
+            &elsewhere,
+            &config
+        ));
         assert!(state.is_collapsed("web", false));
+    }
+
+    #[test]
+    fn toggle_all_collapses_everything_unless_all_are_collapsed() {
+        let config = config();
+        let shown = Shown {
+            groups: names(&["api", "web"]),
+            active: None,
+        };
+        let mut state = CollapseState::default();
+        state.set("api", true);
+
+        assert!(apply(&mut state, &Command::ToggleAll, &shown, &config));
+        assert!(state.is_collapsed("api", false) && state.is_collapsed("web", false));
+        assert!(apply(&mut state, &Command::ToggleAll, &shown, &config));
+        assert!(!state.is_collapsed("api", false) && !state.is_collapsed("web", false));
+        assert!(
+            !apply(&mut state, &Command::ToggleAll, &Shown::default(), &config),
+            "no groups"
+        );
     }
 
     #[test]

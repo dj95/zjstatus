@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "v*.*.*-ade.*"
   workflow_dispatch:
 permissions:
   contents: write
@@ -30,6 +30,10 @@ jobs:
 
       - run: git fetch --tags --all --force && git pull origin ${{ github.ref }}  --unshallow --force
         name: Fetch tags manually as a workaround. See https://github.com/actions/checkout/issues/1467
+
+      # Without them, the changelog of the fork's first release would cover the whole history.
+      - run: git fetch --no-tags https://github.com/dj95/zjstatus.git '+refs/tags/*:refs/tags/*'
+        name: Fetch upstream tags for the changelog
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96 # stable

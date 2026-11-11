@@ -1,13 +1,13 @@
-<h1 align="center">zjstatus & zjframes</h1>
+<h1 align="center">ade-zjstatus</h1>
 
 <p align="center">
-  A configurable and themable statusbar for zellij.
+  A fork of <a href="https://github.com/dj95/zjstatus">zjstatus & zjframes</a>, a configurable and themable statusbar for zellij.
   <br><br>
-  <a href="https://github.com/dj95/zjstatus/actions/workflows/lint.yml">
-    <img alt="clippy check" src="https://github.com/dj95/zjstatus/actions/workflows/lint.yml/badge.svg" />
+  <a href="https://github.com/ag14774/ade-zjstatus/actions/workflows/lint.yml">
+    <img alt="clippy check" src="https://github.com/ag14774/ade-zjstatus/actions/workflows/lint.yml/badge.svg" />
   </a>
-  <a href="https://github.com/dj95/zjstatus/releases">
-    <img alt="latest version" src="https://img.shields.io/github/v/tag/dj95/zjstatus.svg?sort=semver" />
+  <a href="https://github.com/ag14774/ade-zjstatus/releases">
+    <img alt="latest version" src="https://img.shields.io/github/v/tag/ag14774/ade-zjstatus.svg?sort=semver&include_prereleases" />
   </a>
   <a href="https://github.com/dj95/zjstatus/wiki">
     <img alt="GitHub Wiki" src="https://img.shields.io/badge/documentation-wiki-wiki?logo=github">
@@ -21,9 +21,19 @@
   conditions even without loading *zjstatus*, e.g. when using the default status bars.
 </p>
 
+<!-- Remove this notice with the first release. -->
+> [!WARNING]
+> **Under development.** This fork adds tab groups and agent status to the tab bar of
+> [zjstatus](https://github.com/dj95/zjstatus); see [FORK.md](./FORK.md). It has no releases yet, so the
+> download links below don't work: until the first release, use upstream zjstatus. Releases will need
+> Zellij 0.46 or newer. All of upstream's options keep working, and the
+> [upstream wiki](https://github.com/dj95/zjstatus/wiki) still documents them.
+
 ![Screenshot of the statusbar](./assets/demo.png)
 
 ### [👉 Check out and share your awesome configs in the community showcase!](https://github.com/dj95/zjstatus/discussions/44)
+
+The configs there are written for upstream zjstatus. They should work with this fork as well, which only adds options.
 
 <details>
 <summary><h3>Examples</h3></summary>
@@ -55,7 +65,7 @@
 > [!TIP]
 > For more detailed instructions, check out the [wiki](https://github.com/dj95/zjstatus/wiki/1-%E2%80%90-Installation)!
 
-Download the latest binary in the github releases. Place it somewhere, zellij is able to access it. Then the
+Download the latest binary in the [github releases](https://github.com/ag14774/ade-zjstatus/releases). Place it somewhere, zellij is able to access it. Then the
 plugin can be included by referencing it in a layout file, e.g. the default layout one, or the config file.
 
 In contrast to *zjstatus*, *zjframes* should only be used in the `load_plugins` option of the *config.kdl*
@@ -83,7 +93,7 @@ is also available in case you only want to use *zjframes*.
     # ...
 
     zjstatus = {
-      url = "github:dj95/zjstatus";
+      url = "github:ag14774/ade-zjstatus";
     };
   };
 
@@ -123,7 +133,7 @@ layout {
     default_tab_template {
         children
         pane size=1 borderless=true {
-            plugin location="https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm" {
+            plugin location="https://github.com/ag14774/ade-zjstatus/releases/latest/download/zjstatus.wasm" {
                 format_left   "{mode} #[fg=#89B4FA,bold]{session}"
                 format_center "{tabs}"
                 format_right  "{command_git_branch} {datetime}"
@@ -168,7 +178,7 @@ Double check if the configuration matches your expectations. Then restart zellij
 ```javascript
 // Plugins to load in the background when a new session starts
 load_plugins {
-    "https://github.com/dj95/zjstatus/releases/latest/download/zjframes.wasm" {
+    "https://github.com/ag14774/ade-zjstatus/releases/latest/download/zjframes.wasm" {
         hide_frame_for_single_pane       "true"
         hide_frame_except_for_search     "true"
         hide_frame_except_for_scroll     "true"
@@ -194,20 +204,27 @@ The following widgets are available:
 
 ## 🚧 Development
 
-Make sure you have rust and the `wasm32-wasi` target installed. If using nix, you could utilize the nix-shell
-in this repo for obtaining `cargo` and `rustup`. Then you'll only need to add the target with
-`rustup target add wasm32-wasi`.
+Make sure you have rust installed with rustup. `rust-toolchain.toml` pins the toolchain and the `wasm32-wasip1`
+target: run `rustup toolchain install` in the repository to install them. If using nix, you could utilize the
+nix-shell in this repo for obtaining `cargo` and `rustup`.
 
-With the toolchain, simply build `zjstatus` with `cargo build`. Then you are able to run the example configuration
-with `zellij -l plugin-dev-workspace.kdl` from the root of the repository.
+With the toolchain, simply build `zjstatus` with `cargo build`. `just run` builds it and starts a zellij session
+with the development layout (`tests/zjstatus/layout.kdl`); `just run zjframes` does the same for *zjframes*.
+
+The tests run in [wasmtime](https://wasmtime.dev) with [cargo-nextest](https://nexte.st). With both installed,
+run them with `cargo nextest run --lib`.
 
 ## 🤝 Contributing
 
 If you are missing features or find some annoying bugs please feel free to submit an issue or a bugfix within a pull request :)
 
+Bugs and ideas for the features this fork shares with zjstatus belong [upstream](https://github.com/dj95/zjstatus).
+
 ## 📝 License
 
 © 2024 Daniel Jankowski
+
+Fork changes © 2026 Andreas Georgiou
 
 This project is licensed under the MIT license.
 

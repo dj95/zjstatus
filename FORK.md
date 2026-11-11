@@ -168,7 +168,8 @@ repository.
 
 `just release` (it needs [cargo-edit](https://github.com/killercup/cargo-edit) for `cargo set-version`) picks the
 next version, sets it in `Cargo.toml`, commits, tags and pushes. The tag starts the release workflow, which builds
-both plugins and creates a draft release to publish by hand.
+both plugins and creates a draft release, with notes GitHub writes from the merged pull requests, to publish by
+hand.
 
 ## Keeping up with upstream
 

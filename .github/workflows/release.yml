@@ -31,10 +31,6 @@ jobs:
       - run: git fetch --tags --all --force && git pull origin ${{ github.ref }}  --unshallow --force
         name: Fetch tags manually as a workaround. See https://github.com/actions/checkout/issues/1467
 
-      # Without them, the changelog of the fork's first release would cover the whole history.
-      - run: git fetch --no-tags https://github.com/dj95/zjstatus.git '+refs/tags/*:refs/tags/*'
-        name: Fetch upstream tags for the changelog
-
       - name: Install Rust
         uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96 # stable
         with:
@@ -48,22 +44,16 @@ jobs:
       - name: Build release binary
         run: cargo build --release
 
-      - name: Generate a changelog
-        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v3
-        id: git-cliff
-        with:
-          config: cliff.toml
-          args: -vv --latest --strip header
-        env:
-          OUTPUT: CHANGES.md
-
       - name: Create release
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           draft: true
-          body: ${{ steps.git-cliff.outputs.content }}
+          # Pull requests are squash merged, with titles git-cliff can't parse:
+          # GitHub writes the notes from the merged pull requests instead.
+          generate_release_notes: true
+          fail_on_unmatched_files: true
           prerelease: false
           files: |
             ./target/wasm32-wasip1/release/zjstatus.wasm

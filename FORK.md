@@ -4,9 +4,6 @@ ade-zjstatus is a fork of [zjstatus](https://github.com/dj95/zjstatus) by Daniel
 zjstatus does and adds two things to its tab bar, for running several coding agents in Zellij tabs: agent status
 icons and tab groups.
 
-> [!WARNING]
-> Under development: none of this is released yet.
-
 ![The tab bar with agent status icons and tab groups](./assets/tab-groups.png)
 
 Both features need **Zellij 0.46 or newer**. Existing configs work unchanged: everything below is off until you

@@ -1,7 +1,8 @@
 <h1 align="center">ade-zjstatus</h1>
 
 <p align="center">
-  A fork of <a href="https://github.com/dj95/zjstatus">zjstatus & zjframes</a>, a configurable and themable statusbar for zellij.
+  A fork of <a href="https://github.com/dj95/zjstatus">zjstatus & zjframes</a>, a configurable and themable statusbar for zellij,
+  with <a href="./FORK.md">agent status icons and tab groups</a>. Needs Zellij 0.46 or newer.
   <br><br>
   <a href="https://github.com/ag14774/ade-zjstatus/actions/workflows/lint.yml">
     <img alt="clippy check" src="https://github.com/ag14774/ade-zjstatus/actions/workflows/lint.yml/badge.svg" />
@@ -20,14 +21,6 @@
   As an addition, this repository contains *zjframes* which can be used to toggle pane frames based on different
   conditions even without loading *zjstatus*, e.g. when using the default status bars.
 </p>
-
-<!-- Remove this notice with the first release. -->
-> [!WARNING]
-> **Under development.** This fork adds tab groups and agent status to the tab bar of
-> [zjstatus](https://github.com/dj95/zjstatus); see [FORK.md](./FORK.md). It has no releases yet, so the
-> download links below don't work: until the first release, use upstream zjstatus. Releases will need
-> Zellij 0.46 or newer. All of upstream's options keep working, and the
-> [upstream wiki](https://github.com/dj95/zjstatus/wiki) still documents them.
 
 ![Screenshot of the statusbar](./assets/demo.png)
 

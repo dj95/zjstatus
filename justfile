@@ -35,12 +35,18 @@ lint:
   cargo clippy --all-features --lib
   cargo audit
 
-# Create and push a new release version.
+# Create and push a new release version, e.g. v0.25.0-ade.1.
 release:
   #!/usr/bin/env bash
-  export VERSION="$( git cliff --bumped-version )"
+  set -euo pipefail
+  # The upstream release this is based on plus a fork counter, so it never clashes with upstream tags.
+  git fetch --quiet --tags origin
+  git fetch --quiet --tags upstream
+  base="$( git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*' )"
+  last="$( git tag --list "${base}-ade.*" | sed 's/.*-ade\.//' | sort -n | tail -n 1 )"
+  export VERSION="${base}-ade.$(( ${last:-0} + 1 ))"
   cargo set-version "${VERSION:1}"
-  direnv exec . cargo build --release
+  cargo build --release
   git commit -am "chore: bump version to $VERSION"
   git tag -m "$VERSION" "$VERSION"
   git push origin main

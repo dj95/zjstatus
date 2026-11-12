@@ -1,8 +1,8 @@
 // Agent status and tab groups (ade-zjstatus; needs Zellij 0.46 or newer). See FORK.md.
 //
-// Name tabs `group: name` to group them, e.g. `api: auth` and `api: billing`. Groups ask
-// for one more permission, to move a group's tabs next to each other. Icons are Nerd Font
-// glyphs in Catppuccin Mocha colours.
+// Name tabs `group: name` to group them, e.g. `api: auth` and `api: billing`. The bar asks
+// for one more permission than upstream's, to move a group's tabs next to each other. Icons
+// are Nerd Font glyphs in Catppuccin Mocha colours.
 //
 // From the repository root, after `cargo build`: zellij -l examples/groups.kdl
 layout {

@@ -7,7 +7,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use zellij_tile::prelude::{InputMode, PaneManifest, PermissionType, TabInfo};
+use zellij_tile::prelude::{InputMode, PaneManifest, TabInfo};
 
 use crate::config::ZellijState;
 
@@ -238,15 +238,6 @@ pub fn next_move(tabs: &[TabInfo], config: &GroupsConfig) -> Option<Move> {
             tab_id: target[position].tab_id,
             position,
         })
-}
-
-/// Permissions tab groups need beyond upstream's: moving tabs to keep groups
-/// together runs a Zellij action.
-pub fn extra_permissions(config: &BTreeMap<String, String>) -> Vec<PermissionType> {
-    match GroupsConfig::new(config) {
-        Some(groups) if groups.keep_together => vec![PermissionType::RunActionsAsUser],
-        _ => vec![],
-    }
 }
 
 /// Which groups are collapsed: a default and per-group choices.
@@ -1007,18 +998,5 @@ mod test {
         let mut changed = seen_from(&["api: a", "x", "api: b", "new"], 2);
         changed.tabs[3].tab_id = 42;
         assert_eq!(controller.keep_together(&changed), Some(to_group));
-    }
-
-    #[test]
-    fn moving_tabs_asks_for_one_more_permission() {
-        let groups = |extra: &[(&str, &str)]| {
-            let mut config = BTreeMap::from([("tab_groups".to_owned(), "true".to_owned())]);
-            config.extend(extra.iter().map(|(k, v)| (k.to_string(), v.to_string())));
-            extra_permissions(&config)
-        };
-
-        assert_eq!(groups(&[]), vec![PermissionType::RunActionsAsUser]);
-        assert_eq!(groups(&[("tab_group_keep_together", "false")]), vec![]);
-        assert_eq!(extra_permissions(&BTreeMap::new()), vec![]);
     }
 }

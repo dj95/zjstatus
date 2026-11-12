@@ -65,13 +65,15 @@ impl ZellijPlugin for State {
         // we need the ReadApplicationState permission to receive the ModeUpdate and TabUpdate
         // events
         // we need the RunCommands permission to run "cargo test" in a floating window
-        let mut permissions = vec![
+        request_permission(&[
             PermissionType::ReadApplicationState,
             PermissionType::ChangeApplicationState,
             PermissionType::RunCommands,
-        ];
-        permissions.extend(tab_groups::extra_permissions(&configuration));
-        request_permission(&permissions);
+            // Tab groups need it to move tabs. Requested whatever the config: Zellij replaces the
+            // saved grant for the plugin URL with each instance's requested set, so every bar
+            // must ask for the same set or the grant flips between bars.
+            PermissionType::RunActionsAsUser,
+        ]);
 
         subscribe(&[
             EventType::Mouse,

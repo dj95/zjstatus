@@ -89,10 +89,11 @@ active tab is in a collapsed group, the bar shows the group's label, the active 
   `api:` tab at the end of the bar moves straight to the other `api` tabs. This keeps the bar's order the same as
   Zellij's, so moving between tabs and the tab numbers follow the bar. Tabs don't move while you rename one.
 
-  The bar moves tabs through Zellij's plugin API, so turning groups on asks for one more permission: "Execute
-  actions as the user". A move puts a tab at a position, so repeating it changes nothing, and a move that changed
-  nothing isn't repeated until the tabs change. With `tab_group_keep_together "false"`, nothing moves, no extra
-  permission is needed, and only neighbouring tabs are grouped.
+  The bar moves tabs through Zellij's plugin API, with the permission "Execute actions as the user". The bar
+  always asks for it, even without groups: Zellij keeps one grant per plugin URL, so bars with different options
+  must ask for the same permissions. A move puts a tab at a position, so repeating it changes nothing, and a move
+  that changed nothing isn't repeated until the tabs change. With `tab_group_keep_together "false"`, nothing
+  moves, and only neighbouring tabs are grouped.
 - **Many tabs.** `tab_display_count` counts groups and plain tabs, not tabs, and the truncation formats' `{count}`
   is the number of groups and plain tabs left out.
 
@@ -152,8 +153,8 @@ From a shell: `zellij pipe "zjstatus::groups::toggle::api"`.
 - All of upstream's options and widgets keep working, so existing configs work unchanged. The
   [upstream wiki](https://github.com/dj95/zjstatus/wiki) documents them.
 - Releases need Zellij 0.46 or newer.
-- Tab groups ask for one more permission ("Execute actions as the user") to move tabs, unless
-  `tab_group_keep_together` is `false`. Configs without groups ask for the same permissions as upstream.
+- zjstatus asks for one more permission than upstream ("Execute actions as the user"), in every config. Switching
+  from upstream means granting permissions once more.
 - The plugins keep upstream's file names (`zjstatus.wasm`, `zjframes.wasm`) and its `zjstatus::` pipe messages,
   so switching between upstream and this fork only means changing the download URL.
 

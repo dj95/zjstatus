@@ -98,7 +98,8 @@ impl ZellijPlugin for State {
         self.widget_map = register_widgets(&configuration);
         self.focus_cwd_commands =
             zjstatus::widgets::command::focus_cwd_command_names(&configuration);
-        self.tab_groups = tab_groups::Controller::new(&configuration, get_plugin_ids().plugin_id);
+        self.tab_groups =
+            tab_groups::Controller::new(&configuration, get_plugin_ids().plugin_id).asking_zellij();
         self.userspace_configuration = configuration;
         self.pending_events = Vec::new();
         self.got_permissions = false;

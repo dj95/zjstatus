@@ -157,6 +157,11 @@ From a shell: `zellij pipe "zjstatus::groups::toggle::api"`. It returns once eve
 the message, so it waits as long as a plugin waits at its permission prompt (see
 [Granting permissions](#granting-permissions)).
 
+With several clients attached, the bar in each client's active tab acts on a message: Zellij doesn't tell the bar
+which client sent it. So a toggle from one client also toggles the group of the tab another client is on (and a
+named group once per client). Clicks, and the messages that set a state (`collapse::NAME`, `expand::NAME`,
+`collapse_all`, `expand_all`), don't have this problem.
+
 ## Granting permissions
 
 The bar asks for its permissions in the bar itself, where the prompt can't be answered: the one-row bar can't take

@@ -456,12 +456,25 @@ fn move_tab(tab_move: &Move) {
     let _ = action;
 }
 
+/// The id of the tab this instance's client is on, asked from Zellij
+/// (`ReadApplicationState`). Zellij sends tab updates only to the plugins of
+/// the tab a client is on, so the last one a bar in another tab got still
+/// shows its own tab as active.
+fn current_tab_id() -> Option<usize> {
+    zellij_tile::prelude::get_focused_pane_info()
+        .ok()
+        .map(|(tab_id, _)| tab_id)
+}
+
 /// The side of tab groups that runs in the plugin: shared state, keyboard
 /// commands and keeping the tabs of a group together.
 #[derive(Default)]
 pub struct Controller {
     config: Option<GroupsConfig>,
     plugin_id: Option<u32>,
+    /// Asks Zellij which tab is active (`current_tab_id`). Without it, the
+    /// last tab update tells.
+    current_tab: Option<fn() -> Option<usize>>,
     /// The tab order in which this instance last moved a tab, and the move.
     /// The same move isn't repeated in the same order: if it worked, the order
     /// changes; if it didn't, repeating it wouldn't help.
@@ -478,6 +491,15 @@ impl Controller {
         }
     }
 
+    /// Asks Zellij which tab is active before acting on a message. Not part of
+    /// `new`, so that tests, which run without Zellij, don't need it.
+    pub fn asking_zellij(self) -> Self {
+        Self {
+            current_tab: Some(current_tab_id),
+            ..self
+        }
+    }
+
     fn own_tab<'a>(&self, state: &'a ZellijState) -> Option<&'a TabInfo> {
         let position = own_tab_position(&state.panes, self.plugin_id?)?;
         state.tabs.iter().find(|tab| tab.position == position)
@@ -485,6 +507,15 @@ impl Controller {
 
     fn in_active_tab(&self, state: &ZellijState) -> bool {
         self.own_tab(state).is_some_and(|tab| tab.active)
+    }
+
+    /// Like `in_active_tab`, but asks Zellij which tab is active.
+    fn in_current_tab(&self, state: &ZellijState) -> bool {
+        let Some(current_tab) = self.current_tab else {
+            return self.in_active_tab(state);
+        };
+        self.own_tab(state)
+            .is_some_and(|tab| current_tab() == Some(tab.tab_id))
     }
 
     /// Reads the shared state again. Returns whether it changed.
@@ -510,7 +541,7 @@ impl Controller {
             return false;
         };
         let commands: Vec<Command> = input.lines().filter_map(parse_command).collect();
-        if commands.is_empty() || config.mode == CollapseMode::Auto || !self.in_active_tab(state) {
+        if commands.is_empty() || config.mode == CollapseMode::Auto || !self.in_current_tab(state) {
             return false;
         }
         let Some(path) = store::path(state.mode.session_name.as_deref()) else {
@@ -537,6 +568,8 @@ impl Controller {
     /// bar of a tab opened in the background until the tab is shown, so that
     /// bar can't move its own tab. With several clients, each client's active
     /// bar makes the same move, which puts a tab at a position, so they agree.
+    /// The bars of other tabs still see their own tab as active, but their tabs
+    /// haven't changed since it was: any move they find, they have made.
     pub fn keep_together(&mut self, state: &ZellijState) -> Option<Move> {
         let config = self.config.clone()?;
         if !config.keep_together
@@ -996,6 +1029,27 @@ mod test {
             }
             assert_eq!(controller.keep_together(&moved), None, "together now");
         }
+    }
+
+    /// Regression: Zellij sends tab updates only to the bars of the tab a
+    /// client is on, so the bars of other tabs still saw their own tab as
+    /// active, and acted on a toggle too, each on its own group.
+    #[test]
+    fn only_the_bar_of_the_tab_zellij_says_is_active_acts() {
+        let mut state = seen_from(&["api: a", "api: b*", "x"], 1);
+        let mut hidden = Controller {
+            current_tab: Some(|| Some(10)),
+            ..controller()
+        };
+        let mut shown = Controller {
+            current_tab: Some(|| Some(11)),
+            ..controller()
+        };
+
+        assert!(!hidden.handle_pipe(&mut state, "zjstatus::groups::toggle"));
+        assert!(!state.tab_groups.collapse.is_collapsed("api", false));
+        assert!(shown.handle_pipe(&mut state, "zjstatus::groups::toggle"));
+        assert!(state.tab_groups.collapse.is_collapsed("api", false));
     }
 
     #[test]

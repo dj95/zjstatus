@@ -100,8 +100,12 @@ active tab is in a collapsed group, the bar shows the group's label, the active 
 - **Many tabs.** `tab_display_count` counts groups and plain tabs, not tabs, and the truncation formats' `{count}`
   is the number of groups and plain tabs left out.
 
-Expanded and collapsed groups are remembered for each session while Zellij runs. Zellij deletes the plugin's data
-when it unloads the plugin, so they reset when Zellij restarts.
+Expanded and collapsed groups are the same in every tab, and are remembered for each session name, also when Zellij
+restarts. They are kept in a file per session name, `tab-groups-<session>`, in the plugin's cache folder, which
+Zellij keeps for each plugin URL (`<Zellij's cache folder>/<plugin URL>/plugin_cache`; the cache folder is
+`~/Library/Caches/org.Zellij-Contributors.Zellij` on macOS, `~/.cache/zellij` on Linux). So a new release URL starts
+with every group at its default, and the files of sessions you no longer use stay there (a few bytes each; delete
+them whenever you like).
 
 | Option | Default | Meaning |
 | --- | --- | --- |
@@ -152,6 +156,11 @@ keybinds {
 From a shell: `zellij pipe "zjstatus::groups::toggle::api"`. It returns once every plugin in the session has read
 the message, so it waits as long as a plugin waits at its permission prompt (see
 [Granting permissions](#granting-permissions)).
+
+With several clients attached, the bar in each client's active tab acts on a message: Zellij doesn't tell the bar
+which client sent it. So a toggle from one client also toggles the group of the tab another client is on (and a
+named group once per client). Clicks, and the messages that set a state (`collapse::NAME`, `expand::NAME`,
+`collapse_all`, `expand_all`), don't have this problem.
 
 ## Granting permissions
 

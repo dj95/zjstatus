@@ -5,7 +5,7 @@ use std::{cmp, collections::BTreeMap};
 use zellij_tile::prelude::{AttentionCounts, InputMode, TabInfo};
 
 use crate::{
-    attention::{ATTENTION_COUNTS_TOKEN, ATTENTION_TOKEN, Chunk, render_parts, split_tokens},
+    attention::{render_parts, split_tokens, Chunk, ATTENTION_COUNTS_TOKEN, ATTENTION_TOKEN},
     config::ZellijState,
     render::FormattedPart,
     tab_groups::{self, CollapseMode, Group, GroupsConfig, Item},
@@ -211,8 +211,11 @@ impl TabsWidget {
     ) {
         let active = group.active();
         let tabs: Vec<&TabInfo> = group.members.iter().map(|(tab, _)| *tab).collect();
-        let collapsed = self.is_collapsed(groups, &group.name, state, active.is_some());
+        // A group of one tab never collapses, and its label goes to the tab.
+        let collapsed =
+            group.collapsible() && self.is_collapsed(groups, &group.name, state, active.is_some());
         let label_action = match groups.config.mode {
+            _ if !group.collapsible() => tabs.first().map(|tab| Action::Switch(tab.position)),
             CollapseMode::Manual => Some(Action::Toggle(group.name.clone())),
             // Collapsing follows the active tab: clicking a group goes to it.
             CollapseMode::Auto => match collapsed {
@@ -463,7 +466,7 @@ mod test {
 
         assert_eq!(
             shown(&widget(&[]), &state),
-            " notes |api:<auth>| billing | web: ui "
+            " notes |api:<auth>| billing |web: ui "
         );
     }
 
@@ -474,7 +477,7 @@ mod test {
 
         assert_eq!(
             shown(&widget, &state),
-            " notes  ⋮ api:<a>| b  ⋮  web: x | misc "
+            " notes  ⋮ api:<a>| b  ⋮ web: x  ⋮  misc "
         );
     }
 
@@ -522,6 +525,30 @@ mod test {
     }
 
     #[test]
+    fn a_group_of_one_tab_shows_its_label_and_never_collapses() {
+        let lone = widget(&[]);
+        let tabs = collapse(state(&["notes", "solo: x", "api: a*", "api: b"]), "solo");
+        // " notes |solo: x |api:<a>| b "
+        assert_eq!(shown(&lone, &tabs), " notes |solo: x |api:<a>| b ");
+        assert_eq!(
+            click(&lone, &tabs, 8),
+            Some(Action::Switch(1)),
+            "its label goes to its tab"
+        );
+        assert_eq!(click(&lone, &tabs, 13), Some(Action::Switch(1)));
+
+        for extra in [
+            ("tab_group_start_collapsed", "true"),
+            ("tab_group_collapse", "auto"),
+        ] {
+            let lone = widget(&[extra]);
+            let tabs = state(&["solo: x", "api: a", "api: b*"]);
+            let bar = shown(&lone, &tabs);
+            assert!(bar.starts_with("solo: x |"), "{extra:?}: {bar}");
+        }
+    }
+
+    #[test]
     fn renaming_shows_the_full_name() {
         let mut state = state(&["api: a*", "api: b"]);
         state.mode = ModeInfo {
@@ -537,7 +564,7 @@ mod test {
         let widget = widget(&[("tab_normal", " {attention}{name} ")]);
         let state = state(&["notes*", "api: a~", "api: b", "web: x~"]);
 
-        assert_eq!(shown(&widget, &state), "<notes>|api: ◐a | b | ◐web: x ");
+        assert_eq!(shown(&widget, &state), "<notes>|api: ◐a | b |web: ◐x ");
     }
 
     #[test]

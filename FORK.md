@@ -69,9 +69,11 @@ format_right "{attention}"
 
 Turn groups on with `tab_groups "true"`. A tab named `prefix: name` belongs to the group `prefix`. The prefix ends
 at the first `:`, and spaces around it don't matter: `api:auth` is in `api` too. To group only names with a space
-after the colon, set `tab_group_delimiter ": "`. Grouping is optional: tabs without a prefix stay plain tabs, and a
-group is shown only when at least two tabs share its prefix. A single `api: auth` is a plain tab under its full
-name. Inside a group, tabs are shown without the prefix (while you rename a tab, it shows its full name).
+after the colon, set `tab_group_delimiter ": "`. Grouping is optional: tabs without a prefix stay plain tabs. Every
+prefixed tab is in a group, so a prefix always looks the same: a single `api: auth` is a group of one, its label and
+then `auth`. A group of one never collapses (there is nothing to hide), whatever its saved state,
+`tab_group_start_collapsed` or `auto` mode: clicking its label goes to its tab, and the messages without a group
+name skip it. Inside a group, tabs are shown without the prefix (while you rename a tab, it shows its full name).
 
 ```
  notes ┃ api: ◐auth ⋮ billing ⋮ search ┃ web +3 ●1 ◐1

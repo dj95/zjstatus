@@ -22,7 +22,6 @@ pub enum CollapseMode {
 #[derive(Clone, Debug, PartialEq)]
 pub struct GroupsConfig {
     pub delimiter: String,
-    pub min_size: usize,
     pub mode: CollapseMode,
     pub start_collapsed: bool,
     pub keep_together: bool,
@@ -45,7 +44,6 @@ impl GroupsConfig {
         };
         Some(Self {
             delimiter,
-            min_size: 2,
             mode,
             start_collapsed: config.get("tab_group_start_collapsed").map(String::as_str)
                 == Some("true"),
@@ -77,6 +75,12 @@ impl<'a> Group<'a> {
             .map(|(tab, _)| *tab)
             .find(|tab| tab.active)
     }
+
+    /// A group of one tab shows its label like any group, but there is
+    /// nothing to collapse.
+    pub fn collapsible(&self) -> bool {
+        self.members.len() > 1
+    }
 }
 
 /// What the tab bar shows at the top level: plain tabs and groups.
@@ -99,10 +103,11 @@ impl<'a> Item<'a> {
     }
 }
 
-/// Groups the tabs. A prefix shared by fewer than `min_size` tabs makes no
-/// group. With `keep_together`, a group gathers all its tabs at the place of
-/// its first one (the tabs are then moved there, see `next_move`); otherwise
-/// only tabs next to each other are grouped.
+/// Groups the tabs: every prefixed tab is in a group, so a prefix always
+/// looks the same (a group of one tab can't collapse). With `keep_together`,
+/// a group gathers all its tabs at the place of its first one (the tabs are
+/// then moved there, see `next_move`); otherwise only tabs next to each other
+/// are grouped.
 pub fn build_items<'a>(tabs: &'a [TabInfo], config: &GroupsConfig) -> Vec<Item<'a>> {
     let mut sorted: Vec<&TabInfo> = tabs.iter().collect();
     sorted.sort_by_key(|tab| tab.position);
@@ -112,17 +117,11 @@ pub fn build_items<'a>(tabs: &'a [TabInfo], config: &GroupsConfig) -> Vec<Item<'
         .collect();
 
     if config.keep_together {
-        let mut sizes: HashMap<&str, usize> = HashMap::new();
-        for (_, split) in &prefixed {
-            if let Some((prefix, _)) = split {
-                *sizes.entry(prefix).or_default() += 1;
-            }
-        }
         let mut items: Vec<Item> = vec![];
         let mut group_index: HashMap<&str, usize> = HashMap::new();
         for (tab, split) in prefixed {
             match split {
-                Some((prefix, rest)) if sizes[prefix] >= config.min_size => {
+                Some((prefix, rest)) => {
                     let member = (tab, rest.to_owned());
                     match group_index.get(prefix) {
                         Some(index) => {
@@ -139,7 +138,7 @@ pub fn build_items<'a>(tabs: &'a [TabInfo], config: &GroupsConfig) -> Vec<Item<'
                         }
                     }
                 }
-                _ => items.push(Item::Tab(tab)),
+                None => items.push(Item::Tab(tab)),
             }
         }
         return items;
@@ -151,43 +150,36 @@ pub fn build_items<'a>(tabs: &'a [TabInfo], config: &GroupsConfig) -> Vec<Item<'
         match split {
             Some((prefix, rest)) => {
                 if run.first().is_some_and(|(_, first, _)| *first != prefix) {
-                    flush_run(&mut run, &mut items, config.min_size);
+                    flush_run(&mut run, &mut items);
                 }
                 run.push((tab, prefix, rest));
             }
             None => {
-                flush_run(&mut run, &mut items, config.min_size);
+                flush_run(&mut run, &mut items);
                 items.push(Item::Tab(tab));
             }
         }
     }
-    flush_run(&mut run, &mut items, config.min_size);
+    flush_run(&mut run, &mut items);
     items
 }
 
-/// Adds a run of neighbouring tabs with the same prefix: a group if it is
-/// big enough, plain tabs otherwise.
-fn flush_run<'a>(
-    run: &mut Vec<(&'a TabInfo, &'a str, &'a str)>,
-    items: &mut Vec<Item<'a>>,
-    min_size: usize,
-) {
-    if run.len() >= min_size {
+/// Adds a run of neighbouring tabs with the same prefix, as a group.
+fn flush_run<'a>(run: &mut Vec<(&'a TabInfo, &'a str, &'a str)>, items: &mut Vec<Item<'a>>) {
+    if let Some((_, prefix, _)) = run.first() {
         items.push(Item::Group(Group {
-            name: run[0].1.to_owned(),
+            name: prefix.to_string(),
             members: run
                 .iter()
                 .map(|(tab, _, rest)| (*tab, rest.to_string()))
                 .collect(),
         }));
-    } else {
-        items.extend(run.iter().map(|(tab, _, _)| Item::Tab(tab)));
     }
     run.clear();
 }
 
-/// The groups commands act on: the shown groups, and the one holding the
-/// active tab.
+/// The groups commands act on: the shown groups that can collapse, and the
+/// one holding the active tab.
 #[derive(Debug, Default, PartialEq)]
 pub struct Shown {
     pub groups: Vec<String>,
@@ -198,6 +190,9 @@ pub fn shown_groups(tabs: &[TabInfo], config: &GroupsConfig) -> Shown {
     let mut shown = Shown::default();
     for item in build_items(tabs, config) {
         if let Item::Group(group) = item {
+            if !group.collapsible() {
+                continue;
+            }
             if group.active().is_some() {
                 shown.active = Some(group.name.clone());
             }
@@ -664,13 +659,33 @@ mod test {
     }
 
     #[test]
-    fn a_prefix_needs_two_tabs_to_make_a_group() {
+    fn a_lone_prefixed_tab_is_a_group_of_one() {
         let tabs = tabs(&["notes", "api: auth", "web: ui", "api: billing"]);
 
         assert_eq!(
             shape(&build_items(&tabs, &config())),
-            ["notes", "api[auth, billing]", "web: ui"],
+            ["notes", "api[auth, billing]", "web[ui]"],
         );
+    }
+
+    #[test]
+    fn groups_of_one_tab_are_not_command_targets() {
+        let config = config();
+        let shown = shown_groups(&tabs(&["solo: x*", "api: a", "api: b"]), &config);
+        assert_eq!(
+            shown,
+            Shown {
+                groups: names(&["api"]),
+                active: None,
+            }
+        );
+        let mut state = CollapseState::default();
+        assert!(
+            !apply(&mut state, &Command::Toggle(None), &shown, &config),
+            "toggling in a group of one does nothing"
+        );
+        assert!(apply(&mut state, &Command::ToggleAll, &shown, &config));
+        assert!(state.is_collapsed("api", false));
     }
 
     #[test]
@@ -683,7 +698,7 @@ mod test {
 
         assert_eq!(
             shape(&build_items(&tabs, &config)),
-            ["api[a, b]", "notes", "api: c", "web[x, y]"],
+            ["api[a, b]", "notes", "api[c]", "web[x, y]"],
         );
     }
 

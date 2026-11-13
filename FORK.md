@@ -67,10 +67,11 @@ format_right "{attention}"
 
 ## Tab groups
 
-Turn groups on with `tab_groups "true"`. A tab named `prefix: name` belongs to the group `prefix`. Grouping is
-optional: tabs without a prefix stay plain tabs, and a group is shown only when at least two tabs share its prefix.
-A single `api: auth` is a plain tab under its full name. Inside a group, tabs are shown without the prefix (while
-you rename a tab, it shows its full name).
+Turn groups on with `tab_groups "true"`. A tab named `prefix: name` belongs to the group `prefix`. The prefix ends
+at the first `:`, and spaces around it don't matter: `api:auth` is in `api` too. To group only names with a space
+after the colon, set `tab_group_delimiter ": "`. Grouping is optional: tabs without a prefix stay plain tabs, and a
+group is shown only when at least two tabs share its prefix. A single `api: auth` is a plain tab under its full
+name. Inside a group, tabs are shown without the prefix (while you rename a tab, it shows its full name).
 
 ```
  notes ┃ api: ◐auth ⋮ billing ⋮ search ┃ web +3 ●1 ◐1
@@ -86,14 +87,16 @@ active tab is in a collapsed group, the bar shows the group's label, the active 
   `tab_group_collapse "auto"`, only the group of the active tab is expanded, and clicking a collapsed group goes to
   it.
 - **Keeping groups together.** A group's tabs are moved next to each other, at the place of its first tab. A new
-  `api:` tab at the end of the bar moves straight to the other `api` tabs. This keeps the bar's order the same as
-  Zellij's, so moving between tabs and the tab numbers follow the bar. Tabs don't move while you rename one.
+  `api:` tab at the end of the bar moves straight to the other `api` tabs, even one opened in the background. This
+  keeps the bar's order the same as Zellij's, so moving between tabs and the tab numbers follow the bar. Tabs don't
+  move while you rename one.
 
-  The bar moves tabs through Zellij's plugin API, with the permission "Execute actions as the user". The bar
-  always asks for it, even without groups: Zellij keeps one grant per plugin URL, so bars with different options
-  must ask for the same permissions. A move puts a tab at a position, so repeating it changes nothing, and a move
-  that changed nothing isn't repeated until the tabs change. With `tab_group_keep_together "false"`, nothing
-  moves, and only neighbouring tabs are grouped.
+  The bar of the active tab moves the tabs (Zellij doesn't update the bar of a tab that hasn't been shown yet),
+  through Zellij's plugin API, with the permission "Execute actions as the user". The bar always asks for it, even
+  without groups: Zellij keeps one grant per plugin URL, so bars with different options must ask for the same
+  permissions. A move puts a tab at a position, so repeating it changes nothing, and a move that changed nothing
+  isn't repeated until the tabs change. With `tab_group_keep_together "false"`, nothing moves, and only
+  neighbouring tabs are grouped.
 - **Many tabs.** `tab_display_count` counts groups and plain tabs, not tabs, and the truncation formats' `{count}`
   is the number of groups and plain tabs left out.
 
@@ -103,7 +106,7 @@ when it unloads the plugin, so they reset when Zellij restarts.
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `tab_groups` | `false` | `true` turns groups on |
-| `tab_group_delimiter` | `:` | what separates the prefix from the name |
+| `tab_group_delimiter` | `:` | what separates the prefix from the name (at its first occurrence) |
 | `tab_group_collapse` | `manual` | `manual` or `auto` (only the active tab's group is expanded) |
 | `tab_group_start_collapsed` | `false` | `true`: groups start collapsed (manual mode) |
 | `tab_group_keep_together` | `true` | move a group's tabs next to each other |
@@ -146,7 +149,30 @@ keybinds {
 }
 ```
 
-From a shell: `zellij pipe "zjstatus::groups::toggle::api"`.
+From a shell: `zellij pipe "zjstatus::groups::toggle::api"`. It returns once every plugin in the session has read
+the message, so it waits as long as a plugin waits at its permission prompt (see
+[Granting permissions](#granting-permissions)).
+
+## Granting permissions
+
+The bar asks for its permissions in the bar itself, where the prompt can't be answered: the one-row bar can't take
+focus. Grant them from a floating copy of the bar instead, which asks for the same permissions whatever the bar's
+options. With the URL from your layout:
+
+```sh
+zellij plugin -f -- "https://github.com/ag14774/ade-zjstatus/releases/download/<version>/zjstatus.wasm"
+```
+
+Press `y` in the floating pane, then close it. Zellij stores grants per plugin URL, so each new release URL (or
+file path) needs a new grant. Bars that already show the prompt keep showing it, and Zellij holds every
+`zellij pipe` while they do: close their tabs, or restart the session.
+
+## Each tab has its own bar
+
+Zellij starts a bar in each tab with the options from the layout the tab was opened with, and the bar of the tab you
+are on draws all tabs and keeps their groups together. After you change the bar's options, tabs opened before keep
+their old bar until you reopen them. A saved session keeps the bars it was saved with, so its tabs draw the old bar
+when it is resurrected.
 
 ## Compatibility
 
@@ -154,7 +180,7 @@ From a shell: `zellij pipe "zjstatus::groups::toggle::api"`.
   [upstream wiki](https://github.com/dj95/zjstatus/wiki) documents them.
 - Releases need Zellij 0.46 or newer.
 - zjstatus asks for one more permission than upstream ("Execute actions as the user"), in every config. Switching
-  from upstream means granting permissions once more.
+  from upstream means granting permissions once more (see [Granting permissions](#granting-permissions)).
 - The plugins keep upstream's file names (`zjstatus.wasm`, `zjframes.wasm`) and its `zjstatus::` pipe messages,
   so switching between upstream and this fork only means changing the download URL.
 

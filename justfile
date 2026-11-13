@@ -28,7 +28,7 @@ run target="zjstatus": build
 
 # Watch and run tests with nextest.
 test:
-  cargo watch -x "nextest run --lib"
+  cargo watch -x "nextest run --lib --bin zjstatus"
 
 # Lint with clippy and cargo audit.
 lint:

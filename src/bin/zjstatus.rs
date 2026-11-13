@@ -98,7 +98,7 @@ impl ZellijPlugin for State {
         self.widget_map = register_widgets(&configuration);
         self.focus_cwd_commands =
             zjstatus::widgets::command::focus_cwd_command_names(&configuration);
-        self.tab_groups = tab_groups::Controller::new(&configuration);
+        self.tab_groups = tab_groups::Controller::new(&configuration, get_plugin_ids().plugin_id);
         self.userspace_configuration = configuration;
         self.pending_events = Vec::new();
         self.got_permissions = false;
@@ -123,14 +123,8 @@ impl ZellijPlugin for State {
     }
 
     fn pipe(&mut self, pipe_message: PipeMessage) -> bool {
+        let groups_changed = self.handle_tab_group_pipe(&pipe_message);
         let mut should_render = false;
-
-        if let Some(input) = &pipe_message.payload
-            && self.tab_groups.handle_pipe(&mut self.state, input)
-        {
-            self.state.cache_mask = UpdateEventMask::Tab as u8;
-            should_render = true;
-        }
 
         match pipe_message.source {
             PipeSource::Cli(_) => {
@@ -151,7 +145,7 @@ impl ZellijPlugin for State {
             PipeSource::PromptRequest { .. } => {}
         }
 
-        should_render
+        should_render || groups_changed
     }
 
     #[tracing::instrument(skip_all, fields(event_type))]
@@ -202,6 +196,19 @@ impl ZellijPlugin for State {
 }
 
 impl State {
+    /// Handles `zjstatus::groups::...` messages. Returns whether the bar
+    /// changed.
+    fn handle_tab_group_pipe(&mut self, pipe_message: &PipeMessage) -> bool {
+        let changed = pipe_message
+            .payload
+            .as_deref()
+            .is_some_and(|input| self.tab_groups.handle_pipe(&mut self.state, input));
+        if changed {
+            self.state.cache_mask = UpdateEventMask::Tab as u8;
+        }
+        changed
+    }
+
     /// Reads the shared tab group state again. Returns whether it changed.
     fn reload_tab_groups(&mut self) -> bool {
         let changed = self.tab_groups.reload(&mut self.state);
@@ -464,6 +471,67 @@ fn register_widgets(configuration: &BTreeMap<String, String>) -> BTreeMap<String
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::collections::HashMap;
+
+    /// A bar with groups, in the active tab of `api: a`, `api: b`.
+    fn grouped_bar() -> State {
+        let configuration = BTreeMap::from([("tab_groups".to_owned(), "true".to_owned())]);
+        let mut bar = State {
+            tab_groups: tab_groups::Controller::new(&configuration, 7),
+            ..State::default()
+        };
+        bar.state.tabs = ["api: a", "api: b"]
+            .iter()
+            .enumerate()
+            .map(|(position, name)| TabInfo {
+                position,
+                tab_id: position,
+                name: name.to_string(),
+                active: position == 0,
+                ..TabInfo::default()
+            })
+            .collect();
+        let own_pane = PaneInfo {
+            id: 7,
+            is_plugin: true,
+            ..PaneInfo::default()
+        };
+        bar.state.panes.panes = HashMap::from([(0, vec![own_pane])]);
+        bar.state.mode.session_name = Some("test".to_owned());
+        bar
+    }
+
+    fn message(source: PipeSource, payload: &str) -> PipeMessage {
+        PipeMessage::new(source, "zjstatus", &Some(payload.to_owned()), &None, false)
+    }
+
+    /// Regression: the upstream messages' result overwrote the group change, so
+    /// a keybinding's toggle showed only at the next Zellij event.
+    #[test]
+    fn a_group_command_redraws_the_bar_whatever_its_source() {
+        for source in [
+            PipeSource::Keybind,
+            PipeSource::Cli("pipe-id".to_owned()),
+            PipeSource::Plugin(1),
+        ] {
+            let mut bar = grouped_bar();
+
+            assert!(
+                bar.pipe(message(source.clone(), "zjstatus::groups::toggle")),
+                "{source:?}"
+            );
+            assert!(bar.state.tab_groups.collapse.is_collapsed("api", false));
+            assert_eq!(bar.state.cache_mask, UpdateEventMask::Tab as u8);
+        }
+    }
+
+    #[test]
+    fn other_messages_redraw_only_if_they_change_something() {
+        let mut bar = grouped_bar();
+
+        assert!(bar.pipe(message(PipeSource::Keybind, "zjstatus::notify::hello")));
+        assert!(!bar.pipe(message(PipeSource::Keybind, "something else")));
+    }
 
     #[test]
     fn set_focused_pane_cwd_only_invalidates_on_change() {

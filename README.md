@@ -205,7 +205,7 @@ With the toolchain, simply build `zjstatus` with `cargo build`. `just run` build
 with the development layout (`tests/zjstatus/layout.kdl`); `just run zjframes` does the same for *zjframes*.
 
 The tests run in [wasmtime](https://wasmtime.dev) with [cargo-nextest](https://nexte.st). With both installed,
-run them with `cargo nextest run --lib`.
+run them with `cargo nextest run --lib --bin zjstatus`.
 
 ## 🤝 Contributing
 

@@ -459,35 +459,29 @@ fn move_tab(tab_move: &Move) {
 pub struct Controller {
     config: Option<GroupsConfig>,
     plugin_id: Option<u32>,
-    /// The tab order in which this instance last moved its tab, and the move.
+    /// The tab order in which this instance last moved a tab, and the move.
     /// The same move isn't repeated in the same order: if it worked, the order
     /// changes; if it didn't, repeating it wouldn't help.
     last_move: Option<(Vec<usize>, Move)>,
 }
 
 impl Controller {
-    pub fn new(config: &BTreeMap<String, String>) -> Self {
+    /// `plugin_id` is this instance's, to find its own tab.
+    pub fn new(config: &BTreeMap<String, String>, plugin_id: u32) -> Self {
         Self {
             config: GroupsConfig::new(config),
+            plugin_id: Some(plugin_id),
             ..Self::default()
         }
     }
 
-    fn plugin_id(&mut self) -> u32 {
-        if let Some(id) = self.plugin_id {
-            return id;
-        }
-        #[cfg(not(test))]
-        let id = zellij_tile::prelude::get_plugin_ids().plugin_id;
-        #[cfg(test)]
-        let id = 0;
-        self.plugin_id = Some(id);
-        id
+    fn own_tab<'a>(&self, state: &'a ZellijState) -> Option<&'a TabInfo> {
+        let position = own_tab_position(&state.panes, self.plugin_id?)?;
+        state.tabs.iter().find(|tab| tab.position == position)
     }
 
-    fn own_tab<'a>(&mut self, state: &'a ZellijState) -> Option<&'a TabInfo> {
-        let position = own_tab_position(&state.panes, self.plugin_id())?;
-        state.tabs.iter().find(|tab| tab.position == position)
+    fn in_active_tab(&self, state: &ZellijState) -> bool {
+        self.own_tab(state).is_some_and(|tab| tab.active)
     }
 
     /// Reads the shared state again. Returns whether it changed.
@@ -513,10 +507,7 @@ impl Controller {
             return false;
         };
         let commands: Vec<Command> = input.lines().filter_map(parse_command).collect();
-        if commands.is_empty()
-            || config.mode == CollapseMode::Auto
-            || !self.own_tab(state).is_some_and(|tab| tab.active)
-        {
+        if commands.is_empty() || config.mode == CollapseMode::Auto || !self.in_active_tab(state) {
             return false;
         }
         let Some(path) = store::path(state.mode.session_name.as_deref()) else {
@@ -536,11 +527,19 @@ impl Controller {
         changed
     }
 
-    /// After a tab update: moves this instance's tab if it is the tab that has
-    /// to move to keep its group together. Returns the move.
+    /// After a tab update: if this instance is in the active tab, makes the
+    /// next move that keeps the groups together. Returns the move.
+    ///
+    /// Only the active tab's bar moves tabs: Zellij sends no tab updates to the
+    /// bar of a tab opened in the background until the tab is shown, so that
+    /// bar can't move its own tab. With several clients, each client's active
+    /// bar makes the same move, which puts a tab at a position, so they agree.
     pub fn keep_together(&mut self, state: &ZellijState) -> Option<Move> {
         let config = self.config.clone()?;
-        if !config.keep_together || state.mode.mode == InputMode::RenameTab {
+        if !config.keep_together
+            || state.mode.mode == InputMode::RenameTab
+            || !self.in_active_tab(state)
+        {
             return None;
         }
         let tab_move = next_move(&state.tabs, &config)?;
@@ -548,9 +547,7 @@ impl Controller {
         order.sort_by_key(|tab| tab.position);
         let order: Vec<usize> = order.iter().map(|tab| tab.tab_id).collect();
         let attempt = (order, tab_move.clone());
-        if self.last_move.as_ref() == Some(&attempt)
-            || self.own_tab(state).map(|tab| tab.tab_id) != Some(tab_move.tab_id)
-        {
+        if self.last_move.as_ref() == Some(&attempt) {
             return None;
         }
         tracing::debug!("moving tab {tab_move:?} to keep its group together");
@@ -623,6 +620,8 @@ mod test {
             Some(("api", "auth: x"))
         );
         assert_eq!(split_prefix("api/auth", "/"), Some(("api", "auth")));
+        assert_eq!(split_prefix("api: auth", ": "), Some(("api", "auth")));
+        assert_eq!(split_prefix("api:auth", ": "), None);
         assert_eq!(split_prefix("notes", ":"), None);
         assert_eq!(split_prefix("api:", ":"), None);
         assert_eq!(split_prefix(": auth", ":"), None);
@@ -945,39 +944,54 @@ mod test {
         }
     }
 
+    /// Regression: a tab opened in the background moved only once it had been
+    /// shown, as only its own bar moved it, and that bar gets no tab updates
+    /// until then.
     #[test]
-    fn moves_its_own_tab_to_its_group() {
-        let mut controller = controller();
-        let state = seen_from(&["api: a", "x", "y", "api: b"], 3);
+    fn the_active_tabs_bar_moves_any_tab_to_its_group() {
         let to_group = Move {
             tab_id: 13,
             position: 1,
         };
+        // The tabs, and the bar's tab before and after the move.
+        for (names, own, own_after) in [
+            (["api: a*", "x", "y", "api: b"], 0, 0),
+            (["api: a", "x", "y", "api: b*"], 3, 1),
+        ] {
+            let mut controller = controller();
+            let state = seen_from(&names, own);
 
-        assert_eq!(controller.keep_together(&state), Some(to_group));
-        assert_eq!(
-            controller.keep_together(&state),
-            None,
-            "not repeated in the same order"
-        );
+            assert_eq!(
+                controller.keep_together(&state),
+                Some(to_group.clone()),
+                "{names:?}"
+            );
+            assert_eq!(
+                controller.keep_together(&state),
+                None,
+                "not repeated in the same order"
+            );
 
-        let mut moved = seen_from(&["api: a", "api: b", "x", "y"], 1);
-        for (tab, id) in moved.tabs.iter_mut().zip([10, 13, 11, 12]) {
-            tab.tab_id = id;
+            let mut moved = seen_from(&[names[0], names[3], names[1], names[2]], own_after);
+            for (tab, id) in moved.tabs.iter_mut().zip([10, 13, 11, 12]) {
+                tab.tab_id = id;
+            }
+            assert_eq!(controller.keep_together(&moved), None, "together now");
         }
-        assert_eq!(controller.keep_together(&moved), None, "together now");
     }
 
     #[test]
-    fn only_the_tab_that_has_to_move_moves() {
-        let state = seen_from(&["api: a", "x", "api: b"], 1);
+    fn bars_of_inactive_tabs_move_nothing() {
+        for own in [1, 2] {
+            let state = seen_from(&["api: a*", "x", "api: b"], own);
 
-        assert_eq!(controller().keep_together(&state), None);
+            assert_eq!(controller().keep_together(&state), None, "tab {own}");
+        }
     }
 
     #[test]
     fn nothing_moves_while_a_tab_is_renamed() {
-        let mut state = seen_from(&["api: a", "x", "api: b"], 2);
+        let mut state = seen_from(&["api: a*", "x", "api: b"], 0);
         state.mode.mode = InputMode::RenameTab;
 
         assert_eq!(controller().keep_together(&state), None);
@@ -986,7 +1000,7 @@ mod test {
     #[test]
     fn a_move_that_did_nothing_is_retried_only_after_the_tabs_change() {
         let mut controller = controller();
-        let state = seen_from(&["api: a", "x", "api: b"], 2);
+        let state = seen_from(&["api: a*", "x", "api: b"], 0);
         let to_group = Move {
             tab_id: 12,
             position: 1,
@@ -995,7 +1009,7 @@ mod test {
         assert_eq!(controller.keep_together(&state), Some(to_group.clone()));
         assert_eq!(controller.keep_together(&state), None);
 
-        let mut changed = seen_from(&["api: a", "x", "api: b", "new"], 2);
+        let mut changed = seen_from(&["api: a*", "x", "api: b", "new"], 0);
         changed.tabs[3].tab_id = 42;
         assert_eq!(controller.keep_together(&changed), Some(to_group));
     }

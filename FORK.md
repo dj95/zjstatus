@@ -100,8 +100,12 @@ active tab is in a collapsed group, the bar shows the group's label, the active 
 - **Many tabs.** `tab_display_count` counts groups and plain tabs, not tabs, and the truncation formats' `{count}`
   is the number of groups and plain tabs left out.
 
-Expanded and collapsed groups are remembered for each session while Zellij runs. Zellij deletes the plugin's data
-when it unloads the plugin, so they reset when Zellij restarts.
+Expanded and collapsed groups are the same in every tab, and are remembered for each session name, also when Zellij
+restarts. They are kept in a file per session name, `tab-groups-<session>`, in the plugin's cache folder, which
+Zellij keeps for each plugin URL (`<Zellij's cache folder>/<plugin URL>/plugin_cache`; the cache folder is
+`~/Library/Caches/org.Zellij-Contributors.Zellij` on macOS, `~/.cache/zellij` on Linux). So a new release URL starts
+with every group at its default, and the files of sessions you no longer use stay there (a few bytes each; delete
+them whenever you like).
 
 | Option | Default | Meaning |
 | --- | --- | --- |

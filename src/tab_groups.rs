@@ -1,7 +1,7 @@
 //! Tab groups: tabs named `prefix: name` are grouped under `prefix`.
 //!
 //! Every tab runs its own instance of the bar. The collapsed groups are kept
-//! in a file in the plugin's `/data` folder, which all instances share: the
+//! in a file in the plugin's `/cache` folder, which all instances share: the
 //! instance that changes them writes the file, and the others read it again
 //! on tab updates and on their timer.
 
@@ -397,7 +397,10 @@ pub fn own_tab_position(panes: &PaneManifest, plugin_id: u32) -> Option<usize> {
 pub mod store {
     use super::CollapseState;
 
-    /// The file for a session, in the plugin's `/data` folder.
+    /// The file for a session, in the plugin's `/cache` folder. Zellij 0.46
+    /// gives each instance its own `/data` folder (its docs still say it is
+    /// shared), but one `/cache` folder to all instances of a plugin URL, in
+    /// every session, and keeps it when they unload.
     pub fn path(session: Option<&str>) -> Option<String> {
         let session: String = session?
             .chars()
@@ -409,7 +412,7 @@ pub mod store {
                 }
             })
             .collect();
-        Some(format!("/data/tab-groups-{session}"))
+        Some(format!("/cache/tab-groups-{session}"))
     }
 
     pub fn read(path: &str) -> CollapseState {
@@ -760,6 +763,21 @@ mod test {
                 groups: BTreeMap::from([("x".to_owned(), true)]),
             }
         );
+    }
+
+    /// Regression: the file was in `/data`, which Zellij gives each instance
+    /// for itself, so each tab's bar kept its own collapsed groups.
+    #[test]
+    fn the_file_is_in_the_folder_all_instances_share() {
+        assert_eq!(
+            store::path(Some("main")).as_deref(),
+            Some("/cache/tab-groups-main")
+        );
+        assert_eq!(
+            store::path(Some("my session/2")).as_deref(),
+            Some("/cache/tab-groups-my_session_2")
+        );
+        assert_eq!(store::path(None), None);
     }
 
     #[test]
